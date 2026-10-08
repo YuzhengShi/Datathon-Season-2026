@@ -22,7 +22,10 @@ from tests.support import AS_OF
 from tests.test_adapters import DETAIL, ISC_HTML, LISTING, UBC_LIKE
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES = {s.source_id: dataclasses.replace(s, max_pages=None) for s in load_sources(ROOT / "sources.yaml")}
+SOURCES = {
+    s.source_id: dataclasses.replace(s, max_pages=None, access_status="unreviewed")
+    for s in load_sources(ROOT / "sources.yaml")
+}
 SIMPLE = b"<html><body><main><h1>Channel page (synthetic)</h1><p>Contact the local education office.</p></main></body></html>"
 POLICY = b"<html><body><main><h1>Apply now</h1><p>Submit one application form. The deadline is on each award.</p></main></body></html>"
 
@@ -76,6 +79,8 @@ class LivePipelineTests(unittest.TestCase):
         stripped = re.sub(
             r"(?m)^(?:    max_pages:|include:).*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8")
         )
+        # the shipped file marks the two UBC pages restricted (HTTP 403); these tests exercise the generic pipeline
+        stripped = stripped.replace("access_status: restricted", "access_status: unreviewed")
         (self.data / "sources.test.yaml").write_text(stripped, encoding="utf-8")
         self.rt = derive_runtime(
             {
@@ -185,6 +190,7 @@ class LivePipelineTests(unittest.TestCase):
 
     def test_restricted_sources_are_not_fetched(self):
         text = re.sub(r"(?m)^include:.*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8"))
+        text = text.replace("access_status: restricted", "access_status: unreviewed")
         marked = text.replace(
             'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: unreviewed',
             'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: restricted',

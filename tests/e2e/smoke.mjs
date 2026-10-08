@@ -158,7 +158,16 @@ async function desktop(cdp) {
   check('the detail page says where the information comes from', (await page.eval(text('main'))).includes('Where this information comes from'));
   await page.shot('detail-desktop');
 
-  check('nothing is stored in the browser (no cookies, local or session storage)', await page.eval(`document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
+  await page.go(`${BASE}/app/#/results?browse=1`);
+  await page.waitFor(`document.querySelectorAll('.card').length > 5`, 'the browse-everything results');
+  await page.setValue('.search__input', 'Laura Finch');
+  await page.waitFor(`${count('.results__count')} === 1`, 'the search for one award');
+  await page.click('.card .card__title a');
+  await page.waitFor(`!!document.querySelector('.buybox')`, 'the detail page of a shared-application award');
+  check('an award that shares an application says so and links to the others',
+    (await page.eval(text('main'))).includes('One application covers several awards') && (await page.eval(`document.querySelectorAll('.panel ul a[href^="#/s/"]').length`)) > 5);
+  await page.shot('shared-application-desktop');
+  check('a repeating deadline reads naturally', (await page.eval(text('.buybox'))).includes('Due every year on Apr 30'));  check('nothing is stored in the browser (no cookies, local or session storage)', await page.eval(`document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
   check('every button, field and link has an accessible name', await page.eval(`[...document.querySelectorAll('button, a[href], input, select')].every((el) => (el.textContent || '').trim() || el.getAttribute('aria-label') || (el.labels && el.labels.length) || el.closest('label'))`));
   check('no JavaScript errors on desktop', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
 }

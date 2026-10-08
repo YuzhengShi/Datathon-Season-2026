@@ -85,8 +85,8 @@ sources:
     language: en
     allowed_domains: ["students.ubc.ca"]
     allowed_paths: ["/finances/awards-scholarships-bursaries/"]
-    access_status: unreviewed
-    notes: "One page, many awards. Keep UBC award numbers and paragraph boundaries."
+    access_status: restricted
+    notes: "One page, many awards. Keep UBC award numbers and paragraph boundaries. Automated access answered HTTP 403 on 2026-10-07, so it is not fetched; a person may save the page and use import-snapshot (docs/RUNBOOK.md)."
   - source_id: ubc_award_context
     name: UBC Indigenous awards application context
     url: "https://students.ubc.ca/finances/awards-scholarships-bursaries/awards-indigenous/"
@@ -96,8 +96,8 @@ sources:
     language: en
     allowed_domains: ["students.ubc.ca"]
     allowed_paths: ["/finances/awards-scholarships-bursaries/"]
-    access_status: unreviewed
-    notes: "Context for how and when UBC students apply; not an award source by itself."
+    access_status: restricted
+    notes: "Context for how and when UBC students apply; not an award source by itself. Automated access answered HTTP 403 on 2026-10-07, so it is not fetched; a person may save the page and use import-snapshot (docs/RUNBOOK.md)."
   - source_id: sfu_indigenous_awards
     name: SFU Indigenous scholarships and awards
     url: "https://www.sfu.ca/students/financial-aid/indigenous/scholarship-and-awards.html"

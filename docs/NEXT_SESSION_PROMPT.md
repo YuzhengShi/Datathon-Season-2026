@@ -1,7 +1,7 @@
 # 下一轮任务（交给联网机器上的 coding agent）
 
 你接手的是 Indigenous Student Funding Navigator 后端。**它已在 Windows 上从零复现并跑通，做过真实抓取，并且对其中一部分记录做过提供方官网核验**：
-258 个测试通过、live 流水线 37 条真实记录（36 条已发布、1 条 `archived`）、真实服务 + smoke test、真实 `/match`。先读 `docs/HANDOFF.md`
+258 个测试通过、live 流水线 59 条真实记录（36 条已发布、1 条 `archived`）、真实服务 + smoke test、真实 `/match`。先读 `docs/HANDOFF.md`
 （第 3 节"提供方页面改变了什么"、第 4 节 UBC 的决定、第 5 节已修复和未修复的问题）、`README.md`、`docs/RUNBOOK.md`、`docs/DATA_SOURCES.md`。**不要重写项目。**
 
 ## 铁律
@@ -17,12 +17,11 @@
 ## 任务（按优先级）
 
 1. **复核**：`python -m venv .venv`，`pip install -r requirements.lock`，`pip install --no-deps -e .`，`pytest -q`（应 258 passed），`ruff check .`，
-   `ruff format --check .`，`scripts/check_static.py`，demo 流水线两次，live 流水线两次（37 created → 37 unchanged），`serve` + `scripts/smoke_test.py`。
+   `ruff format --check .`，`scripts/check_static.py`，demo 流水线两次，live 流水线两次（59 created → 59 unchanged），`serve` + `scripts/smoke_test.py`。
 2. **UBC**：发出 `HANDOFF.md` 第 4 节提到的请求邮件（草稿不在仓库里，需要发件人的联系方式）。得到许可后：按许可范围抓取，或让人在浏览器里保存页面并用
    `import-snapshot` 导入（流程见 `docs/RUNBOOK.md`），再为 `ubc_award_descriptions`、`ubc_award_context` 写整理映射（带真实 quote）。
    没有许可就不碰，也不要用其他方式取得这些页面。
-3. **把剩下的 ISC 目录记录升级为一手记录**（HANDOFF 第 3 节列出了已抓取但未映射的页面）：VIU `services.viu.ca` 的奖项列表（114 KB；三条 ISC 记录指向它）、
-   UNBC、BC Hydro（找到真正描述该奖项的页面）、Capilano（页面由 JavaScript 渲染，文本为空：不要用无头浏览器绕过，改找静态页面或申请许可）。
+3. **把剩下的 ISC 目录记录升级为一手记录**（HANDOFF 第 3 节列出了已抓取但未映射的页面）：   UNBC、BC Hydro（找到真正描述该奖项的页面）、Capilano（页面由 JavaScript 渲染，文本为空：不要用无头浏览器绕过，改找静态页面或申请许可）。
    升级记录要沿用同一个 `id`（见 `data/curated/prov_*.yaml`），这样会取代目录记录；提供方页面说"暂停/停办"的用 `publication_status: archived`。
 4. **站点条款**：每个来源的 `access_status` 仍是 `unreviewed`，请人逐站确认后改成 `reviewed_ok` / `restricted`。
 5. **补验平台**（按你要支持的范围）：Python 3.11（锁定版本未必都支持）、Linux/macOS、可选 PostgreSQL。

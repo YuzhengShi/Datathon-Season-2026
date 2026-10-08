@@ -329,7 +329,10 @@ class SourceConfigTests(unittest.TestCase):
             self.assertEqual(provider_page.access_status, "unreviewed")
         for s in sources:
             self.assertTrue(s.url.startswith("https://"), s.source_id)
-            self.assertEqual(s.access_status, "unreviewed")  # terms have not been reviewed by a person
+            # terms have not been reviewed by a person; the two UBC pages answered HTTP 403 and are not fetched at all
+            self.assertEqual(
+                s.access_status, "restricted" if s.source_id.startswith("ubc_") else "unreviewed", s.source_id
+            )
         self.assertIn("wbdisable=true", sources[0].url)  # semantic query parameter is preserved
 
     def test_bad_config_is_rejected(self):

@@ -1,6 +1,6 @@
 // The detail page: everything about one scholarship, what is checked, what is not, and exactly where each fact was read.
 import { h, icon } from './dom.js';
-import { cap, cardSummary, evidenceList, flagText, plainDate, prettyRule, providerStatements, sourceView } from './logic.js';
+import { cap, cardSummary, detailHash, evidenceList, flagText, plainDate, prettyRule, providerStatements, sourceView } from './logic.js';
 import { availabilityBadge, banner, deadlineBlock, fitBadge, priceBlock, saveButton, sourceBadge } from './views_common.js';
 
 const MARKS = { pass: 'check', fail: 'x', unknown: 'help' };
@@ -16,10 +16,12 @@ function aboutPanel(row, detail) {
     statements.length ? [h('h3', {}, 'In the provider’s words'), h('ul', {}, statements.map((s) => h('li', {}, s)))] : null);
 }
 
-function matchPanel(row, ctx) {
+function matchPanel(row, ctx, detail) {
   if (!ctx.state.personalized) {
     const schools = ctx.state.institutions;
-    const listed = [...row.passed, ...row.failed, ...row.unknown];
+    // the provider's own sentences are already shown above: do not list them a second time as requirements
+    const said = new Set(providerStatements(detail).map((s) => s.replace(/\s+/g, ' ').trim().toLowerCase()));
+    const listed = [...row.passed, ...row.failed, ...row.unknown].filter((r) => !said.has(String(r.rule).replace(/\s+/g, ' ').trim().toLowerCase()));
     return panel('What the provider asks for', 'list',
       listed.length ? h('ul', { class: 'checklist' }, listed.map((r) => h('li', {}, cap(prettyRule(r, schools))))) : h('p', { class: 'muted' }, 'The provider does not list requirements we can read automatically.'),
       h('p', {}, h('a', { class: 'btn btn--secondary btn--small', href: '#/start/1' }, 'Answer a few questions to see how you match')));
@@ -48,11 +50,31 @@ function sourcePanel(row, detail) {
       row.lastVerified ? ` Last checked ${plainDate(row.lastVerified)}.` : ''));
 }
 
+function sharedPanel(detail) {
+  const siblings = (detail && detail.shared_application_with) || [];
+  if (!siblings.length) return null;
+  const shown = siblings.slice(0, 12);
+  return panel('One application covers several awards', 'list',
+    h('p', {}, `The provider uses the same application for ${siblings.length} other award${siblings.length === 1 ? '' : 's'}. Apply once; each award still has its own conditions, so read them.`),
+    h('ul', {}, shown.map((s) => h('li', {}, h('a', { href: detailHash(s.id) }, s.title)))),
+    siblings.length > shown.length ? h('p', { class: 'small muted' }, `and ${siblings.length - shown.length} more`) : null);
+}
+
 function goodToKnow(row) {
   const notes = [...row.funderConditions.map((c) => c.text || c.rule || ''), ...row.flags.map(flagText)].filter(Boolean);
   if (!notes.length && !row.nextAction) return null;
   return panel('Good to know', 'info', notes.length ? h('ul', {}, [...new Set(notes)].map((n) => h('li', {}, n))) : null,
     row.nextAction ? h('p', {}, row.nextAction.replace(/ Contact them via https?:\/\/\S+\.?$/, '')) : null);
+}
+
+function sameTarget(a, b) {
+  try {
+    const x = new URL(a, location.href);
+    const y = new URL(b, location.href);
+    return x.origin + x.pathname === y.origin + y.pathname;
+  } catch {
+    return a === b;
+  }
 }
 
 function buyBox(row, ctx) {
@@ -67,7 +89,7 @@ function buyBox(row, ctx) {
       h('dt', {}, 'Provider'), h('dd', {}, row.provider)),
     h('div', { class: 'badges' }, availabilityBadge(row)),
     h('a', { class: 'btn btn--primary btn--block', href: applyUrl, ...external }, label, icon('external', 16)),
-    applyUrl !== row.officialUrl ? h('p', {}, h('a', { class: 'btn btn--secondary btn--block btn--small', href: row.officialUrl, ...external }, 'Read the provider’s page')) : null,
+    !sameTarget(applyUrl, row.officialUrl) ? h('p', {}, h('a', { class: 'btn btn--secondary btn--block btn--small', href: row.officialUrl, ...external }, 'Read the provider’s page')) : null,
     h('p', {}, saveButton(row, ctx, { block: true })),
     route.instructions ? h('p', { class: 'small' }, route.instructions) : null,
     route.contact_url ? h('p', { class: 'small' }, h('a', { href: route.contact_url, ...external }, 'Contact the provider')) : null,
@@ -83,6 +105,6 @@ export function detailView(ctx, row, detail) {
     h('div', { class: 'badges' }, personalized ? fitBadge(row) : null, sourceBadge(row), availabilityBadge(row)),
     row.source_kind === 'directory_listing' ? banner('warn', 'info', h('p', {}, h('strong', {}, 'Check the details with the provider. '), 'This comes from a government directory that can be many years old. It lists no deadline.')) : null,
     h('div', { class: 'detail__grid' },
-      h('div', {}, aboutPanel(row, detail), matchPanel(row, ctx), goodToKnow(row), sourcePanel(row, detail)),
+      h('div', {}, aboutPanel(row, detail), matchPanel(row, ctx, detail), sharedPanel(detail), goodToKnow(row), sourcePanel(row, detail)),
       buyBox(row, ctx))));
 }

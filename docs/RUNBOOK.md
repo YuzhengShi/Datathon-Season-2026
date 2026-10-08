@@ -146,6 +146,8 @@ relying on it for more than a handful of pages.
 
 ## The web app
 
+* One command for a demo: `.\scripts\start_app.ps1` (builds the database from the stored snapshots if needed, opens the browser). See `docs/DEMO.md`.
+
 * Start it with `python -m navigator.cli serve --mode live` and open `http://127.0.0.1:8000/` (it redirects to `/app/`). If Windows refuses the
   port (`WinError 10013`), pass `--port 8080`.
 * The app is the folder `frontend/`: edit a file and reload, there is no build. `assets/logic.js` holds every rule that turns API data into words

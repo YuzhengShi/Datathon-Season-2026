@@ -153,6 +153,7 @@ def import_and_publish(
         now_iso=format_utc(as_of),
         dry_run=dry_run,
         allow_partial=allow_partial,
+        superseding=_superseded_ids(rt),
     )
     write_json(rt.artifact_root / "reports" / ("import-dry-run.json" if dry_run else "import.json"), report.to_dict())
     manifest.step_done("import", status=report.status, **report.counts)
@@ -277,3 +278,16 @@ def run_demo_pipeline(repo: Repository, rt: Runtime, *, as_of: datetime, dry_run
     manifest.finish("ok" if result["exit_code"] == 0 else "failed", as_of)
     result.update({"run_id": run_id, "data_mode": "demo", "artifact_root": root.as_posix()})
     return result
+
+
+def _superseded_ids(rt: Runtime) -> frozenset[str]:
+    """Ids this run replaced by a provider-page record (written by the extract step; empty when nothing was replaced)."""
+    import json
+
+    path = rt.artifact_root / "discovery" / "superseded_directory_records.json"
+    if rt.mode != "live" or not path.is_file():
+        return frozenset()
+    try:
+        return frozenset(item["id"] for item in json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, KeyError, TypeError):
+        return frozenset()

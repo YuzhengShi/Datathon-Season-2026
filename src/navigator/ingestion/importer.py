@@ -107,6 +107,7 @@ def import_records(
     now_iso: str,
     dry_run: bool = False,
     allow_partial: bool = False,
+    superseding: frozenset[str] = frozenset(),
 ) -> ImportReport:
     """Validate-then-write. Default is all-or-nothing; ``allow_partial`` commits per record.
 
@@ -133,7 +134,7 @@ def import_records(
         )
 
     existing = repo.load_existing([r["id"] for r in records])
-    plan: ImportPlan = plan_import(records, existing, expected_mode=mode)
+    plan: ImportPlan = plan_import(records, existing, expected_mode=mode, superseding=superseding)
     counts = plan.counts()
     counts["rejected"] += invalid
     items = [i.summary() for i in plan.items]

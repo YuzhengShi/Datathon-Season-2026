@@ -274,6 +274,7 @@ def run_extract_only(rt: Runtime, *, now: datetime, limit: int | None = None) ->
     if not index.entries:
         return {"data_mode": rt.mode, "exit_code": EXIT_EXTERNAL, "error": "no fetched snapshots: run `fetch` first"}
     run_id = make_run_id("extract", now)
+    clear_quarantine(rt.artifact_root, run_id)
     manifest = RunManifest(root / "runs" / f"{run_id}.json", run_id, "extract", rt.mode, {"limit": limit}, now)
     parsed = stage_parse(rt, sources, snapshots_from_index(index, store, sources), store, now, manifest)
     ctx = ValidationContext(
@@ -320,6 +321,7 @@ def run_live_pipeline(
     sources = [s for s in all_sources if s.access_status != "restricted"]
     skipped = [s for s in all_sources if s.access_status == "restricted"]
     run_id = make_run_id("live-pipeline", now)
+    clear_quarantine(rt.artifact_root, run_id)
     manifest = RunManifest(
         root / "runs" / f"{run_id}.json",
         run_id,
@@ -484,3 +486,8 @@ def checked_user_agent(user_agent: str) -> str:
             "USER_AGENT gives source sites no way to contact you: set a real address in .env (docs/RUNBOOK.md) before a larger run"
         )
     return user_agent
+
+
+def clear_quarantine(root: Path, run_id: str) -> None:
+    """A run starts with no findings: a rerun with the same run id must not show the rejections of an earlier run."""
+    (root / "quarantine" / f"{run_id}.jsonl").unlink(missing_ok=True)

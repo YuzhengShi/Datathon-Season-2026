@@ -127,7 +127,14 @@ def _settle_status(existing: dict, incoming: dict, merged: dict, content_changed
     merged["last_verified_at"] = max(verified) if verified else None
 
 
-def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: str, version: int = 1) -> PlanItem:
+def plan_one(
+    incoming_raw: dict,
+    existing_raw: dict | None,
+    *,
+    expected_mode: str,
+    version: int = 1,
+    superseding: frozenset[str] = frozenset(),
+) -> PlanItem:
     incoming = canonicalize_record(incoming_raw)
     rid = incoming["id"]
     mode = "demo" if incoming["is_demo"] else "live"
@@ -139,7 +146,9 @@ def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: st
         return item
 
     existing = canonicalize_record(existing_raw)
-    if existing["source_record_key"] != incoming["source_record_key"]:
+    # A different source record key under the same id is an identity question for a person, unless this very run registered it as a
+    # supersession (the provider's own page replacing a directory entry; see data/discovery/superseded_directory_records.json).
+    if existing["source_record_key"] != incoming["source_record_key"] and rid not in superseding:
         return PlanItem(
             rid,
             "pending_review",
@@ -216,7 +225,13 @@ def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: st
     return PlanItem(rid, "updated", reasons, diff, cycle_actions, merged, record_to_rows(merged), version=version + 1)
 
 
-def plan_import(incoming: list[dict], existing: dict[str, tuple[dict, int]], *, expected_mode: str) -> ImportPlan:
+def plan_import(
+    incoming: list[dict],
+    existing: dict[str, tuple[dict, int]],
+    *,
+    expected_mode: str,
+    superseding: frozenset[str] = frozenset(),
+) -> ImportPlan:
     """Plan a batch. ``existing`` maps id -> (stored record, version)."""
     items: list[PlanItem] = []
     seen: set[str] = set()
@@ -228,7 +243,11 @@ def plan_import(incoming: list[dict], existing: dict[str, tuple[dict, int]], *, 
         stored = existing.get(record["id"])
         items.append(
             plan_one(
-                record, stored[0] if stored else None, expected_mode=expected_mode, version=stored[1] if stored else 1
+                record,
+                stored[0] if stored else None,
+                expected_mode=expected_mode,
+                version=stored[1] if stored else 1,
+                superseding=superseding,
             )
         )
     return ImportPlan(items)
