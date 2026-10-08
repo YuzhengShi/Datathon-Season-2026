@@ -1,0 +1,119 @@
+source_id: sfu_indigenous_awards
+records:
+  - key: indigenous-student-community-engagement-award
+    title: Indigenous Student Community Engagement Award
+    opportunity_type: award
+    summary: >-
+      SFU award for Indigenous students, listed with a value of up to $5,000. It is the only listed SFU Indigenous award
+      that graduate students may apply for.
+    application: &apply
+      route_type: unknown
+      instructions: The page says applications are available in the Fall term each year; it does not describe how to apply.
+      quotes: ["Applications for these opportunities are available in Fall term each year."]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: &deadline
+          - kind: unspecified
+            raw_text: Fall term each year; no date is stated
+            quotes: ["Applications for these opportunities are available in Fall term each year."]
+        amount:
+          kind: maximum
+          maximum: "5000"
+          currency: CAD
+          unit: unspecified
+          raw_text: up to $5,000
+          quotes: ["Indigenous Student Community Engagement Award 1 | up to $5,000"]
+        eligibility:
+          mandatory:
+            - &r_identity {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["Canadian Indigenous"]}
+            - &r_sfu {type: predicate, field: institution_id, op: eq, value: sfu, quotes: ["currently enrolled at SFU"]}
+            - {type: predicate, field: education_level, op: in, value: [undergraduate, masters, doctoral], quotes: ["Undergraduate student", "1 Graduate Indigenous students can only apply for the Indigenous Student Community Engagement Award"]}
+            - &r_full_time {type: predicate, field: study_status, op: eq, value: full_time, quotes: ["Full-time enrollment"]}
+            - &r_standing {type: unknown, reason: "Good academic standing is not defined on the page", quotes: ["Good academic standing"]}
+            - &r_community {type: unknown, reason: "Involvement in the Indigenous community has to be demonstrated by the applicant; it cannot be checked from a profile", quotes: ["Demonstrated involvement within the Indigenous community through service and/or cultural contribution"]}
+  - key: rbc-undergrad-entrepreneurship-and-innovation-award-for-indigenous-students
+    title: RBC Undergrad Entrepreneurship and Innovation Award for Indigenous Students
+    opportunity_type: award
+    donor_name: RBC
+    summary: SFU undergraduate award for Indigenous students, listed with a value of $5,000.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "5000", currency: CAD, unit: unspecified, raw_text: "$5,000", quotes: ["RBC Undergrad Entrepreneurship and Innovation Award for Indigenous Students | $5,000"]}
+        eligibility:
+          mandatory: &undergrad_rules
+            - *r_identity
+            - *r_sfu
+            - {type: predicate, field: education_level, op: eq, value: undergraduate, quotes: ["Undergraduate student"]}
+            - *r_full_time
+            - *r_standing
+            - *r_community
+  - key: fwcu-launi-skinner-indigenous-scholarship
+    title: FWCU Launi Skinner Indigenous Scholarship
+    opportunity_type: award
+    summary: SFU undergraduate scholarship for Indigenous students, listed with a value of $3,000.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "3000", currency: CAD, unit: unspecified, raw_text: "$3,000", quotes: ["FWCU Launi Skinner Indigenous Scholarship | $3,000"]}
+        eligibility: {mandatory: *undergrad_rules}
+  - key: phyllis-webstad-award-for-indigenous-students
+    title: Phyllis Webstad Award for Indigenous Students
+    opportunity_type: award
+    summary: SFU undergraduate award for Indigenous students, listed with a value of $2,000.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "2000", currency: CAD, unit: unspecified, raw_text: "$2,000", quotes: ["Phyllis Webstad Award for Indigenous Students | $2,000"]}
+        eligibility: {mandatory: *undergrad_rules}
+  - key: sfss-undergraduate-award-for-indigenous-students
+    title: SFSS Undergraduate Award for Indigenous Students
+    opportunity_type: award
+    summary: SFU undergraduate award for Indigenous students, listed with a value of $2,000.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "2000", currency: CAD, unit: unspecified, raw_text: "$2,000", quotes: ["SFSS Undergraduate Award for Indigenous Students | $2,000"]}
+        eligibility: {mandatory: *undergrad_rules}
+  - key: first-nations-metis-and-indigenous-student-association-award
+    title: First Nations, Métis and Indigenous Student Association Award
+    opportunity_type: award
+    summary: SFU undergraduate award for Indigenous students, listed with a value of $1,900.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "1900", currency: CAD, unit: unspecified, raw_text: "$1,900", quotes: ["First Nations, Métis and Indigenous Student Association Award | $1,900"]}
+        eligibility: {mandatory: *undergrad_rules}
+  - key: first-nations-metis-and-indigenous-student-association-scholarship
+    title: First Nations, Métis and Indigenous Student Association Scholarship
+    opportunity_type: award
+    summary: SFU undergraduate scholarship for Indigenous students, listed with a value of $1,900.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "1900", currency: CAD, unit: unspecified, raw_text: "$1,900", quotes: ["First Nations, Métis and Indigenous Student Association Scholarship | $1,900"]}
+        eligibility: {mandatory: *undergrad_rules}
+  - key: helen-osborne-memorial-award-for-indigenous-students
+    title: Helen Osborne Memorial Award for Indigenous Students
+    opportunity_type: award
+    summary: SFU undergraduate award for Indigenous students, listed with a value of $1,000.
+    application: *apply
+    cycles:
+      - cycle_key: unspecified
+        label_raw: every Fall term (September), if available
+        deadlines: *deadline
+        amount: {kind: fixed, fixed: "1000", currency: CAD, unit: unspecified, raw_text: "$1,000", quotes: ["Helen Osborne Memorial Award for Indigenous Students | $1,000"]}
+        eligibility: {mandatory: *undergrad_rules}

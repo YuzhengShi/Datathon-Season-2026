@@ -11,10 +11,11 @@ sources:
     parser: isc_index
     language: en
     allowed_domains: ["www.sac-isc.gc.ca"]
-    allowed_paths: ["/eng/1351185180120/"]
+    allowed_paths: ["/eng/"]
     terms_url: "https://www.canada.ca/en/transparency/terms.html"
     access_status: unreviewed
     notes: "National discovery index. Entries are NOT verified awards; they go to data/discovery."
+    max_pages: 26
   - source_id: indspire_apply_now
     name: Indspire Apply Now
     url: "https://indspire.ca/apply-now/"
@@ -37,6 +38,7 @@ sources:
     allowed_paths: ["/"]
     access_status: unreviewed
     notes: "Independent awards. Donors are recorded as donor_name, never as separate administrators."
+    max_pages: 1  # a donor list; there is no parser for donor pages yet, so they are not followed
   - source_id: isc_psssp
     name: ISC Post-Secondary Student Support Program
     url: "https://www.sac-isc.gc.ca/eng/1100100033682/1531933580211"

@@ -83,3 +83,7 @@ student's result. Student rules that a local administrator decides stay `unknown
 4. `python -m navigator.cli extract --mode live`; read `data/discovery/*.summary.json` and the `pending` list.
 5. Write curated mappings for SFU, MNBC and the ISC channel pages (`data/curated/README.md`).
 6. `python -m navigator.cli pipeline --mode live --limit 30 --max-pages 50 --resume`; read the freshness report.
+
+## What the first real fetch showed
+
+See [HANDOFF.md](HANDOFF.md) section 3: ISC index read 540/540 entries; ISC detail pages live under `/eng/<id>/<id>` (links are `http://`); SFU is a real awards table; the Indspire funding portal lists donors, not awards; UBC answered HTTP 403.

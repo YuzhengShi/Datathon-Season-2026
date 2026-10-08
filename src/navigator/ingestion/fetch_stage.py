@@ -110,6 +110,9 @@ def run_fetch_stage(
 ) -> FetchStageResult:
     result = FetchStageResult()
     stamp = format_utc(now)
+    # A source may use at most its fair share of the budget: the ISC index alone links to hundreds of pages and
+    # would otherwise leave nothing for the sources after it.
+    per_source_cap = max(1, max_pages // max(1, len(sources)))
     for source in sources:
         stats = {
             "attempted": 0,
@@ -125,6 +128,7 @@ def run_fetch_stage(
         adapter = adapters.get(source.parser)
         queue: deque[tuple[str, int]] = deque([(source.url, 0)])
         seen: set[str] = set()
+        processed = 0  # pages of this source handled in this run: fetched now, or reused with --resume
         while queue:
             url, depth = queue.popleft()
             try:
@@ -139,6 +143,7 @@ def run_fetch_stage(
 
             if entry and have_file and resume and not refresh:
                 stats["skipped"] += 1
+                processed += 1
                 if entry.get("extractor_version") != EXTRACTOR_VERSION:  # re-extract only; no download
                     raw = store.read_raw(entry["raw_path"])
                     _store_extraction(
@@ -146,12 +151,13 @@ def run_fetch_stage(
                     )
                     index.save()
             else:
-                if result.pages_fetched >= max_pages:
+                if result.pages_fetched >= max_pages or processed >= (source.max_pages or per_source_cap):
                     result.unvisited.append(url)
                     stats["skipped"] += 1
                     continue
                 result.pages_fetched += 1
                 stats["attempted"] += 1
+                processed += 1
                 outcome = fetcher.fetch(
                     url,
                     source.rules(),
@@ -159,6 +165,11 @@ def run_fetch_stage(
                     last_modified=entry.get("last_modified") if entry else None,
                     have_snapshot=have_file and refresh,
                 )
+                if outcome.outcome == "blocked" and (outcome.reason or "").startswith("url_"):
+                    # refused by the URL policy before any request was sent: it must not use up the page budget
+                    result.pages_fetched -= 1
+                    stats["attempted"] -= 1
+                    processed -= 1
                 if outcome.robots_status:
                     result.robots[(url.split("/")[2])] = outcome.robots_status
                 row = {

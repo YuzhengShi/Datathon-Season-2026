@@ -119,6 +119,11 @@ compares the models with the hand-written migration. `DEMO_DATABASE_URL` must di
 | a PDF shows `ocr_required` | it has no text layer; OCR is not performed in this build |
 | import rejected everything | open the quarantine file for the first error; one bad record rejects the batch unless `--allow-partial` |
 | `pytest` skips many tests | the web/database stack is not installed in that interpreter |
+| `WinError 10013` when serving | Windows reserved that port; choose another (`--port 8080`) |
+| `PermissionError` on `navigator.db` (Windows) | a server or Python process still holds the SQLite file; stop it |
+| HTTP 403 from a source | the site refuses automated clients: stop, record it, do not change the User-Agent to get around it |
+| a deadline differs by an hour between machines | the project prefers the `tzdata` package pinned in `requirements.lock` (`NAVIGATOR_SYSTEM_TZ=1` uses the OS copy) |
+| warning `deadline.utc_tz_rules_changed` | the stored UTC instant was computed with older time-zone rules; matching recomputes it; re-run the pipeline |
 
 ## 8. What has and has not been run
 

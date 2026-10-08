@@ -118,7 +118,7 @@ def curated_record(entry: dict, snaps: list[SnapshotView], source: SourceConfig,
         cycles=cycles,
         documents=body.get("required_documents", []),
         fetched_at=now_iso,
-        method="curated",
+        method=body.get("method", "curated"),
     )
     for doc in record["required_documents"]:
         doc.setdefault("required", True)

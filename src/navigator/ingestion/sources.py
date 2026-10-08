@@ -31,6 +31,7 @@ class SourceConfig:
     access_status: str
     terms_url: str | None = None
     notes: str | None = None
+    max_pages: int | None = None  # page budget for this source (default: a fair share of --max-pages)
 
     def rules(self) -> list[AllowRule]:
         return [AllowRule(self.allowed_domains, self.allowed_paths)]
@@ -70,6 +71,7 @@ def load_sources(path: Path) -> list[SourceConfig]:
                 access_status=raw.get("access_status", "unreviewed"),
                 terms_url=raw.get("terms_url"),
                 notes=raw.get("notes"),
+                max_pages=int(raw["max_pages"]) if raw.get("max_pages") else None,
             )
         except KeyError as exc:
             raise SourceConfigError(f"source entry is missing {exc}: {raw!r}") from exc

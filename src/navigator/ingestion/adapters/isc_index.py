@@ -19,6 +19,9 @@ from navigator.ingestion.builder import SnapshotView
 from navigator.ingestion.sources import SourceConfig
 from navigator.ingestion.text import ExtractedDocument
 
+from navigator.core.timeutil import format_utc
+from navigator.ingestion.adapters.isc_detail import isc_detail_record
+
 COLUMNS = ("name", "province", "institution", "field_of_study", "indigenous_group")
 _COUNT = re.compile(r"There (?:are|is)\s+([\d,]+)\s+bursar", re.I)
 _NEXT = re.compile(r"^(next|suivant|more|load more|page\s*\d+|›|»)$", re.I)
@@ -85,9 +88,19 @@ class IscIndexAdapter(Adapter):
     def select_links(self, doc: ExtractedDocument, url: str, source: SourceConfig, depth: int) -> list[str]:
         if depth > 0:
             return []
-        # detail pages of index rows; the page budget (default 50) bounds how many are followed
+        # Detail pages of the rows whose province is British Columbia or National (the other provinces are not what
+        # a UBC student needs first); the source's page budget bounds how many are followed. The index links use
+        # http:// although the site is https-only, and an unreadable robots.txt over http means "do not fetch".
+        wanted: set[str] = set()
+        for block in doc.blocks:
+            for line in (getattr(block, "text", "") or "").splitlines():
+                cells = [" ".join(cell.split()) for cell in line.split(" | ")]
+                if len(cells) >= 2 and cells[1] in ("British Columbia", "National"):
+                    wanted.add(cells[0])
         return [
-            link.href for link in doc.links if link.text and "/eng/1351185180120/" in link.href and link.href != url
+            link.href.replace("http://www.sac-isc.gc.ca/", "https://www.sac-isc.gc.ca/", 1)
+            for link in doc.links
+            if " ".join((link.text or "").split()) in wanted and "/eng/" in link.href and link.href != url
         ]
 
     def parse(self, snaps: list[SnapshotView], source: SourceConfig, ctx: ParseContext) -> AdapterResult:
@@ -105,4 +118,12 @@ class IscIndexAdapter(Adapter):
                 {"item": source.url, "reason": "no bursary table found; structure unknown, nothing guessed"}
             )
         result.stats["detail_pages_fetched"] = len(snaps) - 1
+        now_iso = format_utc(ctx.now)
+        for snap in snaps:
+            if snap is index:
+                continue
+            try:
+                result.candidates.append(isc_detail_record(snap, source, now_iso))
+            except (KeyError, ValueError) as exc:
+                result.pending.append({"item": snap.url, "reason": f"directory detail page not understood: {exc}"})
         return result

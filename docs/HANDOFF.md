@@ -1,132 +1,113 @@
 # Handoff
 
-*Written at the end of the first build session. Facts only: every statement below says whether it was run.*
+*Updated after the first real runs: a Windows machine, then the real network (October 2026). Every statement says where it was run.*
 
 ## 0. Read this first
 
-* **What exists:** a complete code base, documentation and a synthetic demo dataset (25 records), written from an empty
-  directory. The framework-free core (rules, deadlines, evidence, validation, planning, adapters, fetch engine, pipelines,
-  reports) was exercised by **203 executed tests, all passing**.
-* **What could not be run where this was built:** installing packages, `pytest`, `ruff`, the FastAPI app, SQLAlchemy models and
-  repository, Alembic migrations, the Typer CLI, `uvicorn`, the real `httpx` transport, and any network fetch. The build
-  environment had no network and no package index, and Python 3.12 only (the project targets >= 3.11). Those layers are
-  written, statically checked, and covered by tests that are **skipped there** (24 skipped). **Run them first.**
-* **Live data: 0 real opportunities.** Target 20-30; shortfall 20-30. Nothing synthetic was used to fill it.
-* Nothing in this repository has been reviewed by a person: no record is `human_reviewed`, all sources are `access_status: unreviewed`.
+* **Verified environment:** Windows, CPython 3.12.10, a fresh virtual environment installed from the exact `requirements.lock`
+  (`pip check` clean). **Not verified:** Linux/macOS, Python 3.11, PostgreSQL.
+* **Tests:** 241 pass (database, API and command-line suites included); 3 more are marked `live`, are off by default, and were run once on
+  the real network against `example.com` only (3 passed). `ruff check`, `ruff format --check` and `scripts/check_static.py` are clean.
+* **Real data: 33 real opportunities** (target 20-30, numerically met) in the live database and `data/awards.jsonl`. **Read section 3 before
+  using them:** 25 of the 33 come from a dated Government of Canada directory and have no deadline and only free-text eligibility.
+* **UBC could not be fetched:** both `students.ubc.ca` pages answered HTTP 403 to an automated client. Nothing was retried, disguised or
+  worked around.
+* Every record is `machine_checked` (each quote was found in the stored snapshot); none is `human_reviewed`. Site terms were not reviewed by me:
+  the project owner authorised the fetch on 2026-10-07, robots.txt was honoured, one request per second per host, at most 60 pages in total.
+  `access_status` in `sources.yaml` is still `unreviewed`; update it when a person has read the terms.
 
-## 1. First actions on a machine with network access (in this order)
+## 1. First actions
 
-1. `python -m venv .venv`, activate, `python -m pip install -r requirements.lock`, `python -m pip install --no-deps -e .`
-2. `python -m pytest -q tests/test_db.py tests/test_api.py tests/test_cli.py` - the layers that were never executed. Treat a
-   failure as a real finding; expect small fixes (typing details, Typer/Click versions, SQLAlchemy mapping details).
-3. `python -m pytest -q` (everything), then `python -m ruff format .` once, `python -m ruff check .`, and
-   `python scripts/freeze_lock.py` to replace the range-based `requirements.lock` with exact pins.
-4. `python -m navigator.cli pipeline --mode demo --as-of 2026-10-07`, then `serve --mode demo`, then in a second terminal
-   `python scripts/smoke_test.py --base-url http://127.0.0.1:8000 --expect-mode demo`.
-5. Read `docs/DATA_SOURCES.md` (terms review; compare the adapters with the real pages) before any live run.
+1. `python -m venv .venv`, `python -m pip install -r requirements.lock`, `python -m pip install --no-deps -e .`
+2. `python -m pytest -q` (expect 241 passed), `python -m ruff check .`, `python -m ruff format --check .`, `python scripts/check_static.py`
+3. Demo: `python -m navigator.cli pipeline --mode demo --as-of 2026-10-07` twice (25 created, then 25 unchanged); `serve --mode demo` and
+   `python scripts/smoke_test.py --base-url http://127.0.0.1:8000 --expect-mode demo` (29/29).
+4. Live: the stored real snapshots are in `data/raw`/`data/text`; `python -m navigator.cli pipeline --mode live --limit 40 --max-pages 60 --resume`
+   reuses them without downloading again. Set a real contact in `USER_AGENT` (`.env`) before any larger run.
 
-A ready-to-paste task for a coding agent on a networked machine (verify-and-fix first, live data second, with the guard rails): [NEXT_SESSION_PROMPT.md](NEXT_SESSION_PROMPT.md).
+Next work for a coding agent: [NEXT_SESSION_PROMPT.md](NEXT_SESSION_PROMPT.md).
 
-## 2. What was executed in the build environment
+## 2. What was run where
 
-Python 3.12.3 with only the standard library plus beautifulsoup4, lxml, pypdf, PyYAML, reportlab and Pillow.
+| where | what | result |
+| --- | --- | --- |
+| Windows, fresh venv from the exact lock | `pip install -r requirements.lock`, `pip check` | installed, no broken requirements |
+| same | full `pytest -q` | **241 passed**, 83 subtests, 1 warning (Starlette `TestClient` will move from `httpx` to `httpx2`) |
+| same | `ruff check .`, `ruff format --check .`, `check_static.py` | clean |
+| same | demo pipeline twice; `serve --mode demo` + smoke | 25 created then 25 unchanged; smoke 29/29 |
+| real network | `tests/test_live_network.py` (`NAVIGATOR_LIVE_TESTS=1 pytest -m live`), `example.com` only | 3 passed: real TLS fetch through `Fetcher`, robots.txt consulted, loopback/metadata addresses refused with the real resolver |
+| local loopback server | `tests/test_http_transport.py` | redirects not followed, size limit on declared and streamed bodies and **after decompression**, timeout, refused connection, no request reaches the server for a blocked URL |
+| real network | `fetch` of the 10 configured sources (details in section 3) | 8 sources fetched (HTTP 200), 2 UBC pages HTTP 403 |
+| same | `pipeline --mode live` twice | 33 created, then 33 unchanged; exit code 3 (partial: UBC failed) |
+| same | `serve --mode live` + `smoke_test.py --expect-mode live`; `GET /opportunities`; `POST /match` | smoke passed; 33 records, none `is_demo`; match works and does not echo the profile |
+| Linux sandbox (no web stack) | `unittest discover` of the earlier tree | superseded by the Windows runs above |
 
-| suite | tests | executed | skipped |
-| --- | --- | --- | --- |
-| `tests/test_adapters.py` | 20 | 20 | 0 |
-| `tests/test_api.py` | 10 | 0 | 10 |
-| `tests/test_cli.py` | 5 | 0 | 5 |
-| `tests/test_core.py` | 24 | 23 | 1 |
-| `tests/test_db.py` | 8 | 0 | 8 |
-| `tests/test_docs.py` | 10 | 10 | 0 |
-| `tests/test_extractors.py` | 5 | 5 | 0 |
-| `tests/test_importer.py` | 21 | 21 | 0 |
-| `tests/test_ingestion.py` | 25 | 25 | 0 |
-| `tests/test_live_pipeline.py` | 13 | 13 | 0 |
-| `tests/test_matching.py` | 25 | 25 | 0 |
-| `tests/test_pipeline_demo.py` | 11 | 11 | 0 |
-| `tests/test_query.py` | 12 | 12 | 0 |
-| `tests/test_smoke_script.py` | 6 | 6 | 0 |
-| `tests/test_static_checks.py` | 6 | 6 | 0 |
-| `tests/test_validation.py` | 26 | 26 | 0 |
-| **total** | **227** | **203** | **24** |
+## 3. The real run (what the real pages showed)
 
-Skipped tests need the pinned stack (fastapi, sqlalchemy, alembic, pydantic, pydantic-settings, httpx, typer, uvicorn) or the `jsonschema` package.
-
-Also executed: `python scripts/check_static.py` (0 findings in 95 files: syntax newer than 3.11 in f-strings, unused imports,
-internal imports that do not resolve, undefined names, the ruff default rules that can be checked from the AST (F541, F841, E711/E712,
-E722, E731, E741), and ORM-models-vs-migration agreement for 10 tables / 108 columns; negative controls prove each check fires); `scripts/export_schema.py`, `generate_examples.py`,
-`generate_data_model_doc.py`, `write_fixtures.py`; the demo pipeline end to end (twice, second run all `unchanged`) against the
-**in-memory repository**; the live pipeline against a **scripted synthetic network**; `scripts/smoke_test.py` against a
-**stdlib stand-in** for the API (`tests/stub_server.py`) - not against FastAPI.
-
-Shipped for inspection: `data/demo/` (candidates, `awards.jsonl` export, validation/import/freshness reports, run manifest,
-snapshots), produced by that in-memory run. They are synthetic and are regenerated by `pipeline --mode demo`.
-
-## 3. Phases (prompt section 13)
-
-| phase | state |
+| source | result |
 | --- | --- |
-| 1 Environment and architecture | package, `pyproject.toml`, layout, docs, CLI entry written; install and `--help` **not run** |
-| 2 Core configuration and data model | resolver tested; models, migration, `/health` written, statically cross-checked, **not run** |
-| 3 Fetch, import, validation | complete and tested (fetch engine on a scripted transport; validator, planner, importer, quarantine, manifest, resume/refresh) |
-| 4 Matching, API, reports | engine, services, reports complete and tested; FastAPI routes/schemas written, **not run**; smoke test run against a stand-in |
-| 5 Official sources and first real data | `sources.yaml` + adapters + curated-mapping path written; **no real fetch happened**; 0 real records |
-| 6 Final acceptance | this document; the items marked "not run" above are open |
+| ISC bursaries index | HTTP 200, 192 KB. The adapter read **540 of 540** declared entries (coverage 100%, no pagination, the "update in progress" notice was seen). These are discovery entries only. |
+| ISC directory detail pages | The index links use `http://` and a different path prefix than the adapter assumed, so none was followed until fixed. Now: https, only rows whose province is British Columbia or National, 25 pages fetched (HTTP 200) -> **25 records** |
+| SFU Indigenous scholarships and awards | HTTP 200. A real table of 8 awards with values plus a "Minimum Requirements" list. A curated mapping with verbatim quotes gives **8 records** (`data/curated/sfu_indigenous_awards.yaml`). The first attempt was rejected by the validator (wrong amount field, wrong type) - the checks work. |
+| Indspire funding portal | HTTP 200 but the page is an alphabetical **list of donors**, not of awards. The adapter's assumption was wrong, and it produced a bogus record from a donor page (`AbbVie Corporation`) before the page budget was fixed and the snapshot removed. The source now has `max_pages: 1`: donor pages are not followed and there is **no parser for them**. |
+| Indspire apply-now, ISC PSSSP / Inuit / Métis strategy pages, MNBC STEPS | HTTP 200; stored; **no curated mapping written yet** -> reported as pending, 0 records |
+| UBC award descriptions / context | **HTTP 403** (automated access refused) -> 0 records |
 
-## 4. Acceptance table (prompt section 14)
+**Quality of the 33 records.** The 8 SFU records have amounts, structured rules (identity, institution, level, full-time) and two `unknown` rules
+the page does not define ("good academic standing", demonstrated community involvement); the deadline is only "Fall term each year"
+(`unspecified`). The 25 ISC records say, in their own summary, that they come from the directory (each page carries its own "Date modified";
+11 of them say 2022), have **no deadline and no application steps**, keep the eligibility text unstructured, and point to the provider's
+website. In `POST /match` all 33 therefore come back as `needs_provider_confirmation` for a First Nations, full-time SFU undergraduate:
+nothing is presented as a confirmed fit.
+
+## 4. Findings of the real runs (all fixed unless marked open)
+
+1. Migrations did not create the SQLite folder; `alembic_version` was never committed (a `PRAGMA` before `context.configure()`). Fixed.
+2. The CLI never released SQLite connections (a Windows file lock); `typer.get_current_context` does not exist in Typer 0.27. Fixed with a context manager.
+3. Tests shared one relative SQLite file. Fixed.
+4. Time-zone rules change: `tzdata 2026.5` keeps British Columbia on UTC-7 from November 2026, an older system database does not. The pinned `tzdata`
+   is preferred; a stored `deadline_at_utc` within two hours of the recomputation is a warning, not an error.
+5. The page budget was global, so the first source (ISC, hundreds of links) starved the rest, and links refused by the URL policy used up the
+   budget. Now each source gets a fair share (`max_pages // sources`) or its own `max_pages`; refused links are free; pages reused by `--resume` count.
+6. ISC index links are `http://`; with an unreadable robots.txt the fetcher correctly refuses, so the adapter now upgrades them to https.
+7. **Open:** a rerun with the same run id (same `--as-of` day) can leave an older `data/quarantine/<run_id>.jsonl` behind. A clean-up inside
+   `write_quarantine` was tried and reverted: the pipeline writes it twice per run id. Clean it at the start of a run instead.
+8. **Open:** the validator proves that a quote exists in the stored snapshot, not that the interpretation is right (for example "Canadian
+   Indigenous" is read as First Nations, Inuit or Métis). That is what `human_reviewed` is for.
+9. A console showing `M??tis` is only the Windows code page: the stored text has no U+FFFD and "Métis" is intact.
+
+## 5. Acceptance table
 
 | item | state | evidence / what is missing |
 | --- | --- | --- |
-| Environment and architecture rebuilt | **Partly** | files, layout, CLI entry and docs exist; the core imports and runs; `pip install`, `python -m navigator.cli --help`, `ruff` not run |
-| Core configuration rebuilt | **Partly** | `derive_runtime` tested (mode precedence, demo/live isolation, unsafe settings refused, secrets not printable); the pydantic-settings loader, Alembic upgrade and `/health` not run |
-| From an empty directory | **Not demonstrated** | the documented install + Alembic + serve flow has never been executed; the demo chain ran only against the in-memory repository |
-| No network / no key | **Verified** | demo pipeline and 203 tests ran offline with no key; no code path calls an LLM (`EXTRACTION_MODE=llm` is an explicit error) |
-| Traceable import | **Verified (files + memory)** | quotes are found in the cited paragraph/page of the stored text, raw/text SHA-256 recomputed, forged, moved, mis-hashed and path-traversing evidence rejected; SQL persistence of evidence not run |
-| Idempotency and transactions | **Verified for planner/importer with the in-memory repository** | second import `unchanged`, bad batch writes nothing, failure rolls back, dry-run writes nothing, `--allow-partial` counts and exit code; SQL transactions not run (`tests/test_db.py` is written for it) |
-| Data semantics | **Verified by tests** | unknown vs zero; 2020 / annual / multiple / local-administrator deadlines; unknown time zone, daylight-saving boundary, date-only deadlines; pooled total and maximum amounts; preferences; OR rules; shared-application exception; three-valued logic |
-| Three demonstrations | **Partly** | correct through the matching engine (tests) and through `scripts/smoke_test.py` against a stdlib stand-in; **not** through the real FastAPI app |
-| Live data | **Not achieved: 0 real opportunities** | target 20-30, shortfall 20-30; no page fetched (no network); adapters met only synthetic structural fixtures; the ISC index adapter was modelled on the table layout seen in page text on 2026-10-07 |
-| Data isolation | **Verified in code paths** | resolver refuses a shared database; importer rejects `is_demo` records in live mode; listings are mode-scoped; the live pipeline writes no export without real data; SQL file separation tested in `test_db.py` (not run) |
-| Recovery | **Verified with a scripted transport** | manifest after each step; atomic index/audit writes; `--resume` skips finished pages and retries failed ones; `--refresh` uses conditional requests (304 reuse); extractor-version change re-runs extraction only; a failed fetch never replaces a good snapshot |
+| Environment and architecture rebuilt | **Verified (Windows)** | fresh venv from the exact lock, 241 tests, ruff clean |
+| Core configuration rebuilt | **Verified (Windows)** | resolver and loader tests, Alembic upgrade, `/health` on the real app in both modes |
+| From an empty directory | **Verified (Windows)** | new folder, new venv from `requirements.lock`, editable install, migrations, demo pipeline twice, serve, smoke. Not run: Linux/macOS, Python 3.11 |
+| No network / no key | **Verified** | tests and the demo pipeline need neither; live needs the network and no key |
+| Traceable import | **Verified, including real pages** | quotes checked against the stored real snapshots; forged/moved/mis-hashed evidence rejected; evidence persisted and re-exported |
+| Idempotency and transactions | **Verified** | live pipeline twice: 33 created then 33 unchanged; a failing batch leaves no rows; dry-run writes nothing |
+| Data semantics | **Verified by tests and the real SFU table** | unknown vs zero, deadline kinds, time zones and rule changes, pooled/maximum amounts, preferences, OR rules, shared forms, funder conditions, conflicts |
+| Three demonstrations | **Verified through the real FastAPI app** | tests and `smoke_test.py` against uvicorn (demo and live) |
+| Live data | **Partly achieved: 33 real records, with the caveats of section 3** | UBC blocked (HTTP 403); 25 records are dated directory entries; ISC channel pages, MNBC and Indspire donor pages are not mapped yet |
+| Data isolation | **Verified** | live database separate; the live run did not touch the demo database; no `is_demo` record in the live export |
+| Recovery | **Verified, including on the real network** | the live pipeline rerun downloaded nothing new except the two UBC retries (`attempted` 0 for every other source); scripted-transport failure tests; failed fetch never replaces a good snapshot |
 
-## 5. Data counts
+## 6. Decisions that differ from the brief
 
-| dataset | records | real |
-| --- | --- | --- |
-| demo (`data/demo/awards.jsonl`) | 25 (23 awards, 1 funding channel, 1 collection) | no - synthetic |
-| live (`data/awards.jsonl`) | not created (no real data) | 0 |
-
-## 6. Decisions that differ from the brief (and why)
-
-1. **Candidate records are validated by a framework-free validator driven by the exported JSON Schema** (plus semantic and
-   evidence checks), not by Pydantic models. Reasons: line-level errors with JSON Pointers for quarantine, explicit
-   null-vs-absent semantics (a default must never hide an unknown), one source of truth for the contract, and it can be tested
-   without the web stack. Pydantic is used for settings and the API models.
-2. **Evidence `field_path` uses the `cycle_key` as the token under `/cycles`** (for example `/cycles/2026-27/amount`) so
-   evidence survives cycle merges and reordering. This is the "equivalent stable path" the brief allows.
-3. **`requirements.lock` is a list of compatible ranges, not an exact lock** (no resolver or index was reachable).
-4. **No LLM extractor.** `EXTRACTION_MODE=llm` stops with an error; there is no always-succeeding stub.
-5. **Tests are `unittest` classes** (pytest collects them). A `live` marker is registered, but no live-network tests exist yet.
-6. `FETCH_PER_HOST_CONCURRENCY` is accepted and validated, but fetching is sequential (at most one request in flight per host).
+1. Candidate records are validated by a framework-free validator driven by the exported JSON Schema (not Pydantic models); Pydantic is used for settings and the API.
+2. Evidence `field_path` uses the `cycle_key` token under `/cycles`.
+3. `requirements.lock` is an exact set, verified on Windows / CPython 3.12.10 only.
+4. No LLM extractor: `EXTRACTION_MODE=llm` is an explicit error.
+5. Tests are `unittest` classes (pytest collects them); the `live` marker is real now.
+6. Fetching is sequential per host; `FETCH_PER_HOST_CONCURRENCY` is validated but not used.
 7. OCR is not performed; scanned PDFs are reported as `ocr_required`.
-8. The API loads published records of the current mode per request and filters in memory (fine for hundreds of records;
-   move filtering into SQL or add caching before scale).
-9. Contradictions between different official documents are **recorded** (`conflicts` keeps both statements as evidence and forces `pending` + unpublished) but **not detected automatically**; a person or a curated mapping must notice them (see `docs/DATA_SOURCES.md`).
-10. Conditions on the organisation that receives the funds are kept in `eligibility.funder_conditions` and never decide a student's result.
+8. Contradicting official statements are recorded (`conflicts`) but not detected automatically.
+9. Conditions on the organisation that receives the funds stay in `eligibility.funder_conditions`.
+10. One time-zone database: the pinned `tzdata` package is preferred over the operating system's.
+11. ISC directory entries stay discovery-only in `data/discovery`; only their detail pages are promoted to records, with the limits stated in each record's summary.
 
-## 7. Known risks
+## 7. Where to resume
 
-* The unexecuted layers (SQLAlchemy repository, Alembic env, FastAPI routes, Typer CLI, `HttpxTransport`, pydantic-settings
-  loader) may fail on first run. They are small and the matching tests exist.
-* Adapters were written against *observed text of one page* (ISC) and general structure for the others; real pages may differ.
-* `ruff format --check` will likely report differences until `ruff format .` is run once. Python 3.11 was not available; only
-  a static check for 3.12-only f-string syntax stands in for it.
-* Site terms have not been reviewed; do not run a large live crawl before that.
-
-## 8. Where to resume
-
-* Demo: `data/demo/runs/demo-pipeline-20261007T120000Z.json` lists every step, artifact path and hash.
-* Live (when run): `data/runs/<run_id>.json`, `data/discovery/fetch_index.json`, `data/discovery/fetch_audit.jsonl`,
-  `data/quarantine/`, `data/reports/freshness.json` and `.md`. Re-run the same command with `--resume`.
-* Contract and examples: `docs/DATA_MODEL.md`, `docs/schemas/`, `examples/`. Operations: `docs/RUNBOOK.md`.
+* Runs: `data/runs/<run_id>.json`; fetch audit: `data/discovery/fetch_audit.jsonl`; index: `data/discovery/fetch_index.json`;
+  quarantine: `data/quarantine/`; reports: `data/reports/freshness.json` and `.md`; export: `data/awards.jsonl`.
+* Contract and examples: `docs/DATA_MODEL.md`, `docs/schemas/`, `examples/`. Operations: `docs/RUNBOOK.md`. Sources and terms: `docs/DATA_SOURCES.md`.

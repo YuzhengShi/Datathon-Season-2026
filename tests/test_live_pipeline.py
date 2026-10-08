@@ -1,6 +1,7 @@
 """The live pipeline against a scripted network of SYNTHETIC pages (structure modelled on observed
 layouts; no real award data). Real-site behaviour is not claimed here: see docs/HANDOFF.md."""
 
+import re
 import dataclasses
 import json
 import tempfile
@@ -21,7 +22,7 @@ from tests.support import AS_OF
 from tests.test_adapters import DETAIL, ISC_HTML, LISTING, UBC_LIKE
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES = {s.source_id: s for s in load_sources(ROOT / "sources.yaml")}
+SOURCES = {s.source_id: dataclasses.replace(s, max_pages=None) for s in load_sources(ROOT / "sources.yaml")}
 SIMPLE = b"<html><body><main><h1>Channel page (synthetic)</h1><p>Contact the local education office.</p></main></body></html>"
 POLICY = b"<html><body><main><h1>Apply now</h1><p>Submit one application form. The deadline is on each award.</p></main></body></html>"
 
@@ -71,10 +72,13 @@ class LivePipelineTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.data = Path(self.tmp.name)
+        # production sources.yaml gives some sources their own page budget; these tests exercise the generic fair share
+        stripped = re.sub(r"(?m)^    max_pages:.*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8"))
+        (self.data / "sources.test.yaml").write_text(stripped, encoding="utf-8")
         self.rt = derive_runtime(
             {
                 "DATA_DIR": str(self.data),
-                "SOURCE_CONFIG": str(ROOT / "sources.yaml"),
+                "SOURCE_CONFIG": str(self.data / "sources.test.yaml"),
                 "FETCH_RETRIES": "0",
                 "FETCH_MIN_INTERVAL_SECONDS": "0",
             },

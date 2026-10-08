@@ -44,7 +44,7 @@ application forms are modelled without merging the awards' eligibility.
 | Dataset | Records | Real? | How it was produced |
 | --- | --- | --- | --- |
 | demo (`data/demo/`) | 25 (23 awards, 1 funding channel, 1 collection) | **No - synthetic** | `pipeline --mode demo`: synthetic snapshots -> evidence-quoted candidates -> validation -> import -> export |
-| live (`data/`) | **0 real opportunities obtained in this build** | Yes (none yet) | The build environment had no network, so no official page could be fetched. Target 20-30; shortfall 20-30. |
+| live (`data/`) | **33 real opportunities** | Yes | Fetched on the real network and verified quote by quote; see HANDOFF section 3 for what each source gave (and what it did not). Target 20-30. |
 
 Nothing synthetic was used to fill the live numbers. `sources.yaml` lists the ten official entry points. Source adapters
 exist for the ISC discovery index, UBC-style sectioned pages, listing/detail pages (Indspire funding) and policy/context
@@ -80,13 +80,14 @@ API docs: http://127.0.0.1:8000/docs. Full commands, live runs, resume/refresh a
 
 ### Honest status (details and the acceptance table: [docs/HANDOFF.md](docs/HANDOFF.md))
 
-* The pure core (rules, deadlines, evidence, validation, planning, adapters, fetch engine, pipelines) was exercised by a
-  test suite that ran without the web stack. The FastAPI/SQLAlchemy/Alembic/Typer layers were written but **could not be
-  executed** where this was built (no package installation possible); their tests are skipped there and are the first
-  thing to run. `requirements.lock` lists compatible ranges, not an exact lock (run `python scripts/freeze_lock.py`
-  after the first green run). `ruff format --check` has not been run: run `python -m ruff format .` once.
-* Not yet done: any real fetch; adapter fit against real pages; terms-of-use review (all sources are `unreviewed`);
-  curated mappings for SFU/MNBC/ISC channels; human review workflow; the LLM extractor (intentionally not implemented).
+* **Verified (Windows, CPython 3.12.10, fresh venv from the exact `requirements.lock`):** 241 tests pass, including the database, API and
+  command-line suites; ruff is clean; the demo flow, the real FastAPI server and `scripts/smoke_test.py` work in demo and live mode; the real
+  HTTP transport was exercised against a local server and, once, the real network (`example.com`).
+* **Real data: 33 opportunities** (8 from a curated mapping of SFU's awards table, 25 from the dated ISC directory). The ISC ones have no
+  deadline and only free-text eligibility; all 33 come back as `needs_provider_confirmation` in `/match`. **UBC returned HTTP 403** to the
+  automated client and was not worked around. Site terms are unreviewed (`access_status: unreviewed`).
+* **Not verified:** Linux/macOS, Python 3.11, PostgreSQL; a human review workflow; mappings for the ISC channel pages, MNBC and the Indspire
+  donor pages. The LLM extractor is intentionally not implemented.
 
 A ready-to-paste task for the next session (verify and fix the unexecuted layers, then real data): [docs/NEXT_SESSION_PROMPT.md](docs/NEXT_SESSION_PROMPT.md).
 
