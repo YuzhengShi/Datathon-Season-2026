@@ -30,10 +30,17 @@ def cli_commands() -> list[str]:
 
 
 class DocsTests(unittest.TestCase):
-    def test_readme_has_exactly_the_three_required_headings(self):
+    def test_readme_has_the_five_build_session_2_sections(self):
         headings = [line for line in read("README.md").splitlines() if line.startswith("## ")]
         self.assertEqual(
-            headings, ["## 1. Problem evidence", "## 2. Data evidence", "## 3. What we are taking into Build Session 2"]
+            headings,
+            [
+                "## 1. Idea and choices",
+                "## 2. Data and how it supports the result",
+                "## 3. Run it locally",
+                "## 4. Demo path",
+                "## 5. What works now, and what remains before Build Session 3",
+            ],
         )
 
     def test_readme_does_not_claim_user_research_that_never_happened(self):
@@ -52,7 +59,7 @@ class DocsTests(unittest.TestCase):
                 self.assertIn(f"`{value}`", read("docs/DATA_MODEL.md"))
 
     def test_runbook_documents_every_cli_command(self):
-        runbook = read("docs/RUNBOOK.md") + read("README.md")
+        runbook = read("docs/RUNBOOK.md") + read("README.md") + read("docs/TECHNICAL_README.md")
         commands = cli_commands()
         self.assertGreaterEqual(len(commands), 10)
         for name in commands:
@@ -76,7 +83,16 @@ class DocsTests(unittest.TestCase):
         self.assertTrue(used)
 
     def test_relative_links_resolve(self):
-        for rel in ("README.md", "docs/RUNBOOK.md", "docs/ARCHITECTURE.md", "docs/DATA_SOURCES.md", "docs/HANDOFF.md"):
+        for rel in (
+            "README.md",
+            "docs/RUNBOOK.md",
+            "docs/ARCHITECTURE.md",
+            "docs/DATA_SOURCES.md",
+            "docs/HANDOFF.md",
+            "docs/TECHNICAL_README.md",
+            "docs/BUILD_SESSION_2.md",
+            "docs/DEMO.md",
+        ):
             base = (ROOT / rel).parent
             for target in re.findall(r"\]\(([^)#]+)(?:#[^)]*)?\)", read(rel)):
                 if not target.startswith(("http://", "https://", "mailto:")):

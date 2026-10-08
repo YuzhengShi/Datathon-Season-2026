@@ -11,6 +11,8 @@ Everything runs on one laptop, with no internet: `.\scripts\start_app.ps1` (or `
    Point out that every question has a Skip and that nothing is saved.
 3. **The store page (60 s).** Search "nurse", then clear it; sort by *Amount*; open the *Source* filter and show the two kinds of card:
    *Checked on the provider's page* and *Government directory entry* (older, no deadline). Save two awards to **My list**.
+   *Optional (30 s):* go back with *Edit my answers* and leave *registered under the Indian Act* unanswered. The federal PSSSP card now says *More answers
+   would help*, and its page asks exactly that question and says that no card number is needed.
 4. **One award in depth (40 s).** Open a Vancouver Island University award (browse everything, search "Laura Finch"): "One application covers 24 other
    awards", the deadline "every year on Apr 30", and the provider's own words with a link and the date checked.
 5. **Honesty (20 s).** Mention that the *First Citizens Fund* bursary is in our data as archived (its provider paused it, so students never see it), and say

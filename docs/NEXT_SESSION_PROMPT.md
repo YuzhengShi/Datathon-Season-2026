@@ -11,7 +11,7 @@
 - 保持不变量：demo 数据永不进入 live 数据库或 `data/awards.jsonl`；`POST /match` 的 profile 不持久化、不写日志、不回显；
   未知永远不是 0 或"无限制"；`machine_checked` 不是人工审核（不要自行写 `human_reviewed`）；证据 quote 必须真实存在于快照文本。
 - 抓取只访问 `sources.yaml` / `sources.providers.yaml` 允许的域名和路径，遵守 robots.txt；**遇到 403/429 就停下、记录、把该来源从配置里撤掉，
-  不换 User-Agent、不伪装、不绕过、不重试**；`USER_AGENT` 必须带真实联系方式；不做云部署、不推送仓库。
+  不换 User-Agent、不伪装、不绕过、不重试**；`USER_AGENT` 必须带真实联系方式；不做云部署；除非用户明确要求，不推送仓库。
 - Windows 上显式使用 `.venv\Scripts\python.exe`；不要直接 `import click`（Typer 新版自带实现）；`PowerShell` 里变量名不区分大小写（`$d` 与 `$D` 是同一个）。
 
 ## 任务（按优先级）

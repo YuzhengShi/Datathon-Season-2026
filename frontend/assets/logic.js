@@ -449,3 +449,11 @@ export function prettyRule(rule, institutions = []) {
   if (field === 'study_status') return text.replace(/^Study status is /, 'Studying ');
   return text;
 }
+// ---------------------------------------------------------------- what the Government of Canada's reproduction terms ask us to say
+/** Non-commercial reproduction is allowed if the copy says it is a copy of an official work and is not endorsed by the Government. */
+export function governmentAttribution(row, quotes) {
+  const fromCanada = (quotes || []).some((q) => /^https?:\/\/(www\.)?sac-isc\.gc\.ca\//.test(q.url || ''));
+  if (!fromCanada) return null;
+  const material = row.source_kind === 'directory_listing' ? 'Indigenous Bursaries Search Tool' : row.title;
+  return `Contains information from “${material}”, published by Indigenous Services Canada. This is a copy of an official work published by the Government of Canada; it was not produced in affiliation with, or with the endorsement of, the Government of Canada.`;
+}

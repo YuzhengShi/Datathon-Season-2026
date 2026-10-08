@@ -1,6 +1,6 @@
 // The detail page: everything about one scholarship, what is checked, what is not, and exactly where each fact was read.
 import { h, icon } from './dom.js';
-import { cap, cardSummary, detailHash, evidenceList, flagText, plainDate, prettyRule, providerStatements, sourceView } from './logic.js';
+import { cap, cardSummary, detailHash, evidenceList, flagText, governmentAttribution, plainDate, prettyRule, providerStatements, sourceView } from './logic.js';
 import { availabilityBadge, banner, deadlineBlock, fitBadge, priceBlock, saveButton, sourceBadge } from './views_common.js';
 
 const MARKS = { pass: 'check', fail: 'x', unknown: 'help' };
@@ -41,11 +41,13 @@ function matchPanel(row, ctx, detail) {
 function sourcePanel(row, detail) {
   const s = sourceView(row);
   const quotes = evidenceList(row, detail);
+  const gov = governmentAttribution(row, quotes);
   return panel('Where this information comes from', 'shield',
     h('div', { class: `source-note source-note--${s.tone === 'warn' ? 'warn' : 'good'}` }, icon(s.tone === 'warn' ? 'info' : 'shield', 20), h('p', {}, h('strong', {}, s.label + '. '), s.note)),
     quotes.length ? [h('h3', {}, 'What the page says'), quotes.slice(0, 8).map((q) => h('blockquote', { class: 'quote' },
       h('p', {}, '“' + q.quote + '”'),
       h('footer', {}, q.label, q.heading ? ` · under “${q.heading}”` : '', q.url ? [' · ', h('a', { href: q.url, target: '_blank', rel: 'noopener noreferrer' }, 'open the page')] : null)))] : null,
+    gov ? h('p', { class: 'small' }, gov) : null,
     h('p', { class: 'small muted' }, 'A computer read this page and checked that every quote above appears on it. A person has not reviewed it yet, so always confirm on the provider’s page.',
       row.lastVerified ? ` Last checked ${plainDate(row.lastVerified)}.` : ''));
 }

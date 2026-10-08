@@ -167,7 +167,43 @@ async function desktop(cdp) {
   check('an award that shares an application says so and links to the others',
     (await page.eval(text('main'))).includes('One application covers several awards') && (await page.eval(`document.querySelectorAll('.panel ul a[href^="#/s/"]').length`)) > 5);
   await page.shot('shared-application-desktop');
-  check('a repeating deadline reads naturally', (await page.eval(text('.buybox'))).includes('Due every year on Apr 30'));  check('nothing is stored in the browser (no cookies, local or session storage)', await page.eval(`document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
+  check('a repeating deadline reads naturally', (await page.eval(text('.buybox'))).includes('Due every year on Apr 30'));  await page.go(`${BASE}/app/#/results?browse=1`);
+  await page.waitFor(`document.querySelectorAll('.card').length > 0`, 'the browse-everything results');
+  await page.setValue('.search__input', '');
+  await page.waitFor(`document.querySelectorAll('.card').length > 5`, 'the full list again');
+  await page.setValue('.search__input', 'PSSSP');
+  await page.waitFor(`${count('.results__count')} === 1`, 'the search for the federal program');
+  await page.click('.card .card__title a');
+  await page.waitFor(`!!document.querySelector('.buybox')`, 'the detail page of a Government of Canada program');
+  check('Government of Canada material carries the statement its reproduction terms require',
+    (await page.eval(text('main'))).includes('not produced in affiliation with, or with the endorsement of, the Government of Canada'));
+  // the clarification case: answer everything except "registered under the Indian Act", and the app asks for exactly that
+  await page.go(`${BASE}/app/#/start/1`);
+  await page.waitFor(`${text('legend')}.includes('Which of these describe you')`, 'question 1 again');
+  await page.click('input[name="identity"][value="first_nations"]');
+  await page.click('.wizard__actions .btn--primary');
+  await page.waitFor(`${text('legend')}.includes('status')`, 'the status question again');
+  await page.click('.wizard__actions .btn--primary');
+  await page.waitFor(`${text('legend')}.includes('Where do you live')`, 'the residence question again');
+  await page.setValue('#province', 'BC');
+  await page.click('.wizard__actions .btn--primary');
+  await page.waitFor(`${text('legend')}.includes('studying')`, 'the study question again');
+  await page.click('input[name="level"][value="undergraduate"]');
+  await page.click('input[name="studyStatus"][value="full_time"]');
+  await page.click('.wizard__actions .btn--primary');
+  await page.waitFor(`${text('legend')}.includes('Which school')`, 'the school question again');
+  await page.setValue('#school', 'sfu');
+  await page.click('.wizard__actions .btn--primary');
+  await page.waitFor(`document.querySelectorAll('.card').length > 5`, 'the results after a skipped question');
+  await page.setValue('.search__input', 'PSSSP');
+  await page.waitFor(`${count('.results__count')} === 1`, 'the federal program again');
+  check('a skipped question makes the card say that more answers would help', (await page.eval(text('.card'))).includes('More answers would help'));
+  await page.click('.card .card__title a');
+  await page.waitFor(`!!document.querySelector('.buybox')`, 'the detail page after a skipped question');
+  const detail = await page.eval(text('main'));
+  check('the detail page asks the exact question that was skipped, and says no card number is needed',
+    detail.includes('Are you registered as a First Nations person under the Indian Act') && detail.includes('No card or registry number is needed'));
+  check('nothing is stored in the browser (no cookies, local or session storage)', await page.eval(`document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
   check('every button, field and link has an accessible name', await page.eval(`[...document.querySelectorAll('button, a[href], input, select')].every((el) => (el.textContent || '').trim() || el.getAttribute('aria-label') || (el.labels && el.labels.length) || el.closest('label'))`));
   check('no JavaScript errors on desktop', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
 }

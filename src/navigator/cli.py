@@ -2,7 +2,7 @@
 
 Exit codes: 0 success; 1 data / validation / test failure; 2 bad arguments or configuration;
 3 an external source was unavailable or the live run did not reach its target (a *partial* run).
-Finding items that still need verification is normal and not an error; see README "Exit codes".
+Finding items that still need verification is normal and not an error; see docs/TECHNICAL_README.md "Exit codes".
 
 NOTE: this module intentionally has no ``from __future__ import annotations`` so Typer can read the
 real annotation objects.
@@ -296,6 +296,12 @@ def import_data(
     allow_partial: bool = typer.Option(
         False, "--allow-partial", help="Per-record transactions; any rejection still exits 1."
     ),
+    trust_export: bool = typer.Option(
+        False,
+        "--trust-export",
+        help="Do not re-check evidence against saved pages. For loading the prepared data/awards.jsonl, which was verified "
+        "against the pages when it was built; every other validation still runs.",
+    ),
     as_of: Optional[str] = typer.Option(None, "--as-of"),
 ) -> None:
     """Strict, transactional, idempotent import. By default one bad record rejects the whole batch."""
@@ -309,6 +315,7 @@ def import_data(
                 expected_mode=rt.mode,
                 now=now,
                 known_source_ids=frozenset(r["source_id"] for r in rows),
+                verify_files=not trust_export,
             ),
         )
         run_id = make_run_id("import", now)

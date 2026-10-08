@@ -6,7 +6,7 @@
 
 * **Verified environment:** Windows, CPython 3.12.10, a fresh virtual environment installed from the exact `requirements.lock`.
   **Not verified:** Linux/macOS, Python 3.11, PostgreSQL.
-* **Tests:** 258 pass (database, API and command-line suites included); 3 `live` tests (off by default) passed on the real network
+* **Tests:** 267 pass (database, API and command-line suites included); 3 `live` tests (off by default) passed on the real network
   against `example.com` only, in the previous session. `ruff check`, `ruff format --check` and `scripts/check_static.py` are clean.
 * **Real data: 59 records** in the live database (58 published, 1 archived), exported to `data/awards.jsonl`:
   8 SFU awards (curated from a real table), 4 funding channels (ISC PSSSP, ISC Inuit strategy, ISC Métis Nation strategy, MNBC STEPS),
@@ -19,7 +19,7 @@
 ## 1. First actions
 
 1. `python -m venv .venv`, `python -m pip install -r requirements.lock`, `python -m pip install --no-deps -e .`
-2. `python -m pytest -q` (expect 258 passed), `python -m ruff check .`, `python -m ruff format --check .`, `python scripts/check_static.py`
+2. `python -m pytest -q` (expect 267 passed), `python -m ruff check .`, `python -m ruff format --check .`, `python scripts/check_static.py`
 3. Demo: `python -m navigator.cli pipeline --mode demo --as-of 2026-10-07` twice (25 created, then 25 unchanged); `serve --mode demo` and
    `python scripts/smoke_test.py --base-url http://127.0.0.1:8000 --expect-mode demo` (29/29).
 4. Live: the real snapshots are in `data/raw`/`data/text`; `python -m navigator.cli pipeline --mode live --limit 60 --max-pages 80 --resume`
@@ -100,7 +100,7 @@ around it** (no changed User-Agent, no retries, no headless browser). Instead:
 
 | item | state | evidence / what is missing |
 | --- | --- | --- |
-| Environment and architecture rebuilt | **Verified (Windows)** | fresh venv from the exact lock, 258 tests, ruff clean |
+| Environment and architecture rebuilt | **Verified (Windows)** | fresh venv from the exact lock, 267 tests, ruff clean |
 | Core configuration rebuilt | **Verified (Windows)** | resolver and loader tests, Alembic upgrade, `/health` on the real app in both modes |
 | From an empty directory | **Verified (Windows)** | new folder, new venv from `requirements.lock`, editable install, migrations, both pipelines twice, serve, smoke. Not run: Linux/macOS, Python 3.11 |
 | No network / no key | **Verified** | tests and the demo pipeline need neither; live needs the network and no key |
@@ -125,8 +125,8 @@ around it** (no changed User-Agent, no retries, no headless browser). Instead:
 * **No answer is stored or shown anywhere** except in memory for the open tab (no cookies, no storage, nothing in the URL).
 * **Real data has almost no "potential fit"** (SFU and the providers all have rules only they can judge), so ranking uses how many checkable
   requirements are met and puts directory entries after provider-verified ones.
-* Verified: 22 JavaScript logic tests (also run by `pytest`); 5 serving tests (MIME types, CSP, no path traversal, institutions list); a real
-  Chrome end-to-end run of 25 checks on a desktop and on a 390 px phone (questionnaire, search, filters, sort, save, list, detail, no stored data,
+* Verified: 23 JavaScript logic tests (also run by `pytest`); 5 serving tests (MIME types, CSP, no path traversal, institutions list); a real
+  Chrome end-to-end run of 30 checks on a desktop and on a 390 px phone (questionnaire, search, filters, sort, save, list, detail, no stored data,
   accessible names, no sideways scrolling, no JavaScript errors).
 * **Not verified:** Firefox and Safari; a screen reader; measured colour contrast (colours were chosen for AA but not measured); French;
   a contact address (`CONTACT_EMAIL` in `frontend/assets/config.js` and the contact in `USER_AGENT` are still empty); the User-Agent text now says what the crawler is for

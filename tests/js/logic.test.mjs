@@ -6,6 +6,7 @@ import {
   cardSummary, describeAnswers, evidenceLabel, evidenceList, facetCounts, fitView, flagText, formatMoney, joinRows, nextOccurrence, parseHash, plainDate,
   prettyRule, providerStatements, rowFromDetail, shortlistText, sortRows, sourceView, urgencyText, withDeadlines,
 } from '../../frontend/assets/logic.js';
+import { governmentAttribution } from '../../frontend/assets/logic.js';
 
 const TODAY = '2026-10-08';
 const SCHOOLS = [{ id: 'sfu', name: 'Simon Fraser University', province: 'BC' }];
@@ -233,4 +234,15 @@ test('rule sentences use names a student recognises', () => {
   assert.equal(prettyRule({ field: 'indigenous_identity', rule: 'Indigenous identity includes at least one of Inuit' }), 'Indigenous identity includes at least one of Inuit');
   assert.equal(prettyRule({ field: null, rule: 'Good academic standing is not defined on the page' }), 'Good academic standing is not defined on the page');
   assert.equal(prettyRule(null), '');
+});
+test('Government of Canada material carries the statement its reproduction terms ask for', () => {
+  const directory = rowOf({ list: { source_kind: 'directory_listing' } });
+  const text = governmentAttribution(directory, [{ url: 'https://www.sac-isc.gc.ca/eng/1/1' }]);
+  assert.match(text, /“Indigenous Bursaries Search Tool”, published by Indigenous Services Canada/);
+  assert.match(text, /copy of an official work published by the Government of Canada/);
+  assert.match(text, /not produced in affiliation with, or with the endorsement of, the Government of Canada/);
+  const channel = rowOf({ list: { title: 'Post-Secondary Student Support Program', opportunity_type: 'funding_channel' } });
+  assert.match(governmentAttribution(channel, [{ url: 'https://www.sac-isc.gc.ca/eng/2/2' }]), /“Post-Secondary Student Support Program”/);
+  assert.equal(governmentAttribution(directory, [{ url: 'https://www.sfu.ca/x' }]), null, 'other providers need no such statement');
+  assert.equal(governmentAttribution(directory, []), null);
 });
