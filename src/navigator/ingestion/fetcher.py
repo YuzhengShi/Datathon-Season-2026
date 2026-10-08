@@ -78,10 +78,20 @@ class FetchOutcome:
 
     def audit(self) -> dict:
         """Row for the fetch audit trail (no body)."""
-        return {"url": self.url, "final_url": self.final_url, "outcome": self.outcome, "reason": self.reason,
-                "http_status": self.status, "attempts": self.attempts, "duration_ms": self.duration_ms,
-                "bytes": self.size, "etag": self.etag, "last_modified": self.last_modified,
-                "redirects": self.redirects, "robots_status": self.robots_status}
+        return {
+            "url": self.url,
+            "final_url": self.final_url,
+            "outcome": self.outcome,
+            "reason": self.reason,
+            "http_status": self.status,
+            "attempts": self.attempts,
+            "duration_ms": self.duration_ms,
+            "bytes": self.size,
+            "etag": self.etag,
+            "last_modified": self.last_modified,
+            "redirects": self.redirects,
+            "robots_status": self.robots_status,
+        }
 
 
 def parse_retry_after(value: str | None, now: Callable[[], float] = time.time) -> float | None:
@@ -170,7 +180,9 @@ class Fetcher:
         origin = f"{parts.scheme}://{parts.netloc}"
         if origin not in self._robots:
             robots_url = f"{origin}/robots.txt"
-            decision = check_url(robots_url, [AllowRule((parts.hostname or "",), ("/robots.txt",))], resolver=self.resolver)
+            decision = check_url(
+                robots_url, [AllowRule((parts.hostname or "",), ("/robots.txt",))], resolver=self.resolver
+            )
             parser: urllib.robotparser.RobotFileParser | None = None
             status = "unavailable"
             if decision.ok:
@@ -207,11 +219,25 @@ class Fetcher:
         current = url
         attempts = 0
 
-        def done(outcome: str, reason: str | None = None, response: HttpResponse | None = None,
-                 robots: str | None = None) -> FetchOutcome:
-            out = FetchOutcome(url, outcome, reason, current, response.status if response else None, attempts,
-                               int((self._mono() - started) * 1000), len(response.body) if response else 0,
-                               None, None, None, None, redirects, robots)
+        def done(
+            outcome: str, reason: str | None = None, response: HttpResponse | None = None, robots: str | None = None
+        ) -> FetchOutcome:
+            out = FetchOutcome(
+                url,
+                outcome,
+                reason,
+                current,
+                response.status if response else None,
+                attempts,
+                int((self._mono() - started) * 1000),
+                len(response.body) if response else 0,
+                None,
+                None,
+                None,
+                None,
+                redirects,
+                robots,
+            )
             if response is not None:
                 out.media_type = response.headers.get("content-type", "").split(";")[0].strip().lower() or None
                 out.etag, out.last_modified = response.headers.get("etag"), response.headers.get("last-modified")
@@ -226,8 +252,11 @@ class Fetcher:
                 return done("blocked", f"url_{decision.reason}")
             allowed, robots_seen = self.robots_status(current)
             if not allowed:
-                return done("blocked", f"robots_{robots_seen}" if robots_seen == "unavailable" else "robots_disallowed",
-                            robots=robots_seen)
+                return done(
+                    "blocked",
+                    f"robots_{robots_seen}" if robots_seen == "unavailable" else "robots_disallowed",
+                    robots=robots_seen,
+                )
             headers = {"User-Agent": self.policy.user_agent, "Accept": ", ".join(ACCEPTED_MEDIA)}
             if conditional:
                 if etag:

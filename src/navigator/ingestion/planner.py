@@ -40,8 +40,15 @@ class PlanItem:
     version: int = 1
 
     def summary(self) -> dict:
-        return {"id": self.id, "action": self.action, "reasons": self.reasons, "cycles": self.cycles,
-                "changes": len(self.diff), "touched": self.touched, "version": self.version}
+        return {
+            "id": self.id,
+            "action": self.action,
+            "reasons": self.reasons,
+            "cycles": self.cycles,
+            "changes": len(self.diff),
+            "touched": self.touched,
+            "version": self.version,
+        }
 
 
 @dataclass
@@ -103,10 +110,16 @@ def _settle_status(existing: dict, incoming: dict, merged: dict, content_changed
     else:
         keep_existing = REVIEW_RANK.get(ex_review, 0) >= REVIEW_RANK.get(in_review, 0)
         merged["review_status"] = ex_review if keep_existing else in_review
-        merged["review"] = (existing.get("review") if keep_existing else incoming.get("review")) or incoming.get("review") or existing.get("review")
+        merged["review"] = (
+            (existing.get("review") if keep_existing else incoming.get("review"))
+            or incoming.get("review")
+            or existing.get("review")
+        )
         if "archived" in (incoming["publication_status"], existing["publication_status"]):
             merged["publication_status"] = "archived"
-        elif "published" in (incoming["publication_status"], existing["publication_status"]) and merged["review_status"] in {"machine_checked", "human_reviewed"}:
+        elif "published" in (incoming["publication_status"], existing["publication_status"]) and merged[
+            "review_status"
+        ] in {"machine_checked", "human_reviewed"}:
             merged["publication_status"] = "published"
         else:
             merged["publication_status"] = incoming["publication_status"]
@@ -127,9 +140,12 @@ def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: st
 
     existing = canonicalize_record(existing_raw)
     if existing["source_record_key"] != incoming["source_record_key"]:
-        return PlanItem(rid, "pending_review", [
-            f"source_record_key changed from {existing['source_record_key']!r} to {incoming['source_record_key']!r}"],
-            version=version)
+        return PlanItem(
+            rid,
+            "pending_review",
+            [f"source_record_key changed from {existing['source_record_key']!r} to {incoming['source_record_key']!r}"],
+            version=version,
+        )
     if existing["is_demo"] != incoming["is_demo"]:
         return PlanItem(rid, "rejected", ["is_demo differs from the stored record"], version=version)
 
@@ -140,13 +156,20 @@ def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: st
     if content_changed:
         stale = incoming["last_fetched_at"] < existing["last_fetched_at"]
         later_verification = bool(
-            incoming.get("last_verified_at") and existing.get("last_verified_at")
+            incoming.get("last_verified_at")
+            and existing.get("last_verified_at")
             and incoming["last_verified_at"] > existing["last_verified_at"]
         )
         if stale and not later_verification:
-            return PlanItem(rid, "pending_review", [
-                "older_input_would_overwrite_newer: the input was fetched before the stored version "
-                "and carries no later verification"], version=version)
+            return PlanItem(
+                rid,
+                "pending_review",
+                [
+                    "older_input_would_overwrite_newer: the input was fetched before the stored version "
+                    "and carries no later verification"
+                ],
+                version=version,
+            )
 
     _settle_status(existing, incoming, merged, content_changed)
     merged["content_fingerprint"] = new_fp
@@ -165,21 +188,32 @@ def plan_one(incoming_raw: dict, existing_raw: dict | None, *, expected_mode: st
     status_changed = any(merged.get(f) != existing.get(f) for f in status_fields)
     if not content_changed and not status_changed:
         touched = (merged["last_fetched_at"], merged.get("last_verified_at")) != (
-            existing["last_fetched_at"], existing.get("last_verified_at"))
-        item = PlanItem(rid, "unchanged", ["no business change"], cycles=cycle_actions, touched=touched, version=version)
+            existing["last_fetched_at"],
+            existing.get("last_verified_at"),
+        )
+        item = PlanItem(
+            rid, "unchanged", ["no business change"], cycles=cycle_actions, touched=touched, version=version
+        )
         if touched:
             item.record, item.rows = merged, record_to_rows(merged)
         return item
 
-    diff = [c for c in diff_records(_keyed(business_view(existing)), _keyed(business_view(merged)))
-            if not c["path"].startswith(("/evidence", "/source_refs"))]
-    diff += [{"path": f"/{f}", "change": "modified", "old": existing.get(f), "new": merged.get(f)}
-             for f in status_fields if merged.get(f) != existing.get(f)]
-    reasons = (["content changed"] if content_changed else []) + (["review/publication status changed"] if status_changed else [])
+    diff = [
+        c
+        for c in diff_records(_keyed(business_view(existing)), _keyed(business_view(merged)))
+        if not c["path"].startswith(("/evidence", "/source_refs"))
+    ]
+    diff += [
+        {"path": f"/{f}", "change": "modified", "old": existing.get(f), "new": merged.get(f)}
+        for f in status_fields
+        if merged.get(f) != existing.get(f)
+    ]
+    reasons = (["content changed"] if content_changed else []) + (
+        ["review/publication status changed"] if status_changed else []
+    )
     if content_changed and (merged["evidence"] != existing["evidence"]):
         reasons.append("evidence pointers changed")
-    return PlanItem(rid, "updated", reasons, diff, cycle_actions, merged, record_to_rows(merged),
-                    version=version + 1)
+    return PlanItem(rid, "updated", reasons, diff, cycle_actions, merged, record_to_rows(merged), version=version + 1)
 
 
 def plan_import(incoming: list[dict], existing: dict[str, tuple[dict, int]], *, expected_mode: str) -> ImportPlan:
@@ -192,6 +226,9 @@ def plan_import(incoming: list[dict], existing: dict[str, tuple[dict, int]], *, 
             continue
         seen.add(record["id"])
         stored = existing.get(record["id"])
-        items.append(plan_one(record, stored[0] if stored else None, expected_mode=expected_mode,
-                              version=stored[1] if stored else 1))
+        items.append(
+            plan_one(
+                record, stored[0] if stored else None, expected_mode=expected_mode, version=stored[1] if stored else 1
+            )
+        )
     return ImportPlan(items)

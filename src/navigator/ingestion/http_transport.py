@@ -18,8 +18,9 @@ class HttpxTransport:
 
     def get(self, url: str, headers: Mapping[str, str], timeout: float, max_bytes: int) -> HttpResponse:
         try:
-            with self._client.stream("GET", url, headers=dict(headers), timeout=timeout,
-                                     follow_redirects=False) as response:
+            with self._client.stream(
+                "GET", url, headers=dict(headers), timeout=timeout, follow_redirects=False
+            ) as response:
                 declared = response.headers.get("content-length")
                 if declared and declared.isdigit() and int(declared) > max_bytes:
                     raise TransportError("too_large", f"content-length {declared} exceeds limit")
@@ -29,8 +30,12 @@ class HttpxTransport:
                     if total > max_bytes:
                         raise TransportError("too_large", "body exceeds limit")
                     chunks.append(chunk)
-                return HttpResponse(response.status_code, {k.lower(): v for k, v in response.headers.items()},
-                                    b"".join(chunks), str(response.url))
+                return HttpResponse(
+                    response.status_code,
+                    {k.lower(): v for k, v in response.headers.items()},
+                    b"".join(chunks),
+                    str(response.url),
+                )
         except httpx.TimeoutException as exc:
             raise TransportError("timeout", str(exc)) from exc
         except httpx.ConnectError as exc:

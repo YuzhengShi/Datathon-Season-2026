@@ -36,9 +36,16 @@ class SourceConfig:
         return [AllowRule(self.allowed_domains, self.allowed_paths)]
 
     def to_row(self) -> dict:
-        return {"source_id": self.source_id, "url": self.url, "provider_id": self.provider_id,
-                "provider_name": self.provider_name, "role": self.role, "parser": self.parser,
-                "language": self.language, "access_status": self.access_status}
+        return {
+            "source_id": self.source_id,
+            "url": self.url,
+            "provider_id": self.provider_id,
+            "provider_name": self.provider_name,
+            "role": self.role,
+            "parser": self.parser,
+            "language": self.language,
+            "access_status": self.access_status,
+        }
 
 
 def load_sources(path: Path) -> list[SourceConfig]:
@@ -50,12 +57,19 @@ def load_sources(path: Path) -> list[SourceConfig]:
     for raw in data.get("sources", []):
         try:
             source = SourceConfig(
-                source_id=raw["source_id"], name=raw["name"], url=raw["url"],
-                provider_id=raw["provider"]["id"], provider_name=raw["provider"]["name"],
-                role=raw["role"], parser=raw["parser"], language=raw.get("language", "en"),
-                allowed_domains=tuple(raw["allowed_domains"]), allowed_paths=tuple(raw["allowed_paths"]),
+                source_id=raw["source_id"],
+                name=raw["name"],
+                url=raw["url"],
+                provider_id=raw["provider"]["id"],
+                provider_name=raw["provider"]["name"],
+                role=raw["role"],
+                parser=raw["parser"],
+                language=raw.get("language", "en"),
+                allowed_domains=tuple(raw["allowed_domains"]),
+                allowed_paths=tuple(raw["allowed_paths"]),
                 access_status=raw.get("access_status", "unreviewed"),
-                terms_url=raw.get("terms_url"), notes=raw.get("notes"),
+                terms_url=raw.get("terms_url"),
+                notes=raw.get("notes"),
             )
         except KeyError as exc:
             raise SourceConfigError(f"source entry is missing {exc}: {raw!r}") from exc

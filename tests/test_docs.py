@@ -32,7 +32,9 @@ def cli_commands() -> list[str]:
 class DocsTests(unittest.TestCase):
     def test_readme_has_exactly_the_three_required_headings(self):
         headings = [line for line in read("README.md").splitlines() if line.startswith("## ")]
-        self.assertEqual(headings, ["## 1. Problem evidence", "## 2. Data evidence", "## 3. What we are taking into Build Session 2"])
+        self.assertEqual(
+            headings, ["## 1. Problem evidence", "## 2. Data evidence", "## 3. What we are taking into Build Session 2"]
+        )
 
     def test_readme_does_not_claim_user_research_that_never_happened(self):
         text = read("README.md").lower()
@@ -60,7 +62,16 @@ class DocsTests(unittest.TestCase):
     def test_documented_commands_use_options_that_exist(self):
         options = set(re.findall(r'"(--[a-z-]+)"', read("src/navigator/cli.py")))
         used = set(re.findall(r"(?<=\s)(--[a-z][a-z-]+)", read("docs/RUNBOOK.md")))
-        used -= {"--break-system-packages", "--no-deps", "--upgrade", "--help", "--exclude-editable", "--factory", "--timeout", "--wait"}
+        used -= {
+            "--break-system-packages",
+            "--no-deps",
+            "--upgrade",
+            "--help",
+            "--exclude-editable",
+            "--factory",
+            "--timeout",
+            "--wait",
+        }
         used = {u for u in used if u in options or u in {"--base-url", "--expect-mode"}}
         self.assertTrue(used)
 
@@ -80,21 +91,63 @@ class DocsTests(unittest.TestCase):
 
     def test_handoff_has_the_acceptance_table(self):
         text = read("docs/HANDOFF.md")
-        for row in ("Environment and architecture", "Core configuration", "From an empty directory", "No network / no key",
-                    "Traceable import", "Idempotency and transactions", "Data semantics", "Three demonstrations",
-                    "Live data", "Data isolation", "Recovery"):
+        for row in (
+            "Environment and architecture",
+            "Core configuration",
+            "From an empty directory",
+            "No network / no key",
+            "Traceable import",
+            "Idempotency and transactions",
+            "Data semantics",
+            "Three demonstrations",
+            "Live data",
+            "Data isolation",
+            "Recovery",
+        ):
             self.assertIn(row, text)
 
     def test_required_project_files_exist(self):
-        for rel in ("pyproject.toml", "requirements.lock", ".env.example", ".gitignore", "sources.yaml", "alembic.ini",
-                    "migrations/env.py", "migrations/versions/0001_initial.py", "scripts/smoke_test.py",
-                    "docs/ARCHITECTURE.md", "docs/DATA_MODEL.md", "docs/DATA_SOURCES.md", "docs/RUNBOOK.md",
-                    "docs/HANDOFF.md", "docs/schemas/opportunity-record-1.0.schema.json"):
+        for rel in (
+            "pyproject.toml",
+            "requirements.lock",
+            ".env.example",
+            ".gitignore",
+            "sources.yaml",
+            "alembic.ini",
+            "migrations/env.py",
+            "migrations/versions/0001_initial.py",
+            "scripts/smoke_test.py",
+            "docs/ARCHITECTURE.md",
+            "docs/DATA_MODEL.md",
+            "docs/DATA_SOURCES.md",
+            "docs/RUNBOOK.md",
+            "docs/HANDOFF.md",
+            "docs/schemas/opportunity-record-1.0.schema.json",
+        ):
             self.assertTrue((ROOT / rel).is_file(), rel)
-        env_keys = {line.split("=")[0] for line in read(".env.example").splitlines() if "=" in line and not line.startswith("#")}
-        self.assertEqual(env_keys, {"DATA_MODE", "DATABASE_URL", "DEMO_DATABASE_URL", "DATA_DIR", "SOURCE_CONFIG", "LOG_LEVEL",
-                                    "FETCH_TIMEOUT_SECONDS", "FETCH_MAX_BYTES", "FETCH_RETRIES", "FETCH_PER_HOST_CONCURRENCY",
-                                    "FETCH_MIN_INTERVAL_SECONDS", "FRESHNESS_DAYS", "EXTRACTION_MODE", "OPENAI_API_KEY", "OPENAI_MODEL"})
+        env_keys = {
+            line.split("=")[0] for line in read(".env.example").splitlines() if "=" in line and not line.startswith("#")
+        }
+        self.assertEqual(
+            env_keys,
+            {
+                "DATA_MODE",
+                "DATABASE_URL",
+                "DEMO_DATABASE_URL",
+                "DATA_DIR",
+                "SOURCE_CONFIG",
+                "LOG_LEVEL",
+                "FETCH_TIMEOUT_SECONDS",
+                "FETCH_MAX_BYTES",
+                "FETCH_RETRIES",
+                "FETCH_PER_HOST_CONCURRENCY",
+                "FETCH_MIN_INTERVAL_SECONDS",
+                "FRESHNESS_DAYS",
+                "EXTRACTION_MODE",
+                "OPENAI_API_KEY",
+                "OPENAI_MODEL",
+            },
+        )
 
 
 if __name__ == "__main__":
@@ -111,4 +164,6 @@ class FixtureTests(unittest.TestCase):
             self.assertEqual((folder / f"{page.key}.html").read_bytes(), content.render_html(page), page.key)
         guide = extract((folder / "foundation_guide.pdf").read_bytes(), "application/pdf")
         self.assertEqual((guide.status, guide.page_count), ("ok", 2))
-        self.assertEqual(extract((folder / "scanned_notice.pdf").read_bytes(), "application/pdf").status, "ocr_required")
+        self.assertEqual(
+            extract((folder / "scanned_notice.pdf").read_bytes(), "application/pdf").status, "ocr_required"
+        )

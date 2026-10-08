@@ -62,20 +62,34 @@ class FetchStageResult:
 
 def snapshot_view(entry: dict, source: SourceConfig, store: SnapshotStore, key: str) -> SnapshotView:
     return SnapshotView(
-        key=key, source_id=source.source_id, url=entry["final_url"], media_type=entry["media_type"],
-        snapshot_id=entry["snapshot_id"], raw_sha256=entry["raw_sha256"], raw_path=entry["raw_path"],
-        text_sha256=entry["text_sha256"], text_path=entry["text_path"], fetched_at=entry["fetched_at"],
-        text=store.read_text(entry["text_path"]), role=source.role,
+        key=key,
+        source_id=source.source_id,
+        url=entry["final_url"],
+        media_type=entry["media_type"],
+        snapshot_id=entry["snapshot_id"],
+        raw_sha256=entry["raw_sha256"],
+        raw_path=entry["raw_path"],
+        text_sha256=entry["text_sha256"],
+        text_path=entry["text_path"],
+        fetched_at=entry["fetched_at"],
+        text=store.read_text(entry["text_path"]),
+        role=source.role,
         source_modified_at=entry.get("source_modified_at"),
     )
 
 
 def _store_extraction(store: SnapshotStore, entry: dict, doc: ExtractedDocument, raw_sha: str) -> None:
     stored = store.save_text(raw_sha, doc.text, EXTRACTOR_NAME, EXTRACTOR_VERSION)
-    entry.update(text_path=stored.text_path, text_sha256=stored.text_sha256, extractor=EXTRACTOR_NAME,
-                 extractor_version=EXTRACTOR_VERSION, extraction_status=doc.status,
-                 source_modified_at=(doc.meta.get("date_modified") and f"{doc.meta['date_modified'][:10]}T00:00:00Z")
-                 if doc.meta.get("date_modified") and len(doc.meta["date_modified"]) >= 10 else None)
+    entry.update(
+        text_path=stored.text_path,
+        text_sha256=stored.text_sha256,
+        extractor=EXTRACTOR_NAME,
+        extractor_version=EXTRACTOR_VERSION,
+        extraction_status=doc.status,
+        source_modified_at=(doc.meta.get("date_modified") and f"{doc.meta['date_modified'][:10]}T00:00:00Z")
+        if doc.meta.get("date_modified") and len(doc.meta["date_modified"]) >= 10
+        else None,
+    )
 
 
 def run_fetch_stage(
@@ -97,8 +111,15 @@ def run_fetch_stage(
     result = FetchStageResult()
     stamp = format_utc(now)
     for source in sources:
-        stats = {"attempted": 0, "succeeded": 0, "failed": 0, "blocked": 0, "skipped": 0, "not_modified": 0,
-                 "failures": []}
+        stats = {
+            "attempted": 0,
+            "succeeded": 0,
+            "failed": 0,
+            "blocked": 0,
+            "skipped": 0,
+            "not_modified": 0,
+            "failures": [],
+        }
         result.per_source[source.source_id] = stats
         result.snapshots[source.source_id] = []
         adapter = adapters.get(source.parser)
@@ -120,7 +141,9 @@ def run_fetch_stage(
                 stats["skipped"] += 1
                 if entry.get("extractor_version") != EXTRACTOR_VERSION:  # re-extract only; no download
                     raw = store.read_raw(entry["raw_path"])
-                    _store_extraction(store, entry, extract(raw, entry["media_type"], entry["final_url"]), entry["raw_sha256"])
+                    _store_extraction(
+                        store, entry, extract(raw, entry["media_type"], entry["final_url"]), entry["raw_sha256"]
+                    )
                     index.save()
             else:
                 if result.pages_fetched >= max_pages:
@@ -129,22 +152,40 @@ def run_fetch_stage(
                     continue
                 result.pages_fetched += 1
                 stats["attempted"] += 1
-                outcome = fetcher.fetch(url, source.rules(), etag=entry.get("etag") if entry else None,
-                                        last_modified=entry.get("last_modified") if entry else None,
-                                        have_snapshot=have_file and refresh)
+                outcome = fetcher.fetch(
+                    url,
+                    source.rules(),
+                    etag=entry.get("etag") if entry else None,
+                    last_modified=entry.get("last_modified") if entry else None,
+                    have_snapshot=have_file and refresh,
+                )
                 if outcome.robots_status:
                     result.robots[(url.split("/")[2])] = outcome.robots_status
-                row = {**outcome.audit(), "run_id": run_id, "source_id": source.source_id,
-                       "requested_at": stamp, "depth": depth}
+                row = {
+                    **outcome.audit(),
+                    "run_id": run_id,
+                    "source_id": source.source_id,
+                    "requested_at": stamp,
+                    "depth": depth,
+                }
                 if outcome.outcome == "ok" and outcome.body is not None:
                     media = outcome.media_type or "application/octet-stream"
                     raw = store.save_raw(outcome.body, media)
                     doc = extract(outcome.body, media, outcome.final_url)
-                    new_entry = {"status": "ok", "source_id": source.source_id, "snapshot_id": raw.snapshot_id,
-                                 "raw_sha256": raw.raw_sha256, "raw_path": raw.raw_path, "media_type": media,
-                                 "final_url": canonicalize_url(outcome.final_url or url), "etag": outcome.etag,
-                                 "last_modified": outcome.last_modified, "fetched_at": stamp,
-                                 "http_status": outcome.status, "depth": depth}
+                    new_entry = {
+                        "status": "ok",
+                        "source_id": source.source_id,
+                        "snapshot_id": raw.snapshot_id,
+                        "raw_sha256": raw.raw_sha256,
+                        "raw_path": raw.raw_path,
+                        "media_type": media,
+                        "final_url": canonicalize_url(outcome.final_url or url),
+                        "etag": outcome.etag,
+                        "last_modified": outcome.last_modified,
+                        "fetched_at": stamp,
+                        "http_status": outcome.status,
+                        "depth": depth,
+                    }
                     _store_extraction(store, new_entry, doc, raw.raw_sha256)
                     index.entries[canon] = new_entry
                     index.failures.pop(canon, None)
@@ -169,14 +210,19 @@ def run_fetch_stage(
                 index.save()
 
             assert entry is not None
-            view = snapshot_view(entry, source, store, key=f"{source.source_id}:{len(result.snapshots[source.source_id])}")
+            view = snapshot_view(
+                entry, source, store, key=f"{source.source_id}:{len(result.snapshots[source.source_id])}"
+            )
             result.snapshots[source.source_id].append(view)
             if adapter and depth < max_depth:
                 doc = extract(store.read_raw(entry["raw_path"]), entry["media_type"], entry["final_url"])
                 for link in adapter.select_links(doc, entry["final_url"], source, depth):
                     queue.append((link, depth + 1))
         if manifest:
-            manifest.source_status(source.source_id, **{k: v for k, v in stats.items() if k != "failures"},
-                                   access_status=source.access_status)
+            manifest.source_status(
+                source.source_id,
+                **{k: v for k, v in stats.items() if k != "failures"},
+                access_status=source.access_status,
+            )
             manifest.save()
     return result

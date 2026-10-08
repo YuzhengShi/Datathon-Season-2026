@@ -25,8 +25,9 @@ def validation(records, mode="demo"):
 
 
 def do_import(repo, records, **kw):
-    return import_records(repo, validation(records), mode=kw.pop("mode", "demo"), run_id=kw.pop("run_id", "r1"),
-                          now_iso=NOW, **kw)
+    return import_records(
+        repo, validation(records), mode=kw.pop("mode", "demo"), run_id=kw.pop("run_id", "r1"), now_iso=NOW, **kw
+    )
 
 
 def bad_record():
@@ -56,7 +57,9 @@ class IdempotencyTests(unittest.TestCase):
             with self.subTest(id=r["id"]):
                 canonical = canonicalize_record(r)
                 self.assertEqual(rows_to_record(record_to_rows(canonical)), canonical)
-                self.assertEqual(compute_fingerprint(rows_to_record(record_to_rows(canonical))), r["content_fingerprint"])
+                self.assertEqual(
+                    compute_fingerprint(rows_to_record(record_to_rows(canonical))), r["content_fingerprint"]
+                )
 
     def test_export_then_import_preserves_rules_dates_amounts_evidence_and_groups(self):
         a = MemoryRepository()
@@ -244,7 +247,9 @@ class ConflictHandlingTests(unittest.TestCase):
 class ModeIsolationTests(unittest.TestCase):
     def test_demo_records_are_rejected_in_live_mode(self):
         repo = MemoryRepository()
-        report = import_records(repo, validation(fresh_pipeline_records(), mode="live"), mode="live", run_id="x", now_iso=NOW)
+        report = import_records(
+            repo, validation(fresh_pipeline_records(), mode="live"), mode="live", run_id="x", now_iso=NOW
+        )
         self.assertEqual(report.status, "rejected")
         self.assertEqual(repo.records, {})
         plan = plan_import(fresh_pipeline_records()[:2], {}, expected_mode="live")

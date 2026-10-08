@@ -12,9 +12,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
-TRACKING_PARAMS = frozenset(
-    {"gclid", "fbclid", "mc_cid", "mc_eid", "msclkid", "igshid", "_ga", "yclid", "dclid"}
-)
+TRACKING_PARAMS = frozenset({"gclid", "fbclid", "mc_cid", "mc_eid", "msclkid", "igshid", "_ga", "yclid", "dclid"})
 TRACKING_PREFIXES = ("utm_",)
 _BLOCKED_SUFFIXES = (".localhost", ".local", ".internal", ".lan", ".home.arpa", ".corp")
 _BLOCKED_NAMES = frozenset({"localhost", "metadata.google.internal", "metadata"})
@@ -33,10 +31,7 @@ class AllowRule:
     path_prefixes: tuple[str, ...] = ("/",)
 
     def matches(self, host: str, path: str) -> bool:
-        host_ok = any(
-            host == d.lower() or (d.startswith("*.") and host.endswith(d[1:].lower()))
-            for d in self.domains
-        )
+        host_ok = any(host == d.lower() or (d.startswith("*.") and host.endswith(d[1:].lower())) for d in self.domains)
         return host_ok and any(path.startswith(p) for p in self.path_prefixes)
 
 

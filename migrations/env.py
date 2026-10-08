@@ -6,8 +6,9 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 
+from navigator.db import make_engine
 from navigator.models import Base
 
 config = context.config
@@ -30,15 +31,17 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    section = config.get_section(config.config_ini_section, {}) or {}
-    section["sqlalchemy.url"] = _url()
-    engine = engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)
-    with engine.connect() as connection:
-        if connection.dialect.name == "sqlite":
-            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
-        context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
-        with context.begin_transaction():
-            context.run_migrations()
+    # make_engine creates the SQLite folder and switches foreign keys on per connection. Nothing may be executed
+    # on the connection before configure(): that would autobegin a transaction Alembic treats as external, and
+    # the alembic_version row would then never be committed.
+    engine = make_engine(_url(), poolclass=pool.NullPool)
+    try:
+        with engine.connect() as connection:
+            context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
+            with context.begin_transaction():
+                context.run_migrations()
+    finally:
+        engine.dispose()
 
 
 if context.is_offline_mode():

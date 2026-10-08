@@ -5,8 +5,14 @@ from tests.support import AS_OF, DemoEnv
 
 
 def listing(**kw):
-    return list_opportunities(DemoEnv.get().all_records(), as_of=kw.pop("as_of", AS_OF), freshness_days=30,
-                              data_mode="demo", limit=kw.pop("limit", 100), **kw)
+    return list_opportunities(
+        DemoEnv.get().all_records(),
+        as_of=kw.pop("as_of", AS_OF),
+        freshness_days=30,
+        data_mode="demo",
+        limit=kw.pop("limit", 100),
+        **kw,
+    )
 
 
 def ids(out):
@@ -27,7 +33,9 @@ class ListingTests(unittest.TestCase):
 
     def test_text_search_is_case_and_accent_insensitive_and_all_terms(self):
         self.assertEqual(ids(listing(q="métis citizenship")), ["demo_metis_citizen_award"])
-        self.assertEqual(ids(listing(q="METIS  citizenship")), ["demo_metis_citizen_award"])  # accents/case/spacing ignored
+        self.assertEqual(
+            ids(listing(q="METIS  citizenship")), ["demo_metis_citizen_award"]
+        )  # accents/case/spacing ignored
         self.assertIn("demo_supported_award", ids(listing(q="supported")))
         self.assertEqual(ids(listing(q="no-such-thing")), [])
 
@@ -62,8 +70,12 @@ class ListingTests(unittest.TestCase):
         page = listing(limit=5, offset=20)
         self.assertEqual((page["count"], page["total"]), (3, 23))
         out = listing()
-        ranks = [{"open": 0, "upcoming": 1, "contact_administrator": 2, "unknown": 3, "closed": 4}[r["current_cycle"]["availability_status"]]
-                 for r in out["results"]]
+        ranks = [
+            {"open": 0, "upcoming": 1, "contact_administrator": 2, "unknown": 3, "closed": 4}[
+                r["current_cycle"]["availability_status"]
+            ]
+            for r in out["results"]
+        ]
         self.assertEqual(ranks, sorted(ranks))
 
     def test_listing_rows_carry_amount_guidance_and_flags(self):
@@ -81,7 +93,9 @@ class ListingTests(unittest.TestCase):
 class DetailTests(unittest.TestCase):
     def test_detail_hides_storage_paths_and_explains_next_steps(self):
         env = DemoEnv.get()
-        out = opportunity_detail(env.record("demo_supported_award"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo")
+        out = opportunity_detail(
+            env.record("demo_supported_award"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo"
+        )
         refs = out["opportunity"]["source_refs"]
         self.assertTrue(all("raw_path" not in r and "text_path" not in r for r in refs))
         self.assertIn("raw_path", env.record("demo_supported_award")["source_refs"][0])  # the export keeps them
@@ -92,10 +106,17 @@ class DetailTests(unittest.TestCase):
 
     def test_shared_application_siblings_and_cycles(self):
         env = DemoEnv.get()
-        out = opportunity_detail(env.record("demo_shared_application_a"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo")
+        out = opportunity_detail(
+            env.record("demo_shared_application_a"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo"
+        )
         self.assertEqual([s["id"] for s in out["shared_application_with"]], ["demo_shared_application_b"])
-        multi = opportunity_detail(env.record("demo_multi_cycle_award"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo")
-        self.assertEqual({c["cycle_key"]: c["availability"]["status"] for c in multi["cycles"]}, {"2019-20": "closed", "2026-27": "open"})
+        multi = opportunity_detail(
+            env.record("demo_multi_cycle_award"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo"
+        )
+        self.assertEqual(
+            {c["cycle_key"]: c["availability"]["status"] for c in multi["cycles"]},
+            {"2019-20": "closed", "2026-27": "open"},
+        )
 
     def test_public_record_does_not_mutate_the_original(self):
         record = DemoEnv.get().record("demo_supported_award")

@@ -16,10 +16,20 @@ class RunManifest:
     def __init__(self, path: Path, run_id: str, kind: str, mode: str, params: dict, started_at: datetime) -> None:
         self.path = path
         self.data: dict[str, Any] = {
-            "run_id": run_id, "kind": kind, "data_mode": mode, "params": params,
-            "started_at": format_utc(started_at), "finished_at": None, "status": "running",
-            "completed_steps": [], "sources": {}, "counts": {}, "artifacts": {}, "failures": [],
-            "pending_verification": [], "notes": [],
+            "run_id": run_id,
+            "kind": kind,
+            "data_mode": mode,
+            "params": params,
+            "started_at": format_utc(started_at),
+            "finished_at": None,
+            "status": "running",
+            "completed_steps": [],
+            "sources": {},
+            "counts": {},
+            "artifacts": {},
+            "failures": [],
+            "pending_verification": [],
+            "notes": [],
         }
 
     @classmethod

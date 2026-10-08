@@ -44,10 +44,18 @@ class ImportReport:
         return 0 if self.status == "ok" else 1
 
     def to_dict(self) -> dict:
-        return {"mode": self.mode, "run_id": self.run_id, "dry_run": self.dry_run,
-                "allow_partial": self.allow_partial, "status": self.status, "counts": self.counts,
-                "exit_code": self.exit_code, "validation": self.validation, "error": self.error,
-                "items": self.items}
+        return {
+            "mode": self.mode,
+            "run_id": self.run_id,
+            "dry_run": self.dry_run,
+            "allow_partial": self.allow_partial,
+            "status": self.status,
+            "counts": self.counts,
+            "exit_code": self.exit_code,
+            "validation": self.validation,
+            "error": self.error,
+            "items": self.items,
+        }
 
 
 def write_quarantine(root: Path, run_id: str, validation: FileValidation, *, subdir: str = "quarantine") -> Path | None:
@@ -59,13 +67,30 @@ def write_quarantine(root: Path, run_id: str, validation: FileValidation, *, sub
     for result in validation.results:
         for issue in result.issues:
             if issue.is_error:
-                rows.append({"run_id": run_id, "line_no": result.line_no, "opportunity_id": result.record_id,
-                             "field": issue.path, "error_type": issue.code, "summary": issue.message,
-                             "excerpt": result.excerpt})
+                rows.append(
+                    {
+                        "run_id": run_id,
+                        "line_no": result.line_no,
+                        "opportunity_id": result.record_id,
+                        "field": issue.path,
+                        "error_type": issue.code,
+                        "summary": issue.message,
+                        "excerpt": result.excerpt,
+                    }
+                )
     for issue in validation.file_issues:
         if issue.is_error:
-            rows.append({"run_id": run_id, "line_no": None, "opportunity_id": None, "field": issue.path,
-                         "error_type": issue.code, "summary": issue.message, "excerpt": ""})
+            rows.append(
+                {
+                    "run_id": run_id,
+                    "line_no": None,
+                    "opportunity_id": None,
+                    "field": issue.path,
+                    "error_type": issue.code,
+                    "summary": issue.message,
+                    "excerpt": "",
+                }
+            )
     if not rows:
         return None
     path = root / subdir / f"{run_id}.jsonl"
@@ -90,13 +115,22 @@ def import_records(
     """
     records = validation.valid_records()
     invalid = validation.invalid_count + (1 if any(i.is_error for i in validation.file_issues) else 0)
-    base = {"mode": mode, "run_id": run_id, "dry_run": dry_run, "allow_partial": allow_partial,
-            "validation": validation.summary()}
+    base = {
+        "mode": mode,
+        "run_id": run_id,
+        "dry_run": dry_run,
+        "allow_partial": allow_partial,
+        "validation": validation.summary(),
+    }
     empty = {"created": 0, "updated": 0, "unchanged": 0, "rejected": 0, "pending_review": 0}
 
     if invalid and not allow_partial:
-        return ImportReport(status="rejected", counts={**empty, "rejected": invalid},
-                            error="validation failed; nothing was written", **base)
+        return ImportReport(
+            status="rejected",
+            counts={**empty, "rejected": invalid},
+            error="validation failed; nothing was written",
+            **base,
+        )
 
     existing = repo.load_existing([r["id"] for r in records])
     plan: ImportPlan = plan_import(records, existing, expected_mode=mode)
@@ -105,8 +139,13 @@ def import_records(
     items = [i.summary() for i in plan.items]
 
     if plan.has_rejections and not allow_partial:
-        return ImportReport(status="rejected", counts=counts, items=items,
-                            error="the plan contains rejected records; nothing was written", **base)
+        return ImportReport(
+            status="rejected",
+            counts=counts,
+            items=items,
+            error="the plan contains rejected records; nothing was written",
+            **base,
+        )
     if dry_run:
         status = "ok" if counts["rejected"] == 0 else "partial"
         return ImportReport(status=status, counts=counts, items=items, **base)
@@ -118,8 +157,13 @@ def import_records(
                 for item in writable:
                     repo.apply_item(item, run_id, now_iso)
         except Exception as exc:  # noqa: BLE001 - any failure must roll everything back
-            return ImportReport(status="failed", counts={**empty, "rejected": len(records)}, items=items,
-                                error=f"{type(exc).__name__}: {exc}; transaction rolled back", **base)
+            return ImportReport(
+                status="failed",
+                counts={**empty, "rejected": len(records)},
+                items=items,
+                error=f"{type(exc).__name__}: {exc}; transaction rolled back",
+                **base,
+            )
     else:
         for item in writable:
             try:
@@ -132,8 +176,9 @@ def import_records(
                 item.reasons = [f"db_error: {type(exc).__name__}: {exc}"]
         items = [i.summary() for i in plan.items]
     status = "ok" if counts["rejected"] == 0 else "partial"
-    repo.record_run({"run_id": run_id, "kind": "import", "mode": mode, "status": status, "counts": counts,
-                     "finished_at": now_iso})
+    repo.record_run(
+        {"run_id": run_id, "kind": "import", "mode": mode, "status": status, "counts": counts, "finished_at": now_iso}
+    )
     return ImportReport(status=status, counts=counts, items=items, **base)
 
 

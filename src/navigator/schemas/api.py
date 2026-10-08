@@ -127,7 +127,8 @@ class MatchItem(BaseModel):
     source_uncertainties: list[str]
     preference_matches: list[dict[str, Any]]
     funder_side_conditions: list[dict[str, Any]] = Field(
-        description="Conditions on the organisation that receives the funds. They do NOT decide the student's eligibility.")
+        description="Conditions on the organisation that receives the funds. They do NOT decide the student's eligibility."
+    )
     evidence_refs: list[dict[str, Any]]
     amount: dict[str, Any]
     deadlines: list[dict[str, Any]]

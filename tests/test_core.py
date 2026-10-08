@@ -66,12 +66,16 @@ class DeadlineTests(unittest.TestCase):
         self.assertEqual(canonical_deadline_utc(generic), "2026-07-16T04:00:00Z")
 
     def test_dst_repeated_and_skipped_local_times(self):
-        repeated = resolve_close_window({"kind": "datetime", "date": "2026-11-01", "local_time": "01:29",
-                                         "timezone": "America/Toronto"})
+        repeated = resolve_close_window(
+            {"kind": "datetime", "date": "2026-11-01", "local_time": "01:29", "timezone": "America/Toronto"}
+        )
         self.assertIn("dst_repeated_local_time", repeated.flags)
-        self.assertEqual(repeated.latest_utc - repeated.earliest_utc, at("2026-11-01T06:30:00Z") - at("2026-11-01T05:30:00Z"))
-        skipped = resolve_close_window({"kind": "datetime", "date": "2026-03-08", "local_time": "02:29",
-                                        "timezone": "America/Toronto"})
+        self.assertEqual(
+            repeated.latest_utc - repeated.earliest_utc, at("2026-11-01T06:30:00Z") - at("2026-11-01T05:30:00Z")
+        )
+        skipped = resolve_close_window(
+            {"kind": "datetime", "date": "2026-03-08", "local_time": "02:29", "timezone": "America/Toronto"}
+        )
         self.assertIn("dst_skipped_local_time", skipped.flags)
 
     def test_non_instant_kinds_never_resolve(self):
@@ -105,7 +109,9 @@ class MoneyTests(unittest.TestCase):
         self.assertIn("amount.currency_required", self.codes(kind="fixed", fixed="1", currency=None))
 
     def test_pooled_total_is_not_a_per_student_amount(self):
-        self.assertIn("amount.pooled_total_unit", self.codes(kind="pooled_total", pooled_total="50000", unit="per_student"))
+        self.assertIn(
+            "amount.pooled_total_unit", self.codes(kind="pooled_total", pooled_total="50000", unit="per_student")
+        )
         self.assertEqual(self.codes(kind="pooled_total", pooled_total="50000", unit="per_year"), set())
 
     def test_unknown_is_not_zero(self):
@@ -149,7 +155,9 @@ class UrlPolicyTests(unittest.TestCase):
 
 class EvidenceTests(unittest.TestCase):
     def test_normalisation(self):
-        self.assertEqual(normalize_text("  \u201cHi\u201d\u00a0 there \u2014 it\u2019s\n ok\u200b "), "\"Hi\" there - it's ok")
+        self.assertEqual(
+            normalize_text("  \u201cHi\u201d\u00a0 there \u2014 it\u2019s\n ok\u200b "), '"Hi" there - it\'s ok'
+        )
 
     def test_locate_quote_and_scope(self):
         text = "# Awards\n\nIntro.\n\n## Award A\n\nOpen to Métis students.\n\nDeadline: March 1."
@@ -177,7 +185,12 @@ class FingerprintAndContractTests(unittest.TestCase):
     def test_fingerprint_ignores_fetch_time_and_status_but_not_facts(self):
         r = DemoEnv.get().record("demo_supported_award")
         base = compute_fingerprint(r)
-        r2 = dict(r, last_fetched_at="2030-01-01T00:00:00Z", review_status="human_reviewed", last_verified_at="2030-01-01T00:00:00Z")
+        r2 = dict(
+            r,
+            last_fetched_at="2030-01-01T00:00:00Z",
+            review_status="human_reviewed",
+            last_verified_at="2030-01-01T00:00:00Z",
+        )
         self.assertEqual(base, compute_fingerprint(r2))
         r3 = DemoEnv.get().record("demo_supported_award")
         r3["cycles"][0]["amount"]["fixed"] = "9999"
@@ -206,6 +219,7 @@ class FingerprintAndContractTests(unittest.TestCase):
 
     def test_exported_schema_file_matches_code(self):
         import json
+
         path = Path(__file__).resolve().parent.parent / "docs" / "schemas" / "opportunity-record-1.0.schema.json"
         self.assertTrue(path.is_file(), "run `python scripts/export_schema.py`")
         self.assertEqual(json.loads(path.read_text(encoding="utf-8")), contract.record_schema())

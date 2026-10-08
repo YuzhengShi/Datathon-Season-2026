@@ -30,7 +30,9 @@ TOP_KEYS = {"profile", "as_of", "cycle_key", "group_by_application", "include_cl
 
 
 class StubServer:
-    def __init__(self, *, reported_mode: str = "demo", echo_validation_input: bool = False, migrated: bool = True) -> None:
+    def __init__(
+        self, *, reported_mode: str = "demo", echo_validation_input: bool = False, migrated: bool = True
+    ) -> None:
         self.mode, self.echo, self.migrated = reported_mode, echo_validation_input, migrated
         self._tmp = tempfile.TemporaryDirectory()
         rt = derive_runtime({"DATA_DIR": self._tmp.name}, "demo")
@@ -75,28 +77,55 @@ class StubServer:
                 parts = urlsplit(self.path)
                 query = {k: v[0] for k, v in parse_qs(parts.query).items()}
                 if parts.path == "/health":
-                    return self.send(200, {"status": "ok", "data_mode": stub.mode, "version": __version__,
-                                           "database": {"connected": True},
-                                           "migrations": {"current": "0001", "expected": "0001", "up_to_date": stub.migrated}})
+                    return self.send(
+                        200,
+                        {
+                            "status": "ok",
+                            "data_mode": stub.mode,
+                            "version": __version__,
+                            "database": {"connected": True},
+                            "migrations": {"current": "0001", "expected": "0001", "up_to_date": stub.migrated},
+                        },
+                    )
                 if parts.path == "/opportunities":
                     limit = int(query.get("limit", 20))
                     if not 1 <= limit <= 100:
                         return self.invalid(["query", "limit"], limit)
                     out = list_opportunities(
-                        stub.records, as_of=AS_OF, freshness_days=30, data_mode=stub.mode, q=query.get("q"),
-                        province=query.get("province"), education_level=query.get("education_level"),
-                        opportunity_type=query.get("opportunity_type"), limit=limit, offset=int(query.get("offset", 0)))
+                        stub.records,
+                        as_of=AS_OF,
+                        freshness_days=30,
+                        data_mode=stub.mode,
+                        q=query.get("q"),
+                        province=query.get("province"),
+                        education_level=query.get("education_level"),
+                        opportunity_type=query.get("opportunity_type"),
+                        limit=limit,
+                        offset=int(query.get("offset", 0)),
+                    )
                     return self.send(200, out)
                 if parts.path.startswith("/opportunities/"):
-                    rid = unquote(parts.path[len("/opportunities/"):])
+                    rid = unquote(parts.path[len("/opportunities/") :])
                     record = next((r for r in stub.records if r["id"] == rid), None)
                     if record is None:
                         return self.send(404, error_body("http_404", "opportunity not found", stub.mode))
-                    return self.send(200, opportunity_detail(record, stub.records, as_of=AS_OF, freshness_days=30, data_mode=stub.mode))
+                    return self.send(
+                        200,
+                        opportunity_detail(record, stub.records, as_of=AS_OF, freshness_days=30, data_mode=stub.mode),
+                    )
                 if parts.path == "/reports/freshness":
                     records = stub.repo.list_records(published_only=False, is_demo=True)
-                    return self.send(200, build_freshness_report(records, mode=stub.mode, as_of=AS_OF, generated_at=AS_OF,
-                                                                 freshness_days=30, run_context=stub.repo.latest_run_context("demo")))
+                    return self.send(
+                        200,
+                        build_freshness_report(
+                            records,
+                            mode=stub.mode,
+                            as_of=AS_OF,
+                            generated_at=AS_OF,
+                            freshness_days=30,
+                            run_context=stub.repo.latest_run_context("demo"),
+                        ),
+                    )
                 return self.send(404, error_body("http_404", "not found", stub.mode))
 
             def do_POST(self):  # noqa: N802
@@ -112,8 +141,15 @@ class StubServer:
                         return self.invalid(["body", "profile", key], value)
                     if key in {"residence_province", "institution_province"} and value not in PROVINCES:
                         return self.invalid(["body", "profile", key], value)
-                options = MatchOptions(as_of=parse_as_of(body.get("as_of")), group_by_application=body.get("group_by_application", False),
-                                       include_closed=body.get("include_closed", False), limit=body.get("limit", 20), offset=body.get("offset", 0))
-                return self.send(200, match_records(stub.records, profile, options, INSTITUTIONS.resolve, data_mode=stub.mode))
+                options = MatchOptions(
+                    as_of=parse_as_of(body.get("as_of")),
+                    group_by_application=body.get("group_by_application", False),
+                    include_closed=body.get("include_closed", False),
+                    limit=body.get("limit", 20),
+                    offset=body.get("offset", 0),
+                )
+                return self.send(
+                    200, match_records(stub.records, profile, options, INSTITUTIONS.resolve, data_mode=stub.mode)
+                )
 
         return Handler

@@ -11,6 +11,7 @@ import weakref
 from collections.abc import Mapping
 from pathlib import Path
 
+from navigator.config import derive_runtime
 from navigator.core.fingerprint import compute_fingerprint
 from navigator.core.timeutil import parse_as_of
 from navigator.demo.dataset import build_demo_artifacts, build_demo_records
@@ -58,6 +59,22 @@ class DemoEnv:
         return target
 
 
+def isolated_runtime(tmp: str, mode: str, **extra: str):
+    """A runtime whose databases and artefacts all live inside ``tmp``.
+
+    ``DATA_DIR`` only moves artefacts; the default ``sqlite:///./data/...`` URLs are relative to the working
+    directory, so tests that skipped this shared one database file (and failed on the second run).
+    """
+    root = Path(tmp).as_posix()
+    raw = {
+        "DATA_DIR": tmp,
+        "DATABASE_URL": f"sqlite:///{root}/navigator.db",
+        "DEMO_DATABASE_URL": f"sqlite:///{root}/demo/navigator.db",
+        **extra,
+    }
+    return derive_runtime(raw, mode)
+
+
 def with_conflict(record: dict, field_path: str) -> dict:
     """A copy of ``record`` carrying a conflict whose two statements are copies of two different real quotes."""
     out = copy.deepcopy(record)
@@ -73,8 +90,13 @@ def with_conflict(record: dict, field_path: str) -> dict:
         clone["id"], clone["field_path"] = f"ev_conflict_{n}", "/conflicts/0"
         cited.append(clone)
     out["evidence"].extend(cited)
-    out["conflicts"] = [{"field_path": field_path, "summary": "Two official statements disagree.",
-                         "evidence_ids": [c["id"] for c in cited]}]
+    out["conflicts"] = [
+        {
+            "field_path": field_path,
+            "summary": "Two official statements disagree.",
+            "evidence_ids": [c["id"] for c in cited],
+        }
+    ]
     out["review_status"], out["publication_status"], out["last_verified_at"] = "pending", "draft", None
     return refinger(out)
 
@@ -105,4 +127,14 @@ def resp(status: int, body: bytes = b"", url: str = "", **headers: str) -> HttpR
     return HttpResponse(status, {k.replace("_", "-"): v for k, v in headers.items()}, body, url)
 
 
-__all__ = ["AS_OF", "DemoEnv", "FakeTransport", "TransportError", "refinger", "requires_web_stack", "resp", "with_conflict"]
+__all__ = [
+    "AS_OF",
+    "DemoEnv",
+    "FakeTransport",
+    "TransportError",
+    "isolated_runtime",
+    "refinger",
+    "requires_web_stack",
+    "resp",
+    "with_conflict",
+]

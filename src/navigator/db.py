@@ -15,14 +15,19 @@ EXPECTED_REVISION = "0001"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def make_engine(database_url: str) -> Engine:
-    """Create an engine. For SQLite: create the parent directory and enforce foreign keys."""
+def make_engine(database_url: str, **overrides) -> Engine:
+    """Create an engine; the single place engines are built (API, CLI and migrations).
+
+    For SQLite: create the parent directory and enforce foreign keys on every connection.
+    ``overrides`` go to ``create_engine`` (migrations pass ``poolclass=NullPool``).
+    """
     url = make_url(database_url)
     kwargs: dict = {"future": True, "pool_pre_ping": True}
     if url.get_backend_name() == "sqlite":
         if url.database and url.database != ":memory:":
             Path(url.database).expanduser().parent.mkdir(parents=True, exist_ok=True)
         kwargs["connect_args"] = {"check_same_thread": False}
+    kwargs.update(overrides)
     engine = create_engine(database_url, **kwargs)
     if url.get_backend_name() == "sqlite":
 

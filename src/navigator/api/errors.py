@@ -26,9 +26,13 @@ def install_error_handlers(app: FastAPI, mode: str) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
-        details = [{"loc": [str(part) for part in err.get("loc", ())], "type": err.get("type"), "msg": err.get("msg")}
-                   for err in exc.errors()]  # deliberately drops err["input"] and err["ctx"]
-        return JSONResponse(status_code=422, content=error_body("validation_error", "request validation failed", mode, details))
+        details = [
+            {"loc": [str(part) for part in err.get("loc", ())], "type": err.get("type"), "msg": err.get("msg")}
+            for err in exc.errors()
+        ]  # deliberately drops err["input"] and err["ctx"]
+        return JSONResponse(
+            status_code=422, content=error_body("validation_error", "request validation failed", mode, details)
+        )
 
     @app.exception_handler(Exception)
     async def _unhandled(_request: Request, exc: Exception) -> JSONResponse:

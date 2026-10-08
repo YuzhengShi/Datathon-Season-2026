@@ -1,26 +1,53 @@
-# NOT A RESOLVED LOCK FILE.
-# The environment this project was first written in had no network, so exact transitive pins
-# could not be resolved. This file lists every runtime + test dependency with compatible ranges;
-# `pip install -r requirements.lock` works and resolves versions at install time.
-# After the first green run on a networked machine, freeze the real lock:
-#     python -m pip freeze --exclude-editable > requirements.lock
-# (scripts/freeze_lock.py does the same and keeps this header's instructions out of the way.)
-fastapi>=0.115,<1
-uvicorn>=0.30,<1
-pydantic>=2.8,<3
-pydantic-settings>=2.4,<3
-sqlalchemy>=2.0.30,<3
-alembic>=1.13,<2
-httpx>=0.27,<1
-beautifulsoup4>=4.12,<5
-lxml>=5.2
-pypdf>=4.2
-typer>=0.12,<1
-pyyaml>=6.0,<7
-tzdata>=2024.1
-reportlab>=4.0
-pillow>=10
-# development / test
-pytest>=8,<10
-ruff>=0.5,<1
-jsonschema>=4.20,<5
+# EXACT VERSIONS. Resolved from the ranges in pyproject.toml and used for the first real run (October 2026):
+# Windows, CPython 3.12.10 - pytest (227 tests incl. database/API/CLI), ruff check, scripts/check_static.py and
+# scripts/smoke_test.py (29 checks) all passed with exactly this set. NOT yet verified on Linux/macOS or Python 3.11.
+# colorama is only needed on Windows. After upgrading anything re-run the checks, then: python scripts/freeze_lock.py
+alembic==1.20.0
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+attrs==26.1.0
+beautifulsoup4==4.15.0
+certifi==2026.7.22
+charset-normalizer==3.5.2
+click==8.5.0
+colorama==0.4.6
+fastapi==0.142.4
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.20
+iniconfig==2.3.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+lxml==6.1.3
+mako==1.4.3
+markdown-it-py==4.2.0
+markupsafe==3.0.4
+mdurl==0.1.2
+opentelemetry-api==1.45.1
+packaging==26.3
+pillow==12.3.0
+pluggy==1.6.0
+pydantic==2.13.5
+pydantic-core==2.46.5
+pydantic-settings==2.15.0
+pygments==2.21.0
+pypdf==6.19.0
+pytest==9.1.1
+python-dotenv==1.2.4
+pyyaml==6.0.3
+referencing==0.37.0
+reportlab==5.0.1
+rich==15.0.0
+rpds-py==2026.9.1
+ruff==0.16.10
+shellingham==1.5.4
+soupsieve==2.10
+sqlalchemy==2.1.4
+starlette==1.7.0
+typer==0.27.3
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+tzdata==2026.5
+uvicorn==0.54.0

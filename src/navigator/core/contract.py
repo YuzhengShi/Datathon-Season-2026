@@ -247,9 +247,7 @@ def record_schema() -> dict:
         "source_record_key": _STR_MIN,
         "title": _STR_MIN,
         "opportunity_type": {"enum": list(OPPORTUNITY_TYPES)},
-        "provider": _obj(
-            {"id": _STR_MIN, "name": _STR_MIN, "donor_name": _NULLABLE_STR}, ["id", "name"]
-        ),
+        "provider": _obj({"id": _STR_MIN, "name": _STR_MIN, "donor_name": _NULLABLE_STR}, ["id", "name"]),
         "official_url": _URL,
         "application": _obj(
             {

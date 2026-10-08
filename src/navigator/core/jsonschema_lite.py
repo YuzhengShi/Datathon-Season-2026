@@ -118,9 +118,7 @@ def validate(instance: Any, schema: dict, root: dict | None = None, path: str = 
         properties = schema.get("properties", {})
         for name in schema.get("required", []):
             if name not in instance:
-                issues.append(
-                    Issue(pointer_join(path, name), "schema.required", f"missing required field {name!r}")
-                )
+                issues.append(Issue(pointer_join(path, name), "schema.required", f"missing required field {name!r}"))
         if schema.get("additionalProperties") is False:
             for name in instance:
                 if name not in properties:

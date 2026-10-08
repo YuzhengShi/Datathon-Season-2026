@@ -161,9 +161,7 @@ class LoadedText:
     text_sha256: str
 
 
-def _load_snapshot(
-    ref: dict, root: Path, path: str, cache: dict
-) -> tuple[LoadedText | None, list[Issue]]:
+def _load_snapshot(ref: dict, root: Path, path: str, cache: dict) -> tuple[LoadedText | None, list[Issue]]:
     key = (ref.get("raw_path"), ref.get("text_path"))
     if key in cache:
         return cache[key]
@@ -231,9 +229,7 @@ def verify_evidence_item(
         ]
     issues: list[Issue] = []
     if evidence.get("source_id") != ref.get("source_id"):
-        issues.append(
-            Issue(f"{path}/source_id", "evidence.source_mismatch", "source_id differs from source_ref")
-        )
+        issues.append(Issue(f"{path}/source_id", "evidence.source_mismatch", "source_id differs from source_ref"))
     loaded, load_issues = _load_snapshot(ref, root, path, cache)
     issues.extend(load_issues)
     if loaded is None:
@@ -259,9 +255,7 @@ def verify_evidence_item(
 
     quote = evidence.get("quote") or ""
     if len(quote) > MAX_QUOTE_CHARS:
-        issues.append(
-            Issue(f"{path}/quote", "evidence.quote_too_long", f"quote exceeds {MAX_QUOTE_CHARS} chars")
-        )
+        issues.append(Issue(f"{path}/quote", "evidence.quote_too_long", f"quote exceeds {MAX_QUOTE_CHARS} chars"))
     nq = normalize_text(quote)
     if not nq:
         issues.append(Issue(f"{path}/quote", "evidence.quote_empty", "quote is empty"))
@@ -275,9 +269,7 @@ def verify_evidence_item(
     if page is not None:
         pages = split_pages(loaded.text)
         if not isinstance(page, int) or page < 1 or page > len(pages):
-            issues.append(
-                Issue(f"{path}/locator/pdf_page", "evidence.page_out_of_range", f"no page {page}")
-            )
+            issues.append(Issue(f"{path}/locator/pdf_page", "evidence.page_out_of_range", f"no page {page}"))
             return issues
         scope = pages[page - 1]
         page_blocks_source = scope
@@ -311,11 +303,7 @@ def verify_evidence_item(
 
     start, end = locator.get("text_start"), locator.get("text_end")
     if start is not None or end is not None:
-        if (
-            not isinstance(start, int)
-            or not isinstance(end, int)
-            or normalized_scope[start:end] != nq
-        ):
+        if not isinstance(start, int) or not isinstance(end, int) or normalized_scope[start:end] != nq:
             issues.append(
                 Issue(
                     f"{path}/locator",
@@ -327,9 +315,7 @@ def verify_evidence_item(
     heading = locator.get("heading")
     if heading is not None:
         if block_index is None:
-            block_index = next(
-                (i for i, b in enumerate(blocks) if nq in normalize_text(b)), len(blocks) - 1
-            )
+            block_index = next((i for i, b in enumerate(blocks) if nq in normalize_text(b)), len(blocks) - 1)
         actual = nearest_heading(blocks, block_index)
         if actual is None or normalize_text(actual) != normalize_text(str(heading)):
             issues.append(

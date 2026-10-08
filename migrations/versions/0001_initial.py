@@ -121,7 +121,9 @@ def upgrade() -> None:
     op.create_table(
         "application_cycles",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("cycle_key", sa.String(60), nullable=False),
         sa.Column("position", sa.Integer(), nullable=False),
         sa.Column("label_raw", sa.Text(), nullable=False),
@@ -144,7 +146,9 @@ def upgrade() -> None:
         "application_group_members",
         sa.Column("group_id", sa.String(120), nullable=False),
         sa.Column("cycle_key", sa.String(60), nullable=False),
-        sa.Column("opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("group_id", "cycle_key", "opportunity_id"),
         sa.ForeignKeyConstraint(
             ["group_id", "cycle_key"],
@@ -160,7 +164,9 @@ def upgrade() -> None:
     op.create_table(
         "evidence",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("evidence_id", sa.String(40), nullable=False),
         sa.Column("position", sa.Integer(), nullable=False),
         sa.Column("field_path", sa.Text(), nullable=False),
@@ -178,7 +184,9 @@ def upgrade() -> None:
     op.create_table(
         "opportunity_revisions",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "opportunity_id", sa.String(200), sa.ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("version", sa.Integer(), nullable=False),
         sa.Column("run_id", sa.String(120), nullable=True),
         sa.Column("changed_at", sa.String(32), nullable=False),

@@ -55,7 +55,9 @@ def _fold(text: str) -> str:
 
 def _matches_text(record: dict, query: str) -> bool:
     haystack = _fold(
-        " ".join([record["title"], record["summary"], record["provider"]["name"], record["provider"].get("donor_name") or ""])
+        " ".join(
+            [record["title"], record["summary"], record["provider"]["name"], record["provider"].get("donor_name") or ""]
+        )
     )
     return all(term in haystack for term in _fold(query).split())
 
@@ -63,22 +65,46 @@ def _matches_text(record: dict, query: str) -> bool:
 def _summary(record: dict, cycle: dict, avail: dict, flags: list[str], applic: dict) -> dict:
     app = record["application"]
     return {
-        "id": record["id"], "title": record["title"], "opportunity_type": record["opportunity_type"],
-        "provider": record["provider"], "official_url": record["official_url"], "summary": record["summary"],
-        "application_route": {"route_type": app["route_type"], "url": app.get("url"),
-                              "contact_url": app.get("contact_url"), "instructions": app.get("instructions")},
-        "current_cycle": {"cycle_key": cycle["cycle_key"], "availability_status": avail["status"],
-                          "next_deadline_utc": avail["next_deadline_utc"], "amount": describe_amount(cycle["amount"]),
-                          "application_group_id": effective_group_id(record, cycle)},
-        "applicability": applic, "review_status": record["review_status"],
-        "last_verified_at": record.get("last_verified_at"), "freshness_flags": flags,
+        "id": record["id"],
+        "title": record["title"],
+        "opportunity_type": record["opportunity_type"],
+        "provider": record["provider"],
+        "official_url": record["official_url"],
+        "summary": record["summary"],
+        "application_route": {
+            "route_type": app["route_type"],
+            "url": app.get("url"),
+            "contact_url": app.get("contact_url"),
+            "instructions": app.get("instructions"),
+        },
+        "current_cycle": {
+            "cycle_key": cycle["cycle_key"],
+            "availability_status": avail["status"],
+            "next_deadline_utc": avail["next_deadline_utc"],
+            "amount": describe_amount(cycle["amount"]),
+            "application_group_id": effective_group_id(record, cycle),
+        },
+        "applicability": applic,
+        "review_status": record["review_status"],
+        "last_verified_at": record.get("last_verified_at"),
+        "freshness_flags": flags,
     }
 
 
 def list_opportunities(
-    records: list[dict], *, as_of: datetime, freshness_days: int, data_mode: str, q: str | None = None,
-    province: str | None = None, education_level: str | None = None, opportunity_type: str | None = None,
-    include_closed: bool = False, exclude_unknown_applicability: bool = False, limit: int = 20, offset: int = 0,
+    records: list[dict],
+    *,
+    as_of: datetime,
+    freshness_days: int,
+    data_mode: str,
+    q: str | None = None,
+    province: str | None = None,
+    education_level: str | None = None,
+    opportunity_type: str | None = None,
+    include_closed: bool = False,
+    exclude_unknown_applicability: bool = False,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict:
     rows: list[tuple[tuple, dict]] = []
     for record in records:
@@ -103,16 +129,32 @@ def list_opportunities(
         if "not_applicable" in values or (exclude_unknown_applicability and "unknown" in values):
             continue
         flags = freshness_flags(record, cycle, avail, as_of, freshness_days)
-        key = (_AVAIL_RANK[avail["status"]], avail["next_deadline_utc"] or _FAR, record["title"].casefold(), record["id"])
+        key = (
+            _AVAIL_RANK[avail["status"]],
+            avail["next_deadline_utc"] or _FAR,
+            record["title"].casefold(),
+            record["id"],
+        )
         rows.append((key, _summary(record, cycle, avail, flags, applic)))
     rows.sort(key=lambda r: r[0])
-    page = [r[1] for r in rows[offset: offset + limit]]
-    return {"data_mode": data_mode, "as_of": format_utc(as_of), "total": len(rows), "limit": limit, "offset": offset,
-            "count": len(page),
-            "filters": {"q": q, "province": province, "education_level": education_level,
-                        "opportunity_type": opportunity_type, "include_closed": include_closed,
-                        "exclude_unknown_applicability": exclude_unknown_applicability},
-            "results": page}
+    page = [r[1] for r in rows[offset : offset + limit]]
+    return {
+        "data_mode": data_mode,
+        "as_of": format_utc(as_of),
+        "total": len(rows),
+        "limit": limit,
+        "offset": offset,
+        "count": len(page),
+        "filters": {
+            "q": q,
+            "province": province,
+            "education_level": education_level,
+            "opportunity_type": opportunity_type,
+            "include_closed": include_closed,
+            "exclude_unknown_applicability": exclude_unknown_applicability,
+        },
+        "results": page,
+    }
 
 
 def _next_steps(record: dict, siblings: list[dict]) -> list[str]:
@@ -120,7 +162,9 @@ def _next_steps(record: dict, siblings: list[dict]) -> list[str]:
     steps = [f"Read the official page: {record['official_url']}"]
     route = app["route_type"]
     if route == "contact_administrator":
-        steps.append(f"Contact the administrator to apply or to learn the local deadline: {app.get('contact_url') or record['official_url']}")
+        steps.append(
+            f"Contact the administrator to apply or to learn the local deadline: {app.get('contact_url') or record['official_url']}"
+        )
     elif app.get("url"):
         steps.append(f"Apply here: {app['url']}")
     if app.get("instructions"):
@@ -129,13 +173,17 @@ def _next_steps(record: dict, siblings: list[dict]) -> list[str]:
     if docs:
         steps.append("Prepare: " + ", ".join(docs))
     if siblings:
-        steps.append("This form is shared with: " + ", ".join(s["title"] for s in siblings)
-                     + ". Each award has its own eligibility rules.")
+        steps.append(
+            "This form is shared with: "
+            + ", ".join(s["title"] for s in siblings)
+            + ". Each award has its own eligibility rules."
+        )
     return steps
 
 
-def opportunity_detail(record: dict, all_records: list[dict], *, as_of: datetime, freshness_days: int,
-                       data_mode: str) -> dict:
+def opportunity_detail(
+    record: dict, all_records: list[dict], *, as_of: datetime, freshness_days: int, data_mode: str
+) -> dict:
     current, _ = select_cycle(record, as_of)
     cycles: list[dict[str, Any]] = []
     siblings: list[dict] = []
@@ -144,27 +192,44 @@ def opportunity_detail(record: dict, all_records: list[dict], *, as_of: datetime
         assert avail is not None
         gid = effective_group_id(record, cycle)
         if gid and current is not None and cycle["cycle_key"] == current["cycle_key"]:
-            siblings = [{"id": o["id"], "title": o["title"]} for o in all_records
-                        if o["id"] != record["id"] and o["publication_status"] == "published"
-                        for oc in o["cycles"]
-                        if oc["cycle_key"] == cycle["cycle_key"] and effective_group_id(o, oc) == gid]
-        cycles.append({
-            "cycle_key": cycle["cycle_key"], "label_raw": cycle["label_raw"], "starts_on": cycle.get("starts_on"),
-            "ends_on": cycle.get("ends_on"),
-            "availability": {"status": avail["status"], "reason": avail["reason"],
-                             "next_deadline_utc": avail["next_deadline_utc"]},
-            "deadlines": deadline_views(cycle, as_of), "amount": describe_amount(cycle["amount"]),
-            "eligibility": cycle["eligibility"], "application_group_id": gid,
-            "freshness_flags": freshness_flags(record, cycle, avail, as_of, freshness_days),
-        })
+            siblings = [
+                {"id": o["id"], "title": o["title"]}
+                for o in all_records
+                if o["id"] != record["id"] and o["publication_status"] == "published"
+                for oc in o["cycles"]
+                if oc["cycle_key"] == cycle["cycle_key"] and effective_group_id(o, oc) == gid
+            ]
+        cycles.append(
+            {
+                "cycle_key": cycle["cycle_key"],
+                "label_raw": cycle["label_raw"],
+                "starts_on": cycle.get("starts_on"),
+                "ends_on": cycle.get("ends_on"),
+                "availability": {
+                    "status": avail["status"],
+                    "reason": avail["reason"],
+                    "next_deadline_utc": avail["next_deadline_utc"],
+                },
+                "deadlines": deadline_views(cycle, as_of),
+                "amount": describe_amount(cycle["amount"]),
+                "eligibility": cycle["eligibility"],
+                "application_group_id": gid,
+                "freshness_flags": freshness_flags(record, cycle, avail, as_of, freshness_days),
+            }
+        )
     return {
-        "data_mode": data_mode, "as_of": format_utc(as_of), "opportunity": public_record(record),
-        "current_cycle_key": current["cycle_key"] if current else None, "cycles": cycles,
-        "shared_application_with": siblings, "next_steps": _next_steps(record, siblings),
+        "data_mode": data_mode,
+        "as_of": format_utc(as_of),
+        "opportunity": public_record(record),
+        "current_cycle_key": current["cycle_key"] if current else None,
+        "cycles": cycles,
+        "shared_application_with": siblings,
+        "next_steps": _next_steps(record, siblings),
         "verification": {
-            "review_status": record["review_status"], "last_verified_at": record.get("last_verified_at"),
+            "review_status": record["review_status"],
+            "last_verified_at": record.get("last_verified_at"),
             "last_fetched_at": record["last_fetched_at"],
             "note": "machine_checked means a source-specific parser and validation passed; it is not human review. "
-                    "Always confirm on the official page.",
+            "Always confirm on the official page.",
         },
     }

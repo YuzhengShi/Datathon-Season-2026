@@ -11,6 +11,13 @@ def registry() -> dict[str, Adapter]:
     from navigator.ingestion.adapters.policy import ContextOnlyAdapter, PolicyAdapter
     from navigator.ingestion.adapters.sectioned import ListingDetailAdapter, SectionedAwardsAdapter
 
-    adapters: list[Adapter] = [IscIndexAdapter(), PolicyAdapter(), ContextOnlyAdapter(), SectionedAwardsAdapter(),
-                               ListingDetailAdapter(), CuratedAdapter(), CuratedChannelAdapter()]
+    adapters: list[Adapter] = [
+        IscIndexAdapter(),
+        PolicyAdapter(),
+        ContextOnlyAdapter(),
+        SectionedAwardsAdapter(),
+        ListingDetailAdapter(),
+        CuratedAdapter(),
+        CuratedChannelAdapter(),
+    ]
     return {a.name: a for a in adapters}

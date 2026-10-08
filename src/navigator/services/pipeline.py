@@ -31,9 +31,20 @@ def make_run_id(kind: str, moment: datetime) -> str:
 
 def write_rejected_quarantine(root: Path, run_id: str, rejected: list[tuple[dict, list]]) -> Path | None:
     """Quarantine rows for candidates that failed verification before they reached a file."""
-    rows = [{"run_id": run_id, "line_no": None, "opportunity_id": record.get("id"), "field": issue.path,
-             "error_type": issue.code, "summary": issue.message, "excerpt": ""}
-            for record, issues in rejected for issue in issues if issue.is_error]
+    rows = [
+        {
+            "run_id": run_id,
+            "line_no": None,
+            "opportunity_id": record.get("id"),
+            "field": issue.path,
+            "error_type": issue.code,
+            "summary": issue.message,
+            "excerpt": "",
+        }
+        for record, issues in rejected
+        for issue in issues
+        if issue.is_error
+    ]
     if not rows:
         return None
     path = root / "quarantine" / f"{run_id}.jsonl"
@@ -65,27 +76,62 @@ def verify_records(records: list[dict], ctx: ValidationContext, verified_at: dat
     return out
 
 
-def validate_file(path: Path, rt: Runtime, *, now: datetime | None, verify_files: bool = True,
-                  known_source_ids: frozenset[str] | None = None) -> FileValidation:
-    ctx = ValidationContext(artifact_root=rt.artifact_root, expected_mode=rt.mode, now=now,
-                            verify_files=verify_files, known_source_ids=known_source_ids)
+def validate_file(
+    path: Path,
+    rt: Runtime,
+    *,
+    now: datetime | None,
+    verify_files: bool = True,
+    known_source_ids: frozenset[str] | None = None,
+) -> FileValidation:
+    ctx = ValidationContext(
+        artifact_root=rt.artifact_root,
+        expected_mode=rt.mode,
+        now=now,
+        verify_files=verify_files,
+        known_source_ids=known_source_ids,
+    )
     return validate_jsonl(path, ctx)
 
 
-def write_reports(repo: Repository, rt: Runtime, *, as_of: datetime, now: datetime, run_context: dict[str, Any],
-                   parameters: dict[str, Any]) -> dict:
+def write_reports(
+    repo: Repository,
+    rt: Runtime,
+    *,
+    as_of: datetime,
+    now: datetime,
+    run_context: dict[str, Any],
+    parameters: dict[str, Any],
+) -> dict:
     records = repo.list_records(published_only=False, is_demo=(rt.mode == "demo"), with_meta=True)
-    report = build_freshness_report(records, mode=rt.mode, as_of=as_of, generated_at=now,
-                                    freshness_days=rt.freshness_days, run_context=run_context, parameters=parameters)
+    report = build_freshness_report(
+        records,
+        mode=rt.mode,
+        as_of=as_of,
+        generated_at=now,
+        freshness_days=rt.freshness_days,
+        run_context=run_context,
+        parameters=parameters,
+    )
     write_json(rt.artifact_root / "reports" / "freshness.json", report)
     (rt.artifact_root / "reports" / "freshness.md").write_text(render_markdown(report), encoding="utf-8")
     return report
 
 
-def import_and_publish(repo: Repository, rt: Runtime, *, candidates: Path, run_id: str, as_of: datetime,
-                       manifest: RunManifest, run_context: dict, dry_run: bool = False,
-                       allow_partial: bool = False, known_source_ids: frozenset[str] | None = None,
-                       write_empty_export: bool = True) -> dict:
+def import_and_publish(
+    repo: Repository,
+    rt: Runtime,
+    *,
+    candidates: Path,
+    run_id: str,
+    as_of: datetime,
+    manifest: RunManifest,
+    run_context: dict,
+    dry_run: bool = False,
+    allow_partial: bool = False,
+    known_source_ids: frozenset[str] | None = None,
+    write_empty_export: bool = True,
+) -> dict:
     """Validate the candidates file, import, export and report. Returns a result summary."""
     validation = validate_file(candidates, rt, now=as_of, known_source_ids=known_source_ids)
     write_json(rt.artifact_root / "reports" / "validation.json", validation.summary())
@@ -96,10 +142,18 @@ def import_and_publish(repo: Repository, rt: Runtime, *, candidates: Path, run_i
         manifest.failure("validation", f"{validation.invalid_count} record(s) quarantined")
     run_context["quarantined"] = validation.invalid_count
     run_context["evidence_failures"] = sum(
-        1 for r in validation.results for i in r.issues if i.is_error and i.code.startswith("evidence."))
+        1 for r in validation.results for i in r.issues if i.is_error and i.code.startswith("evidence.")
+    )
 
-    report = import_records(repo, validation, mode=rt.mode, run_id=run_id, now_iso=format_utc(as_of),
-                            dry_run=dry_run, allow_partial=allow_partial)
+    report = import_records(
+        repo,
+        validation,
+        mode=rt.mode,
+        run_id=run_id,
+        now_iso=format_utc(as_of),
+        dry_run=dry_run,
+        allow_partial=allow_partial,
+    )
     write_json(rt.artifact_root / "reports" / ("import-dry-run.json" if dry_run else "import.json"), report.to_dict())
     manifest.step_done("import", status=report.status, **report.counts)
     manifest.count(**{f"import_{k}": v for k, v in report.counts.items()})
@@ -109,7 +163,9 @@ def import_and_publish(repo: Repository, rt: Runtime, *, candidates: Path, run_i
         return result
 
     public = repo.list_records(published_only=True, is_demo=(rt.mode == "demo"))
-    if not public and not write_empty_export:  # no real data: do not create a canonical file that suggests there is some
+    if (
+        not public and not write_empty_export
+    ):  # no real data: do not create a canonical file that suggests there is some
         result["export"] = {"path": None, "records": 0, "empty": True, "written": False, "data_mode": rt.mode}
         manifest.step_done("export", records=0, written=False)
         return result
@@ -126,14 +182,24 @@ def run_demo_pipeline(repo: Repository, rt: Runtime, *, as_of: datetime, dry_run
         raise ValueError("run_demo_pipeline requires a demo runtime")
     root = rt.artifact_root
     run_id = make_run_id("demo-pipeline", as_of)
-    manifest = RunManifest(root / "runs" / f"{run_id}.json", run_id, "pipeline", "demo",
-                           {"as_of": format_utc(as_of), "dry_run": dry_run}, as_of)
+    manifest = RunManifest(
+        root / "runs" / f"{run_id}.json",
+        run_id,
+        "pipeline",
+        "demo",
+        {"as_of": format_utc(as_of), "dry_run": dry_run},
+        as_of,
+    )
 
     art = build_demo_artifacts(root, as_of)
     manifest.step_done("synthetic_snapshots", snapshots=len(art.snaps))
     for key, snap in art.snaps.items():
-        manifest.source_status(snap.source_id, status="ok" if art.extraction_status[key] == "ok" else art.extraction_status[key],
-                               snapshot_id=snap.snapshot_id, synthetic=True)
+        manifest.source_status(
+            snap.source_id,
+            status="ok" if art.extraction_status[key] == "ok" else art.extraction_status[key],
+            snapshot_id=snap.snapshot_id,
+            synthetic=True,
+        )
     ocr = [art.snaps[k].url for k, st in art.extraction_status.items() if st == "ocr_required"]
     for url in ocr:
         manifest.pending(url, "scanned PDF has no text layer: ocr_required (OCR is not performed)")
@@ -151,33 +217,63 @@ def run_demo_pipeline(repo: Repository, rt: Runtime, *, as_of: datetime, dry_run
             manifest.artifact("quarantine", quarantine, root)
         manifest.failure("verification", f"{len(outcome.rejected)} candidate(s) failed validation")
         manifest.finish("failed", as_of)
-        return {"run_id": run_id, "data_mode": "demo", "exit_code": EXIT_DATA, "artifact_root": root.as_posix(),
-                "error": f"{len(outcome.rejected)} candidate(s) failed validation; nothing was imported",
-                "rejected_ids": [r.get("id") for r, _ in outcome.rejected]}
+        return {
+            "run_id": run_id,
+            "data_mode": "demo",
+            "exit_code": EXIT_DATA,
+            "artifact_root": root.as_posix(),
+            "error": f"{len(outcome.rejected)} candidate(s) failed validation; nothing was imported",
+            "rejected_ids": [r.get("id") for r, _ in outcome.rejected],
+        }
 
     if not dry_run:
         repo.ensure_sources(DEMO_SOURCES)  # type: ignore[attr-defined]
     sources_total = len(art.snaps)
     run_context: dict[str, Any] = {
-        "sources": {"attempted": sources_total, "succeeded": sources_total - len(ocr), "failed": 0,
-                    "skipped": 0, "details": [{"source_id": s.source_id, "status": art.extraction_status[k]}
-                                              for k, s in art.snaps.items()]},
-        "discovery": {"entries_observed": None, "coverage": None, "pagination_complete": None,
-                      "note": "demo run: no discovery index crawl"},
-        "failures": [], "pending_verification": manifest.data["pending_verification"], "ocr_required": ocr,
+        "sources": {
+            "attempted": sources_total,
+            "succeeded": sources_total - len(ocr),
+            "failed": 0,
+            "skipped": 0,
+            "details": [{"source_id": s.source_id, "status": art.extraction_status[k]} for k, s in art.snaps.items()],
+        },
+        "discovery": {
+            "entries_observed": None,
+            "coverage": None,
+            "pagination_complete": None,
+            "note": "demo run: no discovery index crawl",
+        },
+        "failures": [],
+        "pending_verification": manifest.data["pending_verification"],
+        "ocr_required": ocr,
     }
-    result = import_and_publish(repo, rt, candidates=candidates, run_id=run_id, as_of=as_of, manifest=manifest,
-                                run_context=run_context, dry_run=dry_run,
-                                known_source_ids=frozenset(s["source_id"] for s in DEMO_SOURCES))
+    result = import_and_publish(
+        repo,
+        rt,
+        candidates=candidates,
+        run_id=run_id,
+        as_of=as_of,
+        manifest=manifest,
+        run_context=run_context,
+        dry_run=dry_run,
+        known_source_ids=frozenset(s["source_id"] for s in DEMO_SOURCES),
+    )
     if not dry_run and result["exit_code"] == 0:
-        report = write_reports(repo, rt, as_of=as_of, now=as_of, run_context=run_context,
-                                parameters={"run_id": run_id})
+        report = write_reports(repo, rt, as_of=as_of, now=as_of, run_context=run_context, parameters={"run_id": run_id})
         manifest.step_done("report", records=report["opportunities"]["total"])
         manifest.artifact("freshness_json", root / "reports" / "freshness.json", root)
         manifest.artifact("freshness_md", root / "reports" / "freshness.md", root)
         result["report"] = report["opportunities"]
-        repo.record_run({"run_id": run_id, "kind": "pipeline", "mode": rt.mode, "status": "ok", "context": run_context,
-                         "finished_at": format_utc(as_of)})
+        repo.record_run(
+            {
+                "run_id": run_id,
+                "kind": "pipeline",
+                "mode": rt.mode,
+                "status": "ok",
+                "context": run_context,
+                "finished_at": format_utc(as_of),
+            }
+        )
     manifest.finish("ok" if result["exit_code"] == 0 else "failed", as_of)
     result.update({"run_id": run_id, "data_mode": "demo", "artifact_root": root.as_posix()})
     return result

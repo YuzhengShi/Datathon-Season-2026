@@ -8,9 +8,11 @@ NOTE: this module intentionally has no ``from __future__ import annotations`` so
 real annotation objects.
 """
 
+import contextlib
 import dataclasses
 import json
 import re
+from collections.abc import Iterator
 from enum import Enum
 from pathlib import Path
 from typing import NoReturn, Optional
@@ -37,8 +39,13 @@ from navigator.services.pipeline import (
     write_reports,
 )
 
-app = typer.Typer(name="navigator", help="Indigenous Student Funding Navigator - data pipeline and API.",
-                  no_args_is_help=True, add_completion=False, pretty_exceptions_enable=False)
+app = typer.Typer(
+    name="navigator",
+    help="Indigenous Student Funding Navigator - data pipeline and API.",
+    no_args_is_help=True,
+    add_completion=False,
+    pretty_exceptions_enable=False,
+)
 db_app = typer.Typer(help="Database commands.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 
@@ -81,11 +88,17 @@ def _emit(payload: dict) -> None:
     typer.echo(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=str))
 
 
-def _repo(rt: Runtime, *, require_migrated: bool = True) -> SqlRepository:
+@contextlib.contextmanager
+def _open_repo(rt: Runtime, *, require_migrated: bool = True) -> Iterator[SqlRepository]:
+    """Open the repository for one command and always release its connections (SQLite files stay locked on Windows)."""
     engine = make_engine(rt.database_url)
-    if require_migrated and not migration_state(engine)["up_to_date"]:
-        _fail(f"the {rt.mode} database is not migrated: run `python -m navigator.cli db upgrade --mode {rt.mode}`")
-    return SqlRepository(make_session_factory(engine))
+    repo = SqlRepository(make_session_factory(engine), engine)
+    try:
+        if require_migrated and not migration_state(engine)["up_to_date"]:
+            _fail(f"the {rt.mode} database is not migrated: run `python -m navigator.cli db upgrade --mode {rt.mode}`")
+        yield repo
+    finally:
+        repo.close()
 
 
 def _source_rows(rt: Runtime) -> list[dict]:
@@ -98,15 +111,21 @@ def _source_rows(rt: Runtime) -> list[dict]:
 
 
 @db_app.command("upgrade")
-def db_upgrade(mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
-               revision: str = typer.Option("head", "--revision", help="Alembic target revision.")) -> None:
+def db_upgrade(
+    mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
+    revision: str = typer.Option("head", "--revision", help="Alembic target revision."),
+) -> None:
     """Create/upgrade the schema with Alembic migrations (never create_all)."""
     rt = _runtime(mode)
     try:
         upgrade_database(rt.database_url, revision)
     except Exception as exc:  # noqa: BLE001 - report, with credentials masked
         _fail(f"migration failed: {_safe(exc)}", EXIT_DATA)
-    state = migration_state(make_engine(rt.database_url))
+    engine = make_engine(rt.database_url)
+    try:
+        state = migration_state(engine)
+    finally:
+        engine.dispose()
     _emit({"data_mode": rt.mode, "migrations": state})
     raise typer.Exit(0 if state["up_to_date"] or revision != "head" else EXIT_DATA)
 
@@ -120,7 +139,9 @@ def pipeline(
     resume: bool = typer.Option(False, "--resume", help="Live: skip pages that already have a snapshot."),
     refresh: bool = typer.Option(False, "--refresh", help="Live: re-check stored pages with conditional requests."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Plan and validate; write no database rows or exports."),
-    allow_partial: bool = typer.Option(False, "--allow-partial", help="Commit valid records even if others are rejected."),
+    allow_partial: bool = typer.Option(
+        False, "--allow-partial", help="Commit valid records even if others are rejected."
+    ),
 ) -> None:
     """Run the whole chain. demo: synthetic and offline. live: official sources (bounded, polite)."""
     rt, now = _runtime(mode), _clock(as_of)
@@ -129,18 +150,29 @@ def pipeline(
             upgrade_database(rt.database_url)
         except Exception as exc:  # noqa: BLE001
             _fail(f"migration failed: {_safe(exc)}", EXIT_DATA)
-    repo = _repo(rt)
-    try:
-        if rt.mode == "demo":
-            result = run_demo_pipeline(repo, rt, as_of=now, dry_run=dry_run)
-        else:
-            result = live_service.run_live_pipeline(repo, rt, now=now, limit=limit, max_pages=max_pages, resume=resume,
-                                                    refresh=refresh, dry_run=dry_run, allow_partial=allow_partial)
-    except SourceConfigError as exc:
-        _fail(f"source configuration error: {exc}")
-    except ExtractorUnavailable as exc:
-        _fail(f"extraction mode unavailable: {exc}")
-    _emit({k: v for k, v in result.items() if k != "import"} | {"import_counts": result.get("import", {}).get("counts")})
+    with _open_repo(rt) as repo:
+        try:
+            if rt.mode == "demo":
+                result = run_demo_pipeline(repo, rt, as_of=now, dry_run=dry_run)
+            else:
+                result = live_service.run_live_pipeline(
+                    repo,
+                    rt,
+                    now=now,
+                    limit=limit,
+                    max_pages=max_pages,
+                    resume=resume,
+                    refresh=refresh,
+                    dry_run=dry_run,
+                    allow_partial=allow_partial,
+                )
+        except SourceConfigError as exc:
+            _fail(f"source configuration error: {exc}")
+        except ExtractorUnavailable as exc:
+            _fail(f"extraction mode unavailable: {exc}")
+    _emit(
+        {k: v for k, v in result.items() if k != "import"} | {"import_counts": result.get("import", {}).get("counts")}
+    )
     raise typer.Exit(result["exit_code"])
 
 
@@ -172,7 +204,9 @@ def fetch(
 @app.command()
 def extract(
     mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
-    resume: bool = typer.Option(False, "--resume", help="Accepted for symmetry: extraction always reuses stored snapshots."),
+    resume: bool = typer.Option(
+        False, "--resume", help="Accepted for symmetry: extraction always reuses stored snapshots."
+    ),
     as_of: Optional[str] = typer.Option(None, "--as-of"),
 ) -> None:
     """Run the source adapters over stored snapshots and write verified candidates (no network)."""
@@ -192,15 +226,18 @@ def extract(
 @app.command()
 def validate(
     input: Path = typer.Option(..., "--input", exists=True, dir_okay=False, help="Candidate/export JSONL file."),
-    artifact_root: Path = typer.Option(..., "--artifact-root", file_okay=False, help="Folder holding raw/ and text/ snapshots."),
+    artifact_root: Path = typer.Option(
+        ..., "--artifact-root", file_okay=False, help="Folder holding raw/ and text/ snapshots."
+    ),
     mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
     as_of: Optional[str] = typer.Option(None, "--as-of"),
 ) -> None:
     """Validate a JSONL file: schema, semantics, evidence, hashes. Bad records go to quarantine."""
     rt, now = _runtime(mode), _clock(as_of)
     known = frozenset(r["source_id"] for r in _source_rows(rt))
-    report = validate_jsonl(input, ValidationContext(artifact_root=artifact_root, expected_mode=rt.mode, now=now,
-                                                     known_source_ids=known))
+    report = validate_jsonl(
+        input, ValidationContext(artifact_root=artifact_root, expected_mode=rt.mode, now=now, known_source_ids=known)
+    )
     run_id = make_run_id("validate", now)
     write_json(artifact_root / "reports" / "validation.json", report.summary())
     quarantine = write_quarantine(artifact_root, run_id, report)
@@ -215,22 +252,38 @@ def import_data(
     artifact_root: Path = typer.Option(..., "--artifact-root", file_okay=False),
     mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
     dry_run: bool = typer.Option(False, "--dry-run", help="Real validation, evidence and conflict checks; no writes."),
-    allow_partial: bool = typer.Option(False, "--allow-partial", help="Per-record transactions; any rejection still exits 1."),
+    allow_partial: bool = typer.Option(
+        False, "--allow-partial", help="Per-record transactions; any rejection still exits 1."
+    ),
     as_of: Optional[str] = typer.Option(None, "--as-of"),
 ) -> None:
     """Strict, transactional, idempotent import. By default one bad record rejects the whole batch."""
     rt, now = _runtime(mode), _clock(as_of)
-    repo = _repo(rt)
-    rows = _source_rows(rt)
-    validation = validate_jsonl(input, ValidationContext(artifact_root=artifact_root, expected_mode=rt.mode, now=now,
-                                                         known_source_ids=frozenset(r["source_id"] for r in rows)))
-    run_id = make_run_id("import", now)
-    write_quarantine(artifact_root, run_id, validation)
-    if not dry_run:
-        repo.ensure_sources(rows)
-    report = import_records(repo, validation, mode=rt.mode, run_id=run_id, now_iso=format_utc(now), dry_run=dry_run,
-                            allow_partial=allow_partial)
-    write_json(artifact_root / "reports" / ("import-dry-run.json" if dry_run else "import.json"), report.to_dict())
+    with _open_repo(rt) as repo:
+        rows = _source_rows(rt)
+        validation = validate_jsonl(
+            input,
+            ValidationContext(
+                artifact_root=artifact_root,
+                expected_mode=rt.mode,
+                now=now,
+                known_source_ids=frozenset(r["source_id"] for r in rows),
+            ),
+        )
+        run_id = make_run_id("import", now)
+        write_quarantine(artifact_root, run_id, validation)
+        if not dry_run:
+            repo.ensure_sources(rows)
+        report = import_records(
+            repo,
+            validation,
+            mode=rt.mode,
+            run_id=run_id,
+            now_iso=format_utc(now),
+            dry_run=dry_run,
+            allow_partial=allow_partial,
+        )
+        write_json(artifact_root / "reports" / ("import-dry-run.json" if dry_run else "import.json"), report.to_dict())
     _emit(report.to_dict())
     raise typer.Exit(report.exit_code)
 
@@ -242,7 +295,9 @@ def export(
 ) -> None:
     """Canonical JSONL export of published records of this mode (demo never mixes with live)."""
     rt = _runtime(mode)
-    _emit(export_public(_repo(rt), output, mode=rt.mode))
+    with _open_repo(rt) as repo:
+        info = export_public(repo, output, mode=rt.mode)
+    _emit(info)
 
 
 @app.command()
@@ -252,11 +307,23 @@ def report(
 ) -> None:
     """Write the data-freshness report (JSON + Markdown) for the current dataset."""
     rt, now = _runtime(mode), _clock(as_of)
-    repo = _repo(rt)
-    data = write_reports(repo, rt, as_of=now, now=parse_as_of(None), run_context=repo.latest_run_context(rt.mode),
-                         parameters={"source": "cli"})
-    _emit({"data_mode": rt.mode, "json": (rt.artifact_root / "reports" / "freshness.json").as_posix(),
-           "markdown": (rt.artifact_root / "reports" / "freshness.md").as_posix(), "opportunities": data["opportunities"]})
+    with _open_repo(rt) as repo:
+        data = write_reports(
+            repo,
+            rt,
+            as_of=now,
+            now=parse_as_of(None),
+            run_context=repo.latest_run_context(rt.mode),
+            parameters={"source": "cli"},
+        )
+    _emit(
+        {
+            "data_mode": rt.mode,
+            "json": (rt.artifact_root / "reports" / "freshness.json").as_posix(),
+            "markdown": (rt.artifact_root / "reports" / "freshness.md").as_posix(),
+            "opportunities": data["opportunities"],
+        }
+    )
 
 
 @app.command()

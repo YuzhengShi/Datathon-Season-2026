@@ -11,8 +11,12 @@ SCRIPT = ROOT / "scripts" / "smoke_test.py"
 
 
 def smoke(url: str, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(SCRIPT), "--base-url", url, "--timeout", "10", *args],
-                          capture_output=True, text=True, timeout=120)
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "--base-url", url, "--timeout", "10", *args],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
 
 
 class SmokeScriptTests(unittest.TestCase):

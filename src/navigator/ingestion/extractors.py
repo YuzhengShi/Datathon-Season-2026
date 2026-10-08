@@ -28,7 +28,9 @@ class LLMExtractor(Adapter):
     name = "llm"
 
     def parse(self, snaps: list[SnapshotView], source: SourceConfig, ctx: ParseContext) -> AdapterResult:
-        raise ExtractorUnavailable("LLM extraction is not implemented in this build; use EXTRACTION_MODE=deterministic or curated")
+        raise ExtractorUnavailable(
+            "LLM extraction is not implemented in this build; use EXTRACTION_MODE=deterministic or curated"
+        )
 
 
 def select_adapters(mode: str, adapters: dict[str, Adapter]) -> dict[str, Adapter]:
@@ -37,6 +39,8 @@ def select_adapters(mode: str, adapters: dict[str, Adapter]) -> dict[str, Adapte
     if mode == "curated":
         return {name: a for name, a in adapters.items() if name in CURATED_ADAPTERS}
     if mode == "llm":
-        raise ExtractorUnavailable("EXTRACTION_MODE=llm: LLM extraction is not implemented in this build "
-                                   "(no key or model is used anywhere; use deterministic or curated)")
+        raise ExtractorUnavailable(
+            "EXTRACTION_MODE=llm: LLM extraction is not implemented in this build "
+            "(no key or model is used anywhere; use deterministic or curated)"
+        )
     raise ExtractorUnavailable(f"unknown extraction mode {mode!r}")

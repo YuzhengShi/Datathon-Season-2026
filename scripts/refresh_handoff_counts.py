@@ -43,8 +43,12 @@ def main() -> int:
     rows = "\n".join(f"| `tests/{m}.py` | {n} | {n - s} | {s} |" for m, (n, s) in sorted(counts.items()))
     path = ROOT / "docs" / "HANDOFF.md"
     text = path.read_text(encoding="utf-8")
-    text = re.sub(r"(\| suite \| tests \| executed \| skipped \|\n\| --- \| --- \| --- \| --- \|\n).*?(\n\n)",
-                  lambda m: m.group(1) + rows + f"\n| **total** | **{total}** | **{ran}** | **{skip}** |" + m.group(2), text, flags=re.S)
+    text = re.sub(
+        r"(\| suite \| tests \| executed \| skipped \|\n\| --- \| --- \| --- \| --- \|\n).*?(\n\n)",
+        lambda m: m.group(1) + rows + f"\n| **total** | **{total}** | **{ran}** | **{skip}** |" + m.group(2),
+        text,
+        flags=re.S,
+    )
     text = re.sub(r"by \*\*\d+ executed tests", f"by **{ran} executed tests", text)
     text = re.sub(r"\(\d+ skipped\)", f"({skip} skipped)", text)
     text = re.sub(r"and \d+ tests ran offline", f"and {ran} tests ran offline", text)

@@ -1,6 +1,9 @@
 import json
 import unittest
+from datetime import timedelta
 from pathlib import Path
+
+from navigator.core.timeutil import canonical_deadline_utc, format_utc, parse_iso_datetime
 
 from navigator.ingestion.importer import write_quarantine
 from navigator.ingestion.validation import (
@@ -88,7 +91,10 @@ class RecordValidationTests(unittest.TestCase):
         self.assertIn("evidence.missing", codes(r))
         r = self.rec()
         c = r["cycles"][0]
-        c["amount"]["evidence_ids"], c["deadlines"][0]["evidence_ids"] = c["deadlines"][0]["evidence_ids"], c["amount"]["evidence_ids"]
+        c["amount"]["evidence_ids"], c["deadlines"][0]["evidence_ids"] = (
+            c["deadlines"][0]["evidence_ids"],
+            c["amount"]["evidence_ids"],
+        )
         self.assertIn("evidence.wrong_field", codes(r))
         r = self.rec()
         r["cycles"][0]["deadlines"][0]["evidence_ids"] = ["ev_ghost"]
@@ -112,7 +118,9 @@ class RecordValidationTests(unittest.TestCase):
         r = self.rec("demo_pooled_total_award")
         a = r["cycles"][0]["amount"]
         a["kind"], a["fixed"] = "fixed", a.pop("pooled_total")
-        self.assertIn("amount.value_not_in_quote", codes(r) | {"amount.value_not_in_quote"})  # warning-level cross-check
+        self.assertIn(
+            "amount.value_not_in_quote", codes(r) | {"amount.value_not_in_quote"}
+        )  # warning-level cross-check
 
     def test_dates_are_never_invented(self):
         r = self.rec("demo_annual_rule_award")
@@ -129,6 +137,19 @@ class RecordValidationTests(unittest.TestCase):
         r = self.rec()
         r["cycles"][0]["deadlines"][0]["deadline_at_utc"] = "2020-01-01T00:00:00Z"
         self.assertIn("deadline.utc_mismatch", codes(r))
+        # a stored instant that is an hour off the current computation is what a time-zone rule change looks like
+        # (British Columbia moves to permanent daylight time in Nov 2026): warn, do not reject. Days off is an error.
+        r = self.rec()
+        d = r["cycles"][0]["deadlines"][0]
+        exact = parse_iso_datetime(canonical_deadline_utc(d))
+        ctx = ValidationContext(artifact_root=DemoEnv.get().root, expected_mode="demo", now=AS_OF)
+        for shift, code, severity in (
+            (timedelta(hours=1), "deadline.utc_tz_rules_changed", "warning"),
+            (timedelta(days=3), "deadline.utc_mismatch", "error"),
+        ):
+            d["deadline_at_utc"] = format_utc(exact + shift)
+            found = [i for i in validate_record(refinger(r), ctx) if i.code.startswith("deadline.utc_")]
+            self.assertEqual([(i.code, i.severity) for i in found], [(code, severity)])
         r = self.rec("demo_tz_unknown_award")
         r["cycles"][0]["deadlines"][0]["deadline_at_utc"] = "2026-10-09T17:00:00Z"
         self.assertIn("deadline.utc_not_exact", codes(r))  # unknown zone: never guess UTC
@@ -292,6 +313,7 @@ class FileValidationTests(unittest.TestCase):
 
     def test_validate_jsonl_from_disk_and_quarantine_rows(self):
         import tempfile
+
         good, bad = DemoEnv.get().record("demo_supported_award"), DemoEnv.get().record("demo_clarification_award")
         bad["evidence"][0]["quote"] = "forged sentence"
         with tempfile.TemporaryDirectory() as tmp:

@@ -64,9 +64,7 @@ def validate_amount(amount: dict, path: str) -> list[Issue]:
     }
     if kind in required:
         for name in sorted(required[kind] - present):
-            issues.append(
-                Issue(pointer_join(path, name), "amount.missing_field", f"kind={kind} needs {name}")
-            )
+            issues.append(Issue(pointer_join(path, name), "amount.missing_field", f"kind={kind} needs {name}"))
         for name in sorted(present - required[kind]):
             issues.append(
                 Issue(
@@ -95,9 +93,7 @@ def validate_amount(amount: dict, path: str) -> list[Issue]:
             )
         )
     if kind != "unspecified" and not str(amount.get("raw_text") or "").strip():
-        issues.append(
-            Issue(pointer_join(path, "raw_text"), "amount.raw_text_required", "keep source wording")
-        )
+        issues.append(Issue(pointer_join(path, "raw_text"), "amount.raw_text_required", "keep source wording"))
     return issues
 
 
@@ -120,4 +116,3 @@ def describe_amount(amount: dict) -> dict:
         "is_per_recipient_figure": kind in {"fixed", "range"},
         "personal_benefit_estimated": False,
     }
-

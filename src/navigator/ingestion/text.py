@@ -26,12 +26,54 @@ _HEADINGS = {f"h{i}": i for i in range(1, 7)}
 _SKIP = {"script", "style", "noscript", "template", "svg", "iframe", "form", "button", "select"}
 _BOILERPLATE = {"nav", "header", "footer", "aside"}
 _INLINE = {
-    "a", "span", "strong", "em", "b", "i", "u", "sup", "sub", "abbr", "code", "small", "mark",
-    "cite", "q", "time", "label", "font", "br", "wbr", "s", "del", "ins", "bdi", "data", "dfn",
+    "a",
+    "span",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "sup",
+    "sub",
+    "abbr",
+    "code",
+    "small",
+    "mark",
+    "cite",
+    "q",
+    "time",
+    "label",
+    "font",
+    "br",
+    "wbr",
+    "s",
+    "del",
+    "ins",
+    "bdi",
+    "data",
+    "dfn",
 }
 _TEXT_BLOCKS = {"p", "pre", "blockquote", "dt", "dd", "caption", "figcaption", "summary"}
-_CONTAINERS = {"div", "section", "article", "ul", "ol", "dl", "table", "tbody", "thead", "tfoot",
-               "details", "main", "body", "html", "figure", "fieldset", "address", "center"}
+_CONTAINERS = {
+    "div",
+    "section",
+    "article",
+    "ul",
+    "ol",
+    "dl",
+    "table",
+    "tbody",
+    "thead",
+    "tfoot",
+    "details",
+    "main",
+    "body",
+    "html",
+    "figure",
+    "fieldset",
+    "address",
+    "center",
+}
 
 
 @dataclass
@@ -70,8 +112,27 @@ def _clean(text: str) -> str:
     return _WS.sub(" ", text).strip()
 
 
-_BLOCKISH = {"br", "hr", "p", "div", "li", "ul", "ol", "tr", "td", "th", "table", "dd", "dt", "dl",
-             "section", "article", "blockquote", "caption", *_HEADINGS}
+_BLOCKISH = {
+    "br",
+    "hr",
+    "p",
+    "div",
+    "li",
+    "ul",
+    "ol",
+    "tr",
+    "td",
+    "th",
+    "table",
+    "dd",
+    "dt",
+    "dl",
+    "section",
+    "article",
+    "blockquote",
+    "caption",
+    *_HEADINGS,
+}
 
 
 def _inline_text(tag: Tag) -> str:
@@ -220,7 +281,11 @@ def extract_html(data: bytes, base_url: str | None = None) -> ExtractedDocument:
 
     status = "ok" if blocks else "empty"
     return ExtractedDocument(
-        "text/html", status, blocks, links, title,
+        "text/html",
+        status,
+        blocks,
+        links,
+        title,
         meta={"date_modified": modified, "date_issued": issued},
     )
 
@@ -254,7 +319,10 @@ def extract_pdf(data: bytes) -> ExtractedDocument:
 
     if not blocks:
         return ExtractedDocument(
-            "application/pdf", "ocr_required", title=title, page_count=page_total,
+            "application/pdf",
+            "ocr_required",
+            title=title,
+            page_count=page_total,
             pages_without_text=empty_pages,
             note="no extractable text layer; OCR is not performed in this build",
         )
@@ -264,7 +332,13 @@ def extract_pdf(data: bytes) -> ExtractedDocument:
             blocks.append(Block("paragraph", "", page=n))
         blocks.sort(key=lambda b: b.page or 0)
     return ExtractedDocument(
-        "application/pdf", "ok", blocks, [], title, page_total, empty_pages,
+        "application/pdf",
+        "ok",
+        blocks,
+        [],
+        title,
+        page_total,
+        empty_pages,
         note="some pages have no text layer (ocr_required for those pages)" if empty_pages else None,
     )
 
@@ -275,5 +349,6 @@ def extract(data: bytes, media_type: str, base_url: str | None = None) -> Extrac
         return extract_pdf(data)
     if "html" in lowered or data.lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
         return extract_html(data, base_url)
-    return ExtractedDocument(lowered or "application/octet-stream", "unreadable",
-                             note=f"unsupported media type {media_type!r}")
+    return ExtractedDocument(
+        lowered or "application/octet-stream", "unreadable", note=f"unsupported media type {media_type!r}"
+    )

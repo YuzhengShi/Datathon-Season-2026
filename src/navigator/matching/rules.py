@@ -57,41 +57,115 @@ class FieldSpec:
 
 def _specs() -> dict[str, FieldSpec]:
     items = [
-        FieldSpec("indigenous_identity", "Indigenous identity", "set", ("overlaps",),
-                  "Which of these do you identify as: First Nations, Inuit, Métis?", IDENTITIES),
-        FieldSpec("first_nations_registered", "Registered First Nations person", "bool", ("eq",),
-                  "Are you registered as a First Nations person under the Indian Act (yes/no)? "
-                  "No card or registry number is needed."),
-        FieldSpec("metis_citizen", "Métis citizenship/membership", "bool", ("eq",),
-                  "Are you a citizen/member of a Métis government or organisation (yes/no)? "
-                  "No membership number is needed."),
-        FieldSpec("metis_org", "Métis organisation", "soft", ("eq", "in"),
-                  "Which Métis government or organisation are you a citizen of?"),
-        FieldSpec("inuit_beneficiary", "Inuit land-claim beneficiary", "bool", ("eq",),
-                  "Are you an Inuit land-claim beneficiary (yes/no)? No enrolment number is needed."),
-        FieldSpec("inuit_org", "Inuit organisation/region", "soft", ("eq", "in"),
-                  "Which Inuit organisation or region are you enrolled with?"),
-        FieldSpec("residence_province", "Province/territory of residence", "code", ("eq", "in"),
-                  "Which province or territory do you live in (e.g. BC, ON)?", PROVINCES),
-        FieldSpec("home_community", "Home community", "soft", ("eq", "in"),
-                  "What is your home community (First Nation, Métis community or Inuit community)?"),
-        FieldSpec("home_region", "Home region", "soft", ("eq", "in"),
-                  "What is your home region?"),
-        FieldSpec("institution_id", "Institution", "id", ("eq", "in"),
-                  "Which school, college or university do you attend (or plan to attend)?"),
-        FieldSpec("institution_province", "Province/territory of the institution", "code",
-                  ("eq", "in"), "In which province or territory is your school located?", PROVINCES),
+        FieldSpec(
+            "indigenous_identity",
+            "Indigenous identity",
+            "set",
+            ("overlaps",),
+            "Which of these do you identify as: First Nations, Inuit, Métis?",
+            IDENTITIES,
+        ),
+        FieldSpec(
+            "first_nations_registered",
+            "Registered First Nations person",
+            "bool",
+            ("eq",),
+            "Are you registered as a First Nations person under the Indian Act (yes/no)? "
+            "No card or registry number is needed.",
+        ),
+        FieldSpec(
+            "metis_citizen",
+            "Métis citizenship/membership",
+            "bool",
+            ("eq",),
+            "Are you a citizen/member of a Métis government or organisation (yes/no)? No membership number is needed.",
+        ),
+        FieldSpec(
+            "metis_org",
+            "Métis organisation",
+            "soft",
+            ("eq", "in"),
+            "Which Métis government or organisation are you a citizen of?",
+        ),
+        FieldSpec(
+            "inuit_beneficiary",
+            "Inuit land-claim beneficiary",
+            "bool",
+            ("eq",),
+            "Are you an Inuit land-claim beneficiary (yes/no)? No enrolment number is needed.",
+        ),
+        FieldSpec(
+            "inuit_org",
+            "Inuit organisation/region",
+            "soft",
+            ("eq", "in"),
+            "Which Inuit organisation or region are you enrolled with?",
+        ),
+        FieldSpec(
+            "residence_province",
+            "Province/territory of residence",
+            "code",
+            ("eq", "in"),
+            "Which province or territory do you live in (e.g. BC, ON)?",
+            PROVINCES,
+        ),
+        FieldSpec(
+            "home_community",
+            "Home community",
+            "soft",
+            ("eq", "in"),
+            "What is your home community (First Nation, Métis community or Inuit community)?",
+        ),
+        FieldSpec("home_region", "Home region", "soft", ("eq", "in"), "What is your home region?"),
+        FieldSpec(
+            "institution_id",
+            "Institution",
+            "id",
+            ("eq", "in"),
+            "Which school, college or university do you attend (or plan to attend)?",
+        ),
+        FieldSpec(
+            "institution_province",
+            "Province/territory of the institution",
+            "code",
+            ("eq", "in"),
+            "In which province or territory is your school located?",
+            PROVINCES,
+        ),
         FieldSpec("campus", "Campus", "soft", ("eq", "in"), "Which campus do you attend?"),
-        FieldSpec("education_level", "Education level", "enum", ("eq", "in"),
-                  "What level of study are you in or entering?", EDUCATION_LEVELS),
-        FieldSpec("program_field", "Program or field of study", "soft", ("eq", "in"),
-                  "What program or field are you studying?"),
-        FieldSpec("study_status", "Study status", "enum", ("eq", "in"),
-                  "Are you studying full-time or part-time?", STUDY_STATUSES),
-        FieldSpec("year_of_study", "Year of study", "int", ("eq", "in", "gte", "lte"),
-                  "Which year of your program are you in?"),
-        FieldSpec("gpa", "GPA", "decimal", ("gte", "lte"),
-                  "What is your GPA, and on what scale (e.g. 3.4 on a 4.0 scale)?"),
+        FieldSpec(
+            "education_level",
+            "Education level",
+            "enum",
+            ("eq", "in"),
+            "What level of study are you in or entering?",
+            EDUCATION_LEVELS,
+        ),
+        FieldSpec(
+            "program_field",
+            "Program or field of study",
+            "soft",
+            ("eq", "in"),
+            "What program or field are you studying?",
+        ),
+        FieldSpec(
+            "study_status",
+            "Study status",
+            "enum",
+            ("eq", "in"),
+            "Are you studying full-time or part-time?",
+            STUDY_STATUSES,
+        ),
+        FieldSpec(
+            "year_of_study",
+            "Year of study",
+            "int",
+            ("eq", "in", "gte", "lte"),
+            "Which year of your program are you in?",
+        ),
+        FieldSpec(
+            "gpa", "GPA", "decimal", ("gte", "lte"), "What is your GPA, and on what scale (e.g. 3.4 on a 4.0 scale)?"
+        ),
     ]
     return {spec.name: spec for spec in items}
 
@@ -207,9 +281,7 @@ def _parse_predicate(raw: Mapping, path: str, issues: list[Issue]) -> Predicate 
         issues.append(Issue(pointer_join(path, "value"), "rule.bad_value", "; ".join(sorted(set(problems)))))
         return None
     ids = raw.get("evidence_ids") or []
-    return Predicate(
-        path, name, op, value, str(scale) if scale is not None else None, tuple(ids), raw.get("label")
-    )
+    return Predicate(path, name, op, value, str(scale) if scale is not None else None, tuple(ids), raw.get("label"))
 
 
 def parse_node(raw: Any, path: str, issues: list[Issue], depth: int = 0) -> Any | None:
@@ -251,8 +323,7 @@ def parse_eligibility(raw: Mapping, path: str) -> tuple[Eligibility | None, list
     """Parse a cycle's ``eligibility`` object; returns (None, issues) on any error."""
     issues: list[Issue] = []
     mandatory = [
-        parse_node(n, pointer_join(path, "mandatory", i), issues)
-        for i, n in enumerate(raw.get("mandatory") or [])
+        parse_node(n, pointer_join(path, "mandatory", i), issues) for i, n in enumerate(raw.get("mandatory") or [])
     ]
     prefs: list[Predicate | None] = []
     for i, n in enumerate(raw.get("preferences") or []):
@@ -267,7 +338,9 @@ def parse_eligibility(raw: Mapping, path: str) -> tuple[Eligibility | None, list
         for i, u in enumerate(raw.get("unstructured") or [])
     ]
     funder = [
-        Unstructured(pointer_join(path, "funder_conditions", i), str(u.get("text", "")), tuple(u.get("evidence_ids") or []))
+        Unstructured(
+            pointer_join(path, "funder_conditions", i), str(u.get("text", "")), tuple(u.get("evidence_ids") or [])
+        )
         for i, u in enumerate(raw.get("funder_conditions") or [])
     ]
     if issues or any(n is None for n in mandatory) or any(p is None for p in prefs):
@@ -365,8 +438,7 @@ def _norm(kind: str, value: Any) -> Any:
 
 
 def _leaf(p: Predicate, outcome: str, **kw: Any) -> Leaf:
-    return Leaf(p.path, "predicate", describe_predicate(p), outcome, field=p.field,
-                evidence_ids=p.evidence_ids, **kw)
+    return Leaf(p.path, "predicate", describe_predicate(p), outcome, field=p.field, evidence_ids=p.evidence_ids, **kw)
 
 
 def eval_predicate(p: Predicate, profile: Mapping[str, Any], resolver: InstitutionResolver | None = None) -> Leaf:
@@ -382,8 +454,13 @@ def eval_predicate(p: Predicate, profile: Mapping[str, Any], resolver: Instituti
         if have_scale is None:
             return _leaf(p, "unknown", reason_kind="profile_missing", missing_fields=("gpa_scale",))
         if Decimal(str(have_scale)) != to_decimal(p.scale):
-            return _leaf(p, "unknown", reason_kind="profile_scale_mismatch", missing_fields=("gpa",),
-                         detail=f"profile GPA is on a {have_scale} scale; the rule uses {p.scale}")
+            return _leaf(
+                p,
+                "unknown",
+                reason_kind="profile_scale_mismatch",
+                missing_fields=("gpa",),
+                detail=f"profile GPA is on a {have_scale} scale; the rule uses {p.scale}",
+            )
         have = to_decimal(str(value))
         want = to_decimal(p.value)
         ok = have >= want if p.op == "gte" else have <= want
@@ -414,8 +491,12 @@ def eval_predicate(p: Predicate, profile: Mapping[str, Any], resolver: Instituti
         return _leaf(p, "pass")
     if spec.kind == "soft":
         # free-text names cannot be compared by string equality alone: ask the provider
-        return _leaf(p, "unknown", reason_kind="mapping_ambiguous",
-                     detail="free-text value could not be matched to the rule; the provider must confirm")
+        return _leaf(
+            p,
+            "unknown",
+            reason_kind="mapping_ambiguous",
+            detail="free-text value could not be matched to the rule; the provider must confirm",
+        )
     return _leaf(p, "fail")
 
 
@@ -428,8 +509,14 @@ def _eval(node: Any, profile: Mapping[str, Any], resolver: InstitutionResolver |
             return NodeResult(False, [], [leaf], [])
         return NodeResult(None, [], [], [leaf])
     if isinstance(node, UnknownNode):
-        leaf = Leaf(node.path, "unknown_node", node.reason, "unknown", reason_kind="source_unknown",
-                    evidence_ids=node.evidence_ids)
+        leaf = Leaf(
+            node.path,
+            "unknown_node",
+            node.reason,
+            "unknown",
+            reason_kind="source_unknown",
+            evidence_ids=node.evidence_ids,
+        )
         return NodeResult(None, [], [], [leaf])
     assert isinstance(node, GroupNode)
     results = [_eval(c, profile, resolver) for c in node.children]
@@ -461,13 +548,27 @@ def evaluate_eligibility(
     """
     results = [_eval(n, profile, resolver) for n in elig.mandatory]
     extra: list[Leaf] = [
-        Leaf(u.path, "unstructured", u.text, "unknown", reason_kind="source_unknown",
-             evidence_ids=u.evidence_ids, detail="condition not yet structured")
+        Leaf(
+            u.path,
+            "unstructured",
+            u.text,
+            "unknown",
+            reason_kind="source_unknown",
+            evidence_ids=u.evidence_ids,
+            detail="condition not yet structured",
+        )
         for u in elig.unstructured
     ]
     if not elig.mandatory and not elig.unstructured:
-        extra.append(Leaf("/mandatory", "no_rules", "No structured eligibility rules are recorded",
-                          "unknown", reason_kind="source_unknown"))
+        extra.append(
+            Leaf(
+                "/mandatory",
+                "no_rules",
+                "No structured eligibility rules are recorded",
+                "unknown",
+                reason_kind="source_unknown",
+            )
+        )
     falses = [r for r in results if r.value is False]
     unknowns = [r for r in results if r.value is None]
     passed = [leaf for r in results if r.value is True for leaf in r.passed]
@@ -487,6 +588,5 @@ def evaluate_eligibility(
     for pref in elig.preferences:
         leaf = eval_predicate(pref, profile, resolver)
         if leaf.outcome == "pass":
-            matches.append({"preference": leaf.description, "path": pref.path,
-                            "evidence_ids": list(pref.evidence_ids)})
+            matches.append({"preference": leaf.description, "path": pref.path, "evidence_ids": list(pref.evidence_ids)})
     return EligibilityOutcome(value, passed, failed, unknown, matches)

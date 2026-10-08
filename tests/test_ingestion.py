@@ -23,10 +23,12 @@ HTML_HDR = {"content_type": "text/html; charset=utf-8"}
 
 
 class TextExtractionTests(unittest.TestCase):
-    PAGE = (b"<html><head><title>T</title></head><body><nav><a href='/x'>Menu</a></nav><main>"
-            b"<h1>Awards</h1><h2>Award One</h2><p>Open to M\xc3\xa9tis students. Apply <a href='/a/1?utm_source=z'>here</a>.</p>"
-            b"<ul><li>Transcript</li></ul><h2>Award Two</h2><p>Open to Inuit students.</p>"
-            b"<table><tr><th>Due</th><td>March 1, 2026</td></tr></table></main><footer>junk</footer></body></html>")
+    PAGE = (
+        b"<html><head><title>T</title></head><body><nav><a href='/x'>Menu</a></nav><main>"
+        b"<h1>Awards</h1><h2>Award One</h2><p>Open to M\xc3\xa9tis students. Apply <a href='/a/1?utm_source=z'>here</a>.</p>"
+        b"<ul><li>Transcript</li></ul><h2>Award Two</h2><p>Open to Inuit students.</p>"
+        b"<table><tr><th>Due</th><td>March 1, 2026</td></tr></table></main><footer>junk</footer></body></html>"
+    )
 
     def test_html_is_split_by_award_section_with_headings(self):
         doc = extract_html(self.PAGE, "https://e.org/awards/")
@@ -94,8 +96,13 @@ def make_fetcher(script, **policy):
     transport = FakeTransport({"https://www.example.ca/robots.txt": resp(404), **script})
     kwargs = dict(retries=3, min_interval=1.0)
     kwargs.update(policy)
-    fetcher = Fetcher(transport, FetchPolicy("TestBot/1.0", **kwargs), sleeper=sleeper,
-                      monotonic=lambda: clock[0], wall_clock=lambda: 1000.0)
+    fetcher = Fetcher(
+        transport,
+        FetchPolicy("TestBot/1.0", **kwargs),
+        sleeper=sleeper,
+        monotonic=lambda: clock[0],
+        wall_clock=lambda: 1000.0,
+    )
     return transport, fetcher, sleeps
 
 
@@ -121,15 +128,18 @@ class FetcherTests(unittest.TestCase):
         self.assertEqual([s for s in sleeps if s != 1.0 or True][-3:], [1.0, 2.0, 4.0])
 
     def test_redirects_must_stay_inside_the_allowlist(self):
-        for location, reason in [("https://evil.example/eng/x", "url_outside_allowlist"),
-                                 ("http://127.0.0.1/eng/x", "url_private_address"),
-                                 ("https://www.example.ca/fra/x", "url_outside_allowlist")]:
+        for location, reason in [
+            ("https://evil.example/eng/x", "url_outside_allowlist"),
+            ("http://127.0.0.1/eng/x", "url_private_address"),
+            ("https://www.example.ca/fra/x", "url_outside_allowlist"),
+        ]:
             with self.subTest(location=location):
                 _, fetcher, _ = make_fetcher({URL: [resp(302, location=location)]})
                 out = fetcher.fetch(URL, RULES)
                 self.assertEqual((out.outcome, out.reason), ("blocked", reason))
-        _, fetcher, _ = make_fetcher({URL: [resp(301, location="/eng/b")],
-                                      "https://www.example.ca/eng/b": [resp(200, b"x", **HTML_HDR)]})
+        _, fetcher, _ = make_fetcher(
+            {URL: [resp(301, location="/eng/b")], "https://www.example.ca/eng/b": [resp(200, b"x", **HTML_HDR)]}
+        )
         out = fetcher.fetch(URL, RULES)
         self.assertEqual((out.outcome, out.final_url), ("ok", "https://www.example.ca/eng/b"))
 
@@ -174,8 +184,9 @@ class FetcherTests(unittest.TestCase):
         self.assertEqual(fetcher.fetch(URL, RULES).reason, "robots_unavailable")  # RFC 9309: assume disallowed
 
     def test_spacing_and_identity(self):
-        transport, fetcher, sleeps = make_fetcher({URL: [resp(200, b"1", **HTML_HDR)],
-                                                   "https://www.example.ca/eng/c": [resp(200, b"2", **HTML_HDR)]})
+        transport, fetcher, sleeps = make_fetcher(
+            {URL: [resp(200, b"1", **HTML_HDR)], "https://www.example.ca/eng/c": [resp(200, b"2", **HTML_HDR)]}
+        )
         fetcher.fetch(URL, RULES)
         fetcher.fetch("https://www.example.ca/eng/c", RULES)
         self.assertEqual(sleeps, [1.0, 1.0])  # min interval between requests to one host
@@ -203,7 +214,7 @@ class FetchStageTests(unittest.TestCase):
         self.page2 = "https://www.sac-isc.gc.ca/eng/1351185180120/page2"
         self.pages = {
             base: b'<main><h1>Index</h1><p>entry</p><a href="/eng/1351185180120/page2">next</a>'
-                  b'<a href="https://evil.example/x">bad</a></main>',
+            b'<a href="https://evil.example/x">bad</a></main>',
             self.page2: b"<main><h1>Page 2</h1><p>more</p></main>",
         }
         self.calls, self.fail = [], set()
@@ -227,15 +238,25 @@ class FetchStageTests(unittest.TestCase):
     def run_stage(self, **kw):
         fetcher = Fetcher(self.net, FetchPolicy("T/1", retries=0, min_interval=0), sleeper=lambda s: None)
         index = FetchIndex(self.root / "discovery" / "fetch_index.json")
-        result = run_fetch_stage([self.source], fetcher, SnapshotStore(self.root), index, {"isc_index": FollowLinks()},
-                                 run_id="r", now=parse_as_of("2026-10-07"),
-                                 audit_path=self.root / "discovery" / "fetch_audit.jsonl", **kw)
+        result = run_fetch_stage(
+            [self.source],
+            fetcher,
+            SnapshotStore(self.root),
+            index,
+            {"isc_index": FollowLinks()},
+            run_id="r",
+            now=parse_as_of("2026-10-07"),
+            audit_path=self.root / "discovery" / "fetch_audit.jsonl",
+            **kw,
+        )
         return result, result.per_source[self.source.source_id]
 
     def test_failure_then_resume_only_refetches_what_is_missing(self):
         self.fail.add(self.page2)
         _, stats = self.run_stage()
-        self.assertEqual((stats["succeeded"], stats["failed"], stats["blocked"]), (1, 1, 1))  # out-of-scope link blocked
+        self.assertEqual(
+            (stats["succeeded"], stats["failed"], stats["blocked"]), (1, 1, 1)
+        )  # out-of-scope link blocked
         self.calls.clear()
         self.fail.clear()
         result, stats = self.run_stage(resume=True)
@@ -256,9 +277,13 @@ class FetchStageTests(unittest.TestCase):
         self.fail.update({self.source.url, self.page2})
         _, stats = self.run_stage(refresh=True)
         after = FetchIndex(self.root / "discovery" / "fetch_index.json")
-        self.assertEqual({k: v["raw_sha256"] for k, v in after.entries.items()}, {k: v["raw_sha256"] for k, v in before.items()})
+        self.assertEqual(
+            {k: v["raw_sha256"] for k, v in after.entries.items()}, {k: v["raw_sha256"] for k, v in before.items()}
+        )
         self.assertEqual(len(after.failures), 2)
-        self.assertTrue(all(SnapshotStore(self.root).verify_raw(e["raw_path"], e["raw_sha256"]) for e in after.entries.values()))
+        self.assertTrue(
+            all(SnapshotStore(self.root).verify_raw(e["raw_path"], e["raw_sha256"]) for e in after.entries.values())
+        )
 
     def test_page_bound(self):
         result, _ = self.run_stage(max_pages=1)
@@ -303,8 +328,11 @@ class SourceConfigTests(unittest.TestCase):
     def test_bad_config_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "s.yaml"
-            path.write_text("sources:\n  - {source_id: a, name: A, url: 'http://127.0.0.1/x', provider: {id: p, name: P},"
-                            " role: r, parser: x, allowed_domains: ['127.0.0.1'], allowed_paths: ['/']}\n", encoding="utf-8")
+            path.write_text(
+                "sources:\n  - {source_id: a, name: A, url: 'http://127.0.0.1/x', provider: {id: p, name: P},"
+                " role: r, parser: x, allowed_domains: ['127.0.0.1'], allowed_paths: ['/']}\n",
+                encoding="utf-8",
+            )
             with self.assertRaises(SourceConfigError):
                 load_sources(path)
             with self.assertRaises(SourceConfigError):

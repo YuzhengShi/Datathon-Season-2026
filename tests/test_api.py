@@ -1,14 +1,14 @@
 """HTTP contract of the FastAPI app (TestClient). Needs the pinned stack; written without being able to
 run FastAPI at authoring time, so a failure here is a real finding to fix, not noise."""
 
+import gc
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from navigator.config import derive_runtime
 from navigator.services.pipeline import run_demo_pipeline
-from tests.support import AS_OF, requires_web_stack
+from tests.support import AS_OF, isolated_runtime, requires_web_stack
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE = {"indigenous_identity": ["metis"], "institution_id": "demo_college", "education_level": "undergraduate"}
@@ -24,11 +24,11 @@ class ApiTests(unittest.TestCase):
         from navigator.db import make_engine, make_session_factory, upgrade_database
         from navigator.models.repository import SqlRepository
 
-        cls.tmp = tempfile.TemporaryDirectory()
-        cls.rt = derive_runtime({"DATA_DIR": cls.tmp.name}, "demo")
+        cls.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        cls.rt = isolated_runtime(cls.tmp.name, "demo")
         upgrade_database(cls.rt.database_url)
         engine = make_engine(cls.rt.database_url)
-        run_demo_pipeline(SqlRepository(make_session_factory(engine)), cls.rt, as_of=AS_OF)
+        run_demo_pipeline(SqlRepository(make_session_factory(engine), engine), cls.rt, as_of=AS_OF)
         engine.dispose()
         cls.app = create_app(cls.rt)
         cls.client = TestClient(cls.app, raise_server_exceptions=False)
@@ -36,6 +36,7 @@ class ApiTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.state.engine.dispose()
+        gc.collect()
         cls.tmp.cleanup()
 
     def match(self, body):
@@ -50,8 +51,16 @@ class ApiTests(unittest.TestCase):
     def test_openapi_lists_every_endpoint_and_no_write_endpoints(self):
         schema = self.client.get("/openapi.json").json()
         methods = {(path, m.upper()) for path, item in schema["paths"].items() for m in item}
-        self.assertEqual(methods, {("/health", "GET"), ("/opportunities", "GET"), ("/opportunities/{opportunity_id}", "GET"),
-                                   ("/match", "POST"), ("/reports/freshness", "GET")})
+        self.assertEqual(
+            methods,
+            {
+                ("/health", "GET"),
+                ("/opportunities", "GET"),
+                ("/opportunities/{opportunity_id}", "GET"),
+                ("/match", "POST"),
+                ("/reports/freshness", "GET"),
+            },
+        )
         self.assertIn("MatchRequest", schema["components"]["schemas"])
 
     # ----------------------------------------------------------- opportunities
@@ -60,17 +69,31 @@ class ApiTests(unittest.TestCase):
         ids = [r["id"] for r in out["results"]]
         self.assertEqual((out["data_mode"], out["total"]), ("demo", 23))
         self.assertNotIn("demo_award_collection", ids)
-        self.assertEqual([r["id"] for r in self.client.get("/opportunities?limit=5&offset=5").json()["results"]], ids[5:10])
-        self.assertIn("demo_shared_application_a", [r["id"] for r in self.client.get("/opportunities?province=BC&limit=100").json()["results"]])
-        self.assertNotIn("demo_shared_application_a", [r["id"] for r in self.client.get("/opportunities?province=ON&limit=100").json()["results"]])
-        self.assertEqual([r["id"] for r in self.client.get("/opportunities?opportunity_type=award_collection").json()["results"]], ["demo_award_collection"])
+        self.assertEqual(
+            [r["id"] for r in self.client.get("/opportunities?limit=5&offset=5").json()["results"]], ids[5:10]
+        )
+        self.assertIn(
+            "demo_shared_application_a",
+            [r["id"] for r in self.client.get("/opportunities?province=BC&limit=100").json()["results"]],
+        )
+        self.assertNotIn(
+            "demo_shared_application_a",
+            [r["id"] for r in self.client.get("/opportunities?province=ON&limit=100").json()["results"]],
+        )
+        self.assertEqual(
+            [r["id"] for r in self.client.get("/opportunities?opportunity_type=award_collection").json()["results"]],
+            ["demo_award_collection"],
+        )
 
     def test_detail_and_errors_share_one_shape(self):
         ok = self.client.get("/opportunities/demo_supported_award")
         self.assertEqual(ok.status_code, 200)
         self.assertTrue(ok.json()["opportunity"]["evidence"])
         missing = self.client.get("/opportunities/nope")
-        self.assertEqual((missing.status_code, missing.json()["error"]["code"], missing.json()["data_mode"]), (404, "http_404", "demo"))
+        self.assertEqual(
+            (missing.status_code, missing.json()["error"]["code"], missing.json()["data_mode"]),
+            (404, "http_404", "demo"),
+        )
         bad = self.client.get("/opportunities?limit=101")
         self.assertEqual((bad.status_code, bad.json()["error"]["code"]), (422, "validation_error"))
         self.assertEqual(self.client.get("/opportunities?province=ZZ").status_code, 422)
@@ -82,14 +105,25 @@ class ApiTests(unittest.TestCase):
             response = self.match(body)
             self.assertEqual(response.status_code, 200, response.text[:300])
             self.assertEqual(response.json()["data_mode"], "demo")
-        one = {i["opportunity_id"]: i for i in self.match({"profile": PROFILE, "as_of": "2026-10-07", "limit": 100}).json()["results"]}
+        one = {
+            i["opportunity_id"]: i
+            for i in self.match({"profile": PROFILE, "as_of": "2026-10-07", "limit": 100}).json()["results"]
+        }
         self.assertEqual(one["demo_supported_award"]["match_status"], "potential_fit")
         self.assertEqual(one["demo_clarification_award"]["match_status"], "needs_information")
-        grouped = self.match(json.loads((ROOT / "examples" / "requests" / "3_shared_application.json").read_text(encoding="utf-8"))).json()
+        grouped = self.match(
+            json.loads((ROOT / "examples" / "requests" / "3_shared_application.json").read_text(encoding="utf-8"))
+        ).json()
         shared = next(g for g in grouped["groups"] if g["group_id"] == "demo_foundation_shared_form")
-        self.assertEqual({m["opportunity_id"]: m["match_status"] for m in shared["members"]},
-                         {"demo_shared_application_a": "potential_fit", "demo_shared_application_b": "not_eligible"})
-        self.assertIsNone(next(g for g in grouped["groups"] if g["members"][0]["opportunity_id"] == "demo_shared_application_exception")["group_id"])
+        self.assertEqual(
+            {m["opportunity_id"]: m["match_status"] for m in shared["members"]},
+            {"demo_shared_application_a": "potential_fit", "demo_shared_application_b": "not_eligible"},
+        )
+        self.assertIsNone(
+            next(
+                g for g in grouped["groups"] if g["members"][0]["opportunity_id"] == "demo_shared_application_exception"
+            )["group_id"]
+        )
 
     def test_match_validation_never_echoes_or_accepts_personal_data(self):
         marker = "ZZ-UNIQUE-MARKER-123"
@@ -105,7 +139,9 @@ class ApiTests(unittest.TestCase):
     def test_the_profile_is_not_persisted_or_logged(self):
         marker = "ZZ-PERSIST-CHECK-987"
         with self.assertNoLogs("navigator", level="DEBUG"):  # the app logs nothing about a match call
-            self.assertEqual(self.match({"profile": {"home_community": marker, "indigenous_identity": ["inuit"]}}).status_code, 200)
+            self.assertEqual(
+                self.match({"profile": {"home_community": marker, "indigenous_identity": ["inuit"]}}).status_code, 200
+            )
         database = Path(self.tmp.name) / "demo" / "navigator.db"
         self.assertNotIn(marker.encode(), database.read_bytes())
         for path in (Path(self.tmp.name) / "demo").rglob("*"):
@@ -124,15 +160,20 @@ class ApiTests(unittest.TestCase):
 
         from navigator.api.app import create_app
 
-        self.assertNotIn("access-control-allow-origin", self.client.get("/health", headers={"Origin": "https://evil.example"}).headers)
-        rt = derive_runtime({"DATA_DIR": self.tmp.name, "CORS_ALLOW_ORIGINS": "https://app.example"}, "demo")
+        self.assertNotIn(
+            "access-control-allow-origin",
+            self.client.get("/health", headers={"Origin": "https://evil.example"}).headers,
+        )
+        rt = isolated_runtime(self.tmp.name, "demo", CORS_ALLOW_ORIGINS="https://app.example")
         app = create_app(rt)
         try:
             client = TestClient(app)
             allowed = client.get("/health", headers={"Origin": "https://app.example"}).headers
             self.assertEqual(allowed.get("access-control-allow-origin"), "https://app.example")
             self.assertNotIn("access-control-allow-credentials", allowed)
-            self.assertNotIn("access-control-allow-origin", client.get("/health", headers={"Origin": "https://evil.example"}).headers)
+            self.assertNotIn(
+                "access-control-allow-origin", client.get("/health", headers={"Origin": "https://evil.example"}).headers
+            )
         finally:
             app.state.engine.dispose()
 

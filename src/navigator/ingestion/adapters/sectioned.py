@@ -28,15 +28,26 @@ from navigator.ingestion.sources import SourceConfig
 from navigator.ingestion.text import ExtractedDocument
 from navigator.core.timeutil import format_utc
 
-_SKIP_HEADINGS = re.compile(r"^(on this page|contents|table of contents|related|more information|share|menu|search|"
-                            r"contact us|footer|navigation)$", re.I)
+_SKIP_HEADINGS = re.compile(
+    r"^(on this page|contents|table of contents|related|more information|share|menu|search|"
+    r"contact us|footer|navigation)$",
+    re.I,
+)
 _NUMBER_AT_END = re.compile(r"\s*[(\[#]\s*(?:award\s*)?(?:no\.?\s*)?(\d{3,7})\s*[)\]]?\s*$", re.I)
 _DONOR = re.compile(r"^(?:donor|sponsored by|funded by|presented by|in memory of)\s*:?\s*(.{3,120})$", re.I)
 MAX_UNSTRUCTURED = 8
 
 
-def _record_for(section_title: str, native_key: str, paragraphs: list, snap: SnapshotView, source: SourceConfig,
-                snaps: dict[str, SnapshotView], fetched_at: str, official_url: str) -> dict:
+def _record_for(
+    section_title: str,
+    native_key: str,
+    paragraphs: list,
+    snap: SnapshotView,
+    source: SourceConfig,
+    snaps: dict[str, SnapshotView],
+    fetched_at: str,
+    official_url: str,
+) -> dict:
     deadlines, unstructured = [], []
     donor = None
     for block in paragraphs:
@@ -45,23 +56,49 @@ def _record_for(section_title: str, native_key: str, paragraphs: list, snap: Sna
             donor = m.group(1).strip().rstrip(".")
         if DEADLINE_CUE.search(text):
             for day, raw in explicit_dates(text):
-                deadlines.append({
-                    "kind": "date", "date": day.isoformat(), "raw_text": raw, "precision": "day",
-                    "evidence_ids": [Q(raw, paragraph_index=block.index)]})
+                deadlines.append(
+                    {
+                        "kind": "date",
+                        "date": day.isoformat(),
+                        "raw_text": raw,
+                        "precision": "day",
+                        "evidence_ids": [Q(raw, paragraph_index=block.index)],
+                    }
+                )
         elif ELIGIBILITY_CUE.search(text) and len(unstructured) < MAX_UNSTRUCTURED:
             quote = first_sentence(text, 300)
             unstructured.append({"text": quote, "evidence_ids": [Q(quote, paragraph_index=block.index)]})
     summary = first_sentence(paragraphs[0].text) if paragraphs else section_title
-    cycle = {"cycle_key": "unspecified", "label_raw": "not stated", "starts_on": None, "ends_on": None,
-             "deadlines": deadlines, "amount": empty_amount(),
-             "eligibility": {"mandatory": [], "preferences": [], "unstructured": unstructured, "rules_version": None}}
+    cycle = {
+        "cycle_key": "unspecified",
+        "label_raw": "not stated",
+        "starts_on": None,
+        "ends_on": None,
+        "deadlines": deadlines,
+        "amount": empty_amount(),
+        "eligibility": {"mandatory": [], "preferences": [], "unstructured": unstructured, "rules_version": None},
+    }
     provider = {"id": source.provider_id, "name": source.provider_name, "donor_name": donor}
     record = base_record(
-        rid=make_opportunity_id(source.provider_id, native_key), key=f"{source.source_id}#{native_key}",
-        title=section_title, otype="award", provider=provider, official_url=official_url, summary=summary,
-        application={"url": None, "route_type": "unknown", "instructions": None, "contact_url": None,
-                     "group_id": None, "evidence_ids": []},
-        cycles=[cycle], documents=[], fetched_at=fetched_at)
+        rid=make_opportunity_id(source.provider_id, native_key),
+        key=f"{source.source_id}#{native_key}",
+        title=section_title,
+        otype="award",
+        provider=provider,
+        official_url=official_url,
+        summary=summary,
+        application={
+            "url": None,
+            "route_type": "unknown",
+            "instructions": None,
+            "contact_url": None,
+            "group_id": None,
+            "evidence_ids": [],
+        },
+        cycles=[cycle],
+        documents=[],
+        fetched_at=fetched_at,
+    )
     record = attach_evidence(record, snaps, snap.key)
     if not record["evidence"]:  # nothing verifiable beyond a title: keep it out of public results
         record["review_status"], record["publication_status"] = "pending", "draft"
@@ -83,13 +120,20 @@ class SectionedAwardsAdapter(Adapter):
             if snap.media_type != "text/html":
                 continue
             blocks = blocks_of(snap)
-            counts = {lv: sum(1 for b in blocks if b.level == lv and not _SKIP_HEADINGS.match(b.text))
-                      for lv in self.award_levels}
+            counts = {
+                lv: sum(1 for b in blocks if b.level == lv and not _SKIP_HEADINGS.match(b.text))
+                for lv in self.award_levels
+            }
             # award headings repeat at one level; a lone category heading above them (e.g. "Awards") is not an award
             level = max((lv for lv in counts if counts[lv]), key=lambda lv: (counts[lv], lv), default=None)
             if level is None:
-                result.pending.append({"item": snap.url, "reason": "no award headings of the expected level found; "
-                                       "page structure unknown, nothing guessed"})
+                result.pending.append(
+                    {
+                        "item": snap.url,
+                        "reason": "no award headings of the expected level found; "
+                        "page structure unknown, nothing guessed",
+                    }
+                )
                 continue
             sections, current = [], None
             for block in blocks:
@@ -102,7 +146,9 @@ class SectionedAwardsAdapter(Adapter):
             seen: dict[str, int] = {}
             for heading, paragraphs in sections:
                 if not paragraphs:
-                    result.pending.append({"item": f"{snap.url} :: {heading.text}", "reason": "heading without body text"})
+                    result.pending.append(
+                        {"item": f"{snap.url} :: {heading.text}", "reason": "heading without body text"}
+                    )
                     continue
                 m = _NUMBER_AT_END.search(heading.text)
                 title = heading.text[: m.start()].strip() if m else heading.text
@@ -110,8 +156,13 @@ class SectionedAwardsAdapter(Adapter):
                 seen[native] = seen.get(native, 0) + 1
                 if seen[native] > 1:  # same title twice on one page: keep both, distinguishable and stable
                     native = f"{native}-{seen[native]}"
-                result.candidates.append(_record_for(title, native, paragraphs, snap, source, by_key, fetched_at, snap.url))
-        result.stats = {"sections_found": len(result.candidates) + len(result.pending), "records": len(result.candidates)}
+                result.candidates.append(
+                    _record_for(title, native, paragraphs, snap, source, by_key, fetched_at, snap.url)
+                )
+        result.stats = {
+            "sections_found": len(result.candidates) + len(result.pending),
+            "records": len(result.candidates),
+        }
         return result
 
 
@@ -149,6 +200,11 @@ class ListingDetailAdapter(SectionedAwardsAdapter):
         listing = [s for s in snaps if s.url.rstrip("/") == source.url.rstrip("/")]
         result.stats = {"listing_pages": len(listing), "detail_pages": len(details), "records": len(result.candidates)}
         if listing and not details:
-            result.pending.append({"item": source.url, "reason": "listing fetched but no detail pages were fetched "
-                                   "(page budget or access); nothing inferred from the listing alone"})
+            result.pending.append(
+                {
+                    "item": source.url,
+                    "reason": "listing fetched but no detail pages were fetched "
+                    "(page budget or access); nothing inferred from the listing alone",
+                }
+            )
         return result

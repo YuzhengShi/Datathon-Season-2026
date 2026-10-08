@@ -44,8 +44,15 @@ class MemoryRepository:
         if item.record is None:
             return
         if item.action == "updated":
-            self.revisions.append({"opportunity_id": item.id, "version": item.version, "run_id": run_id,
-                                   "changed_at": now_iso, "diff": copy.deepcopy(item.diff)})
+            self.revisions.append(
+                {
+                    "opportunity_id": item.id,
+                    "version": item.version,
+                    "run_id": run_id,
+                    "changed_at": now_iso,
+                    "diff": copy.deepcopy(item.diff),
+                }
+            )
         self.records[item.id] = (copy.deepcopy(item.record), item.version)
 
     def record_run(self, run: dict) -> None:

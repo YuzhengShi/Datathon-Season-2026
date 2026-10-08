@@ -45,9 +45,22 @@ DETAIL = b"""<html><body><main><h1>Sample One Award</h1><p>Donor: The Sample Fam
 <p>Applications close on November 1, 2026.</p></main></body></html>"""
 
 
-def source(parser: str, url: str = "https://example.org/awards/", provider=("ubc", "Sample University")) -> SourceConfig:
-    return SourceConfig("src_" + parser, "Sample", url, provider[0], provider[1], "award_listing", parser, "en",
-                        ("example.org",), ("/",), "unreviewed")
+def source(
+    parser: str, url: str = "https://example.org/awards/", provider=("ubc", "Sample University")
+) -> SourceConfig:
+    return SourceConfig(
+        "src_" + parser,
+        "Sample",
+        url,
+        provider[0],
+        provider[1],
+        "award_listing",
+        parser,
+        "en",
+        ("example.org",),
+        ("/",),
+        "unreviewed",
+    )
 
 
 class Env:
@@ -60,14 +73,30 @@ class Env:
         raw = self.store.save_raw(html, "text/html")
         doc = extract(html, "text/html", url)
         stored = self.store.save_text(raw.raw_sha256, doc.text, EXTRACTOR_NAME, EXTRACTOR_VERSION)
-        return SnapshotView(key, src.source_id, url, "text/html", raw.snapshot_id, raw.raw_sha256, raw.raw_path,
-                            stored.text_sha256, stored.text_path, STAMP, doc.text, src.role)
+        return SnapshotView(
+            key,
+            src.source_id,
+            url,
+            "text/html",
+            raw.snapshot_id,
+            raw.raw_sha256,
+            raw.raw_path,
+            stored.text_sha256,
+            stored.text_path,
+            STAMP,
+            doc.text,
+            src.role,
+        )
 
     def ctx(self, **kw) -> ParseContext:
         return ParseContext(now=NOW, read_raw=lambda s: self.store.read_raw(s.raw_path), **kw)
 
     def validate(self, record):
-        return [i for i in validate_record(record, ValidationContext(artifact_root=self.root, expected_mode="live", now=NOW)) if i.is_error]
+        return [
+            i
+            for i in validate_record(record, ValidationContext(artifact_root=self.root, expected_mode="live", now=NOW))
+            if i.is_error
+        ]
 
 
 class IscIndexTests(unittest.TestCase):
@@ -105,7 +134,9 @@ class IscIndexTests(unittest.TestCase):
         parsed = parse_index_table(bad, "https://x.example/eng/")
         self.assertEqual(len(parsed["entries"]), 4)
         self.assertIn("unexpected column count", parsed["pending"][0]["reason"])
-        self.assertEqual(parse_index_table(b"<html><body><p>nothing</p></body></html>", "https://x.example/")["entries"], [])
+        self.assertEqual(
+            parse_index_table(b"<html><body><p>nothing</p></body></html>", "https://x.example/")["entries"], []
+        )
 
     def test_adapter_never_emits_opportunity_records(self):
         env = Env()
@@ -125,8 +156,9 @@ class SectionedAdapterTests(unittest.TestCase):
 
     def test_one_record_per_award_section_with_stable_ids(self):
         ids = sorted(r["id"] for r in self.result.candidates)
-        self.assertEqual(ids, ["ubc:1234", "ubc:sample_graduate_fellowship", "ubc:sample_plain_note",
-                               "ubc:sample_plain_note_2"])  # award number kept; duplicate titles kept apart
+        self.assertEqual(
+            ids, ["ubc:1234", "ubc:sample_graduate_fellowship", "ubc:sample_plain_note", "ubc:sample_plain_note_2"]
+        )  # award number kept; duplicate titles kept apart
         self.assertTrue(any("without body" in p["reason"] for p in self.result.pending))
 
     def test_records_validate_and_carry_real_evidence(self):
@@ -141,13 +173,18 @@ class SectionedAdapterTests(unittest.TestCase):
     def test_nothing_is_guessed(self):
         entrance = next(r for r in self.result.candidates if r["id"] == "ubc:1234")
         cycle = entrance["cycles"][0]
-        self.assertEqual((cycle["cycle_key"], cycle["amount"]["kind"], cycle["eligibility"]["mandatory"]), ("unspecified", "unspecified", []))
+        self.assertEqual(
+            (cycle["cycle_key"], cycle["amount"]["kind"], cycle["eligibility"]["mandatory"]),
+            ("unspecified", "unspecified", []),
+        )
         self.assertEqual(entrance["application"]["route_type"], "unknown")
         self.assertEqual(entrance["review_status"], "machine_checked")  # parser + validation, not a person
 
     def test_unstructured_conditions_can_never_produce_a_fit(self):
         entrance = next(r for r in self.result.candidates if r["id"] == "ubc:1234")
-        item = evaluate_record(entrance, {"indigenous_identity": ["metis"]}, MatchOptions(as_of=NOW, include_closed=True))
+        item = evaluate_record(
+            entrance, {"indigenous_identity": ["metis"]}, MatchOptions(as_of=NOW, include_closed=True)
+        )
         self.assertEqual(item["match_status"], "needs_provider_confirmation")
 
     def test_sections_with_nothing_verifiable_stay_draft(self):
@@ -156,7 +193,9 @@ class SectionedAdapterTests(unittest.TestCase):
         self.assertEqual(self.env.validate(plain), [])
 
     def test_unknown_page_structure_goes_to_pending(self):
-        flat = self.env.snap("f", self.src, self.src.url + "flat", b"<html><body><main><p>just text</p></main></body></html>")
+        flat = self.env.snap(
+            "f", self.src, self.src.url + "flat", b"<html><body><main><p>just text</p></main></body></html>"
+        )
         result = registry()["ubc_sections"].parse([flat], self.src, self.env.ctx())
         self.assertEqual(result.candidates, [])
         self.assertIn("nothing guessed", result.pending[0]["reason"])
@@ -169,9 +208,14 @@ class ListingDetailTests(unittest.TestCase):
         listing = env.snap("l", src, "https://example.org/", LISTING)
         detail = env.snap("d", src, "https://example.org/awards/sample-one", DETAIL)
         adapter = registry()["indspire_funding"]
-        links = adapter.select_links(extract(LISTING, "text/html", "https://example.org/"), "https://example.org/", src, 0)
+        links = adapter.select_links(
+            extract(LISTING, "text/html", "https://example.org/"), "https://example.org/", src, 0
+        )
         self.assertEqual(links, ["https://example.org/awards/sample-one", "https://example.org/awards/sample-two"])
-        self.assertEqual(adapter.select_links(extract(LISTING, "text/html", "https://example.org/"), "https://example.org/", src, 1), [])
+        self.assertEqual(
+            adapter.select_links(extract(LISTING, "text/html", "https://example.org/"), "https://example.org/", src, 1),
+            [],
+        )
         result = adapter.parse([listing, detail], src, env.ctx())
         record = result.candidates[0]
         self.assertEqual((record["id"], record["provider"]["id"]), ("indspire:sample_one", "indspire"))
@@ -182,25 +226,49 @@ class ListingDetailTests(unittest.TestCase):
     def test_listing_alone_infers_nothing(self):
         env = Env()
         src = source("indspire_funding", "https://example.org/", ("indspire", "Indspire"))
-        result = registry()["indspire_funding"].parse([env.snap("l", src, "https://example.org/", LISTING)], src, env.ctx())
+        result = registry()["indspire_funding"].parse(
+            [env.snap("l", src, "https://example.org/", LISTING)], src, env.ctx()
+        )
         self.assertEqual(result.candidates, [])
         self.assertIn("nothing inferred", result.pending[0]["reason"])
 
 
 class CuratedTests(unittest.TestCase):
-    PAGE = (b"<html><body><main><h1>Funding channel (synthetic)</h1>"
-            b"<p>Eligible students apply through their community education administrator.</p>"
-            b"<p>Contact your local education office for deadlines.</p></main></body></html>")
+    PAGE = (
+        b"<html><body><main><h1>Funding channel (synthetic)</h1>"
+        b"<p>Eligible students apply through their community education administrator.</p>"
+        b"<p>Contact your local education office for deadlines.</p></main></body></html>"
+    )
 
     def entry(self, quote="Eligible students apply through their community education administrator."):
-        return {"key": "sample-channel", "title": "Sample Channel", "opportunity_type": "funding_channel",
-                "summary": "Funding administered locally.", "official_url": "https://example.org/channel",
-                "application": {"route_type": "contact_administrator", "contact_url": "https://example.org/contact",
-                                "quotes": [quote]},
-                "cycles": [{"cycle_key": "unspecified", "label_raw": "not stated",
-                            "deadlines": [{"kind": "local_administrator", "raw_text": "set locally",
-                                           "quotes": ["Contact your local education office for deadlines."]}],
-                            "eligibility": {"mandatory": [{"type": "unknown", "reason": "Administrator decides", "quotes": [quote]}]}}]}
+        return {
+            "key": "sample-channel",
+            "title": "Sample Channel",
+            "opportunity_type": "funding_channel",
+            "summary": "Funding administered locally.",
+            "official_url": "https://example.org/channel",
+            "application": {
+                "route_type": "contact_administrator",
+                "contact_url": "https://example.org/contact",
+                "quotes": [quote],
+            },
+            "cycles": [
+                {
+                    "cycle_key": "unspecified",
+                    "label_raw": "not stated",
+                    "deadlines": [
+                        {
+                            "kind": "local_administrator",
+                            "raw_text": "set locally",
+                            "quotes": ["Contact your local education office for deadlines."],
+                        }
+                    ],
+                    "eligibility": {
+                        "mandatory": [{"type": "unknown", "reason": "Administrator decides", "quotes": [quote]}]
+                    },
+                }
+            ],
+        }
 
     def test_curated_entry_validates_and_never_claims_human_review(self):
         env = Env()
@@ -217,7 +285,9 @@ class CuratedTests(unittest.TestCase):
         env = Env()
         src = source("curated_channel", "https://example.org/channel", ("isc", "Indigenous Services Canada"))
         snap = env.snap("c", src, src.url, self.PAGE)
-        result = registry()["curated_channel"].parse([snap], src, env.ctx(curated={src.source_id: {"records": [self.entry("A sentence the page never says.")]}}))
+        result = registry()["curated_channel"].parse(
+            [snap], src, env.ctx(curated={src.source_id: {"records": [self.entry("A sentence the page never says.")]}})
+        )
         self.assertEqual(result.candidates, [])
         self.assertIn("quote not found", result.pending[0]["reason"])
 
@@ -238,19 +308,43 @@ class CuratedTests(unittest.TestCase):
 
 
 class CuratedConflictTests(unittest.TestCase):
-    PAGE = (b"<html><body><main><h1>Sample award (synthetic)</h1>"
-            b"<p>The current page says applications close on March 1, 2027.</p>"
-            b"<p>The yearly guide says applications close on March 15, 2027.</p>"
-            b"<p>Funding is paid to the education authority once it files its annual plan.</p></main></body></html>")
+    PAGE = (
+        b"<html><body><main><h1>Sample award (synthetic)</h1>"
+        b"<p>The current page says applications close on March 1, 2027.</p>"
+        b"<p>The yearly guide says applications close on March 15, 2027.</p>"
+        b"<p>Funding is paid to the education authority once it files its annual plan.</p></main></body></html>"
+    )
 
     def entry(self, **extra):
-        body = {"key": "sample-award", "title": "Sample Award", "summary": "Synthetic.", "official_url": "https://example.org/award",
-                "cycles": [{"cycle_key": "unspecified", "label_raw": "not stated",
-                            "deadlines": [{"kind": "date", "date": "2027-03-01", "raw_text": "March 1, 2027",
-                                           "quotes": ["The current page says applications close on March 1, 2027."]}],
-                            "eligibility": {"mandatory": [], "funder_conditions": [
-                                {"text": "The education authority files an annual plan.",
-                                 "quotes": ["Funding is paid to the education authority once it files its annual plan."]}]}}]}
+        body = {
+            "key": "sample-award",
+            "title": "Sample Award",
+            "summary": "Synthetic.",
+            "official_url": "https://example.org/award",
+            "cycles": [
+                {
+                    "cycle_key": "unspecified",
+                    "label_raw": "not stated",
+                    "deadlines": [
+                        {
+                            "kind": "date",
+                            "date": "2027-03-01",
+                            "raw_text": "March 1, 2027",
+                            "quotes": ["The current page says applications close on March 1, 2027."],
+                        }
+                    ],
+                    "eligibility": {
+                        "mandatory": [],
+                        "funder_conditions": [
+                            {
+                                "text": "The education authority files an annual plan.",
+                                "quotes": ["Funding is paid to the education authority once it files its annual plan."],
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
         body.update(extra)
         return body
 
@@ -268,10 +362,17 @@ class CuratedConflictTests(unittest.TestCase):
         self.assertEqual(record["cycles"][0]["eligibility"]["mandatory"], [])
 
     def test_conflicting_statements_keep_both_and_force_pending_even_with_a_review_block(self):
-        conflict = {"field_path": "/cycles/unspecified/deadlines/0", "summary": "Page and guide give different closing dates.",
-                    "quotes": ["The current page says applications close on March 1, 2027.",
-                               "The yearly guide says applications close on March 15, 2027."]}
-        env, record = self.build(self.entry(conflicts=[conflict], review={"reviewer": "A. Reviewer", "reviewed_at": STAMP}))
+        conflict = {
+            "field_path": "/cycles/unspecified/deadlines/0",
+            "summary": "Page and guide give different closing dates.",
+            "quotes": [
+                "The current page says applications close on March 1, 2027.",
+                "The yearly guide says applications close on March 15, 2027.",
+            ],
+        }
+        env, record = self.build(
+            self.entry(conflicts=[conflict], review={"reviewer": "A. Reviewer", "reviewed_at": STAMP})
+        )
         self.assertEqual(env.validate(record), [])
         self.assertEqual((record["review_status"], record["publication_status"]), ("pending", "draft"))
         self.assertNotIn("review", record)  # an unresolved conflict cannot be "human reviewed"

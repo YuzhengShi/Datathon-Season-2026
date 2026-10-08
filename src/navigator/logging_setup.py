@@ -9,8 +9,12 @@ import sys
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        payload = {"ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"), "level": record.levelname,
-                   "logger": record.name, "message": record.getMessage()}
+        payload = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
         if record.exc_info:
             payload["exception"] = record.exc_info[0].__name__ if record.exc_info[0] else None  # type only: no values
         return json.dumps(payload, ensure_ascii=False)

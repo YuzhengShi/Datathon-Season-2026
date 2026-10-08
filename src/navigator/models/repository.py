@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from navigator.ingestion.planner import PlanItem
@@ -31,9 +31,20 @@ from navigator.models import (
 )
 
 _SCALAR_COLUMNS = (
-    "schema_version", "id", "source_record_key", "title", "opportunity_type", "official_url", "summary",
-    "review_status", "publication_status", "extraction_method", "last_fetched_at", "last_verified_at",
-    "content_fingerprint", "is_demo",
+    "schema_version",
+    "id",
+    "source_record_key",
+    "title",
+    "opportunity_type",
+    "official_url",
+    "summary",
+    "review_status",
+    "publication_status",
+    "extraction_method",
+    "last_fetched_at",
+    "last_verified_at",
+    "content_fingerprint",
+    "is_demo",
 )
 _JSON_COLUMNS = ("provider", "application", "required_documents", "source_refs", "review")
 _EXTRACTOR_RE = re.compile(r"\.([a-z][a-z-]*)-(\d+\.\d+\.\d+)\.txt$")
@@ -46,13 +57,19 @@ def _now() -> str:
 
 def _chunks(items: list[str]) -> Iterator[list[str]]:
     for start in range(0, len(items), _CHUNK):
-        yield items[start: start + _CHUNK]
+        yield items[start : start + _CHUNK]
 
 
 class SqlRepository:
-    def __init__(self, factory: sessionmaker[Session]) -> None:
+    def __init__(self, factory: sessionmaker[Session], engine: Engine | None = None) -> None:
         self._factory = factory
+        self._engine = engine
         self._tx: Session | None = None
+
+    def close(self) -> None:
+        """Release pooled connections (an open SQLite file cannot be deleted on Windows)."""
+        if self._engine is not None:
+            self._engine.dispose()
 
     # ------------------------------------------------------------------ sessions
     @contextmanager
@@ -111,14 +128,23 @@ class SqlRepository:
         with self._write() as session:
             for entry in entries:
                 if session.get(Snapshot, entry["snapshot_id"]) is None:
-                    session.add(Snapshot(
-                        snapshot_id=entry["snapshot_id"], source_id=entry["source_id"], url=entry["final_url"],
-                        raw_sha256=entry["raw_sha256"], raw_path=entry["raw_path"], media_type=entry["media_type"],
-                        text_path=entry.get("text_path"), text_sha256=entry.get("text_sha256"),
-                        extractor=entry.get("extractor"), extractor_version=entry.get("extractor_version"),
-                        extraction_status=entry.get("extraction_status"), fetched_at=entry["fetched_at"],
-                        source_modified_at=entry.get("source_modified_at"),
-                    ))
+                    session.add(
+                        Snapshot(
+                            snapshot_id=entry["snapshot_id"],
+                            source_id=entry["source_id"],
+                            url=entry["final_url"],
+                            raw_sha256=entry["raw_sha256"],
+                            raw_path=entry["raw_path"],
+                            media_type=entry["media_type"],
+                            text_path=entry.get("text_path"),
+                            text_sha256=entry.get("text_sha256"),
+                            extractor=entry.get("extractor"),
+                            extractor_version=entry.get("extractor_version"),
+                            extraction_status=entry.get("extraction_status"),
+                            fetched_at=entry["fetched_at"],
+                            source_modified_at=entry.get("source_modified_at"),
+                        )
+                    )
             session.flush()
 
     def record_fetches(self, rows: Sequence[dict], *, run_id: str, mode: str) -> None:
@@ -128,21 +154,40 @@ class SqlRepository:
                 session.add(Run(run_id=run_id, kind="fetch", data_mode=mode, status="running"))
                 session.flush()
             for row in rows:
-                session.add(Fetch(
-                    run_id=run_id, source_id=row["source_id"], url=row["url"], final_url=row.get("final_url"),
-                    http_status=row.get("http_status"), etag=row.get("etag"), last_modified=row.get("last_modified"),
-                    requested_at=row["requested_at"], duration_ms=row.get("duration_ms"), bytes=row.get("bytes"),
-                    outcome=row["outcome"], failure_reason=row.get("reason"), robots_status=row.get("robots_status"),
-                    snapshot_id=row.get("snapshot_id"),
-                ))
+                session.add(
+                    Fetch(
+                        run_id=run_id,
+                        source_id=row["source_id"],
+                        url=row["url"],
+                        final_url=row.get("final_url"),
+                        http_status=row.get("http_status"),
+                        etag=row.get("etag"),
+                        last_modified=row.get("last_modified"),
+                        requested_at=row["requested_at"],
+                        duration_ms=row.get("duration_ms"),
+                        bytes=row.get("bytes"),
+                        outcome=row["outcome"],
+                        failure_reason=row.get("reason"),
+                        robots_status=row.get("robots_status"),
+                        snapshot_id=row.get("snapshot_id"),
+                    )
+                )
 
     def record_run(self, run: dict) -> None:
         with self._write() as session:
             row = session.get(Run, run["run_id"])
             summary = {k: v for k, v in run.items() if k not in {"run_id", "kind", "mode", "status", "finished_at"}}
             if row is None:
-                session.add(Run(run_id=run["run_id"], kind=run["kind"], data_mode=run["mode"], status=run["status"],
-                                summary=summary, finished_at=run.get("finished_at")))
+                session.add(
+                    Run(
+                        run_id=run["run_id"],
+                        kind=run["kind"],
+                        data_mode=run["mode"],
+                        status=run["status"],
+                        summary=summary,
+                        finished_at=run.get("finished_at"),
+                    )
+                )
             else:
                 merged = dict(row.summary or {})
                 merged.update(summary)
@@ -150,7 +195,9 @@ class SqlRepository:
 
     def latest_run_context(self, mode: str) -> dict:
         with self._read() as session:
-            runs = session.scalars(select(Run).where(Run.data_mode == mode).order_by(Run.finished_at.desc()).limit(25)).all()
+            runs = session.scalars(
+                select(Run).where(Run.data_mode == mode).order_by(Run.finished_at.desc()).limit(25)
+            ).all()
             for run in runs:
                 if run.summary and "context" in run.summary:
                     return dict(run.summary["context"])
@@ -163,22 +210,42 @@ class SqlRepository:
         evidence: dict[str, list[dict]] = {i: [] for i in ids}
         for chunk in _chunks(ids):
             for c in session.scalars(select(ApplicationCycle).where(ApplicationCycle.opportunity_id.in_(chunk))):
-                cycles[c.opportunity_id].append({"opportunity_id": c.opportunity_id, "cycle_key": c.cycle_key,
-                                                 "position": c.position, "label_raw": c.label_raw,
-                                                 "starts_on": c.starts_on, "ends_on": c.ends_on, "data": c.data})
+                cycles[c.opportunity_id].append(
+                    {
+                        "opportunity_id": c.opportunity_id,
+                        "cycle_key": c.cycle_key,
+                        "position": c.position,
+                        "label_raw": c.label_raw,
+                        "starts_on": c.starts_on,
+                        "ends_on": c.ends_on,
+                        "data": c.data,
+                    }
+                )
             for e in session.scalars(select(Evidence).where(Evidence.opportunity_id.in_(chunk))):
-                evidence[e.opportunity_id].append({
-                    "opportunity_id": e.opportunity_id, "evidence_id": e.evidence_id, "position": e.position,
-                    "field_path": e.field_path, "source_id": e.source_id, "snapshot_id": e.snapshot_id,
-                    "source_url": e.source_url, "quote": e.quote, "locator": e.locator,
-                    "raw_sha256": e.raw_sha256, "text_sha256": e.text_sha256})
+                evidence[e.opportunity_id].append(
+                    {
+                        "opportunity_id": e.opportunity_id,
+                        "evidence_id": e.evidence_id,
+                        "position": e.position,
+                        "field_path": e.field_path,
+                        "source_id": e.source_id,
+                        "snapshot_id": e.snapshot_id,
+                        "source_url": e.source_url,
+                        "quote": e.quote,
+                        "locator": e.locator,
+                        "raw_sha256": e.raw_sha256,
+                        "text_sha256": e.text_sha256,
+                    }
+                )
         out: dict[str, dict] = {}
         for o in opps:
             scalar = {name: getattr(o, name) for name in _SCALAR_COLUMNS}
             scalar.update({name: getattr(o, name) for name in _JSON_COLUMNS})
             record = rows_to_record(RecordRows(scalar, cycles[o.id], evidence[o.id]))
             if with_meta:
-                changed = bool(o.content_changed_at and (not o.last_verified_at or o.content_changed_at > o.last_verified_at))
+                changed = bool(
+                    o.content_changed_at and (not o.last_verified_at or o.content_changed_at > o.last_verified_at)
+                )
                 record["_meta"] = {"version": o.version, "updated_at": o.updated_at, "changed_since_verified": changed}
             out[o.id] = record
         return out
@@ -213,13 +280,23 @@ class SqlRepository:
         if session.get(Snapshot, ref["snapshot_id"]) is not None:
             return
         match = _EXTRACTOR_RE.search(ref.get("text_path") or "")
-        session.add(Snapshot(
-            snapshot_id=ref["snapshot_id"], source_id=ref["source_id"], url=ref["url"], raw_sha256=ref["raw_sha256"],
-            raw_path=ref["raw_path"], media_type=ref["media_type"], text_path=ref.get("text_path"),
-            text_sha256=ref.get("text_sha256"), extractor=match.group(1) if match else None,
-            extractor_version=match.group(2) if match else None, fetched_at=ref["fetched_at"],
-            source_modified_at=ref.get("source_modified_at"), source_published_at=ref.get("source_published_at"),
-        ))
+        session.add(
+            Snapshot(
+                snapshot_id=ref["snapshot_id"],
+                source_id=ref["source_id"],
+                url=ref["url"],
+                raw_sha256=ref["raw_sha256"],
+                raw_path=ref["raw_path"],
+                media_type=ref["media_type"],
+                text_path=ref.get("text_path"),
+                text_sha256=ref.get("text_sha256"),
+                extractor=match.group(1) if match else None,
+                extractor_version=match.group(2) if match else None,
+                fetched_at=ref["fetched_at"],
+                source_modified_at=ref.get("source_modified_at"),
+                source_published_at=ref.get("source_published_at"),
+            )
+        )
         session.flush()
 
     def apply_item(self, item: PlanItem, run_id: str, now_iso: str) -> None:
@@ -236,8 +313,14 @@ class SqlRepository:
         values: dict[str, Any] = dict(rows.opportunity)
         opp = session.get(Opportunity, item.id)
         if opp is None:
-            opp = Opportunity(**values, version=item.version, created_at=now_iso, updated_at=now_iso,
-                              first_run_id=run_id, last_run_id=run_id)
+            opp = Opportunity(
+                **values,
+                version=item.version,
+                created_at=now_iso,
+                updated_at=now_iso,
+                first_run_id=run_id,
+                last_run_id=run_id,
+            )
             session.add(opp)
         else:
             for key, value in values.items():
@@ -249,8 +332,10 @@ class SqlRepository:
             opp.updated_at, opp.last_run_id = now_iso, run_id
         session.flush()
 
-        existing = {c.cycle_key: c for c in session.scalars(
-            select(ApplicationCycle).where(ApplicationCycle.opportunity_id == item.id))}
+        existing = {
+            c.cycle_key: c
+            for c in session.scalars(select(ApplicationCycle).where(ApplicationCycle.opportunity_id == item.id))
+        }
         for cycle in rows.cycles:  # cycles are upserted, never deleted: old cycles survive
             row = existing.get(cycle["cycle_key"])
             if row is None:
@@ -268,14 +353,20 @@ class SqlRepository:
                 session.add(group)
             group.label, group.url = member["label"], member["url"]
             session.flush()
-            session.add(ApplicationGroupMember(group_id=member["group_id"], cycle_key=member["cycle_key"],
-                                               opportunity_id=item.id))
+            session.add(
+                ApplicationGroupMember(
+                    group_id=member["group_id"], cycle_key=member["cycle_key"], opportunity_id=item.id
+                )
+            )
 
         session.execute(delete(Evidence).where(Evidence.opportunity_id == item.id))
         session.flush()
         for ev in rows.evidence:
             session.add(Evidence(**ev))
         if item.action == "updated":
-            session.add(OpportunityRevision(opportunity_id=item.id, version=item.version, run_id=run_id,
-                                            changed_at=now_iso, diff=item.diff))
+            session.add(
+                OpportunityRevision(
+                    opportunity_id=item.id, version=item.version, run_id=run_id, changed_at=now_iso, diff=item.diff
+                )
+            )
         session.flush()

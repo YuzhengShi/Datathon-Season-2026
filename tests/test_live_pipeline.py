@@ -36,8 +36,17 @@ class Router:
             "https://indspirefunding.ca/": LISTING.replace(b'href="/awards/', b'href="/awards/'),
             "https://indspirefunding.ca/awards/sample-one": DETAIL,
             SOURCES["ubc_award_descriptions"].url: UBC_LIKE,
-            **{SOURCES[k].url: SIMPLE for k in ("isc_psssp", "isc_inuit_strategy", "isc_metis_strategy",
-                                                 "ubc_award_context", "sfu_indigenous_awards", "mnbc_steps")},
+            **{
+                SOURCES[k].url: SIMPLE
+                for k in (
+                    "isc_psssp",
+                    "isc_inuit_strategy",
+                    "isc_metis_strategy",
+                    "ubc_award_context",
+                    "sfu_indigenous_awards",
+                    "mnbc_steps",
+                )
+            },
             **(extra or {}),
         }
         self.down, self.calls = set(down), []
@@ -62,8 +71,15 @@ class LivePipelineTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.data = Path(self.tmp.name)
-        self.rt = derive_runtime({"DATA_DIR": str(self.data), "SOURCE_CONFIG": str(ROOT / "sources.yaml"),
-                                  "FETCH_RETRIES": "0", "FETCH_MIN_INTERVAL_SECONDS": "0"}, "live")
+        self.rt = derive_runtime(
+            {
+                "DATA_DIR": str(self.data),
+                "SOURCE_CONFIG": str(ROOT / "sources.yaml"),
+                "FETCH_RETRIES": "0",
+                "FETCH_MIN_INTERVAL_SECONDS": "0",
+            },
+            "live",
+        )
         self.repo = MemoryRepository()
 
     def tearDown(self):
@@ -77,7 +93,9 @@ class LivePipelineTests(unittest.TestCase):
     def test_partial_run_reports_the_shortfall_instead_of_pretending(self):
         result = self.run_pipeline(Router())
         self.assertEqual((result["exit_code"], result["status"], result["data_mode"]), (3, "partial", "live"))
-        self.assertEqual(result["real_opportunities"], 3)  # 2 UBC-style sections + 1 detail page (drafts are not counted)
+        self.assertEqual(
+            result["real_opportunities"], 3
+        )  # 2 UBC-style sections + 1 detail page (drafts are not counted)
         self.assertEqual(result["target"], {"minimum": 20, "shortfall": 17})
         report = read_json(self.data / "reports" / "freshness.json")
         self.assertEqual((report["data_mode"], report["target"]["shortfall"]), ("live", 17))
@@ -88,27 +106,47 @@ class LivePipelineTests(unittest.TestCase):
 
     def test_directory_entries_are_discovery_data_not_awards(self):
         self.run_pipeline(Router())
-        entries = [json.loads(line) for line in (self.data / "discovery" / "isc_bursaries_index.jsonl").read_text().splitlines()]
+        entries = [
+            json.loads(line)
+            for line in (self.data / "discovery" / "isc_bursaries_index.jsonl").read_text().splitlines()
+        ]
         self.assertEqual(len(entries), 5)
         self.assertTrue(all(e["status"] == "discovery_only_not_verified" for e in entries))
         summary = read_json(self.data / "discovery" / "isc_bursaries_index.summary.json")
-        self.assertEqual((summary["declared_count"], summary["coverage"], summary["pagination_complete"]), (5, 1.0, True))
+        self.assertEqual(
+            (summary["declared_count"], summary["coverage"], summary["pagination_complete"]), (5, 1.0, True)
+        )
         stored = self.repo.list_records(published_only=False, is_demo=False)
-        self.assertFalse(any(r["id"].startswith("isc:") for r in stored))  # nothing from the index became an opportunity
+        self.assertFalse(
+            any(r["id"].startswith("isc:") for r in stored)
+        )  # nothing from the index became an opportunity
 
     def test_only_real_records_reach_live_outputs(self):
         self.run_pipeline(Router())
         self.assertEqual(self.repo.list_records(published_only=False, is_demo=True), [])
         exported = [json.loads(line) for line in (self.data / "awards.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(len(exported), 3)
-        self.assertTrue(all(not r["is_demo"] and r["review_status"] == "machine_checked" and r["last_verified_at"] for r in exported))
+        self.assertTrue(
+            all(
+                not r["is_demo"] and r["review_status"] == "machine_checked" and r["last_verified_at"] for r in exported
+            )
+        )
         self.assertFalse((self.data / "demo").exists())
         self.assertEqual({r["provider"]["id"] for r in exported}, {"ubc", "indspire"})
         indspire = next(r for r in exported if r["provider"]["id"] == "indspire")
         self.assertEqual(indspire["provider"]["donor_name"], "The Sample Family Foundation")
 
     def test_total_outage_is_not_success_and_creates_no_data(self):
-        router = Router(down={"www.sac-isc.gc.ca", "indspire.ca", "indspirefunding.ca", "students.ubc.ca", "www.sfu.ca", "www.mnbc.ca"})
+        router = Router(
+            down={
+                "www.sac-isc.gc.ca",
+                "indspire.ca",
+                "indspirefunding.ca",
+                "students.ubc.ca",
+                "www.sfu.ca",
+                "www.mnbc.ca",
+            }
+        )
         result = self.run_pipeline(router)
         self.assertEqual((result["exit_code"], result["real_opportunities"], result["status"]), (3, 0, "partial"))
         self.assertEqual(result["sources"]["succeeded"], 0)
@@ -131,14 +169,20 @@ class LivePipelineTests(unittest.TestCase):
         self.run_pipeline(first)
         second = Router()
         result = self.run_pipeline(second, resume=True, now=AS_OF)
-        self.assertFalse(set(second.fetched()) & set(first.pages))  # nothing that already has a snapshot is downloaded again
+        self.assertFalse(
+            set(second.fetched()) & set(first.pages)
+        )  # nothing that already has a snapshot is downloaded again
         self.assertTrue(second.fetched())  # ...but pages that failed last time (404 here) ARE retried
-        self.assertEqual(result["import"]["counts"]["unchanged"], 5)  # 3 published + 2 draft records, none re-imported as new
+        self.assertEqual(
+            result["import"]["counts"]["unchanged"], 5
+        )  # 3 published + 2 draft records, none re-imported as new
 
     def test_restricted_sources_are_not_fetched(self):
         text = (ROOT / "sources.yaml").read_text(encoding="utf-8")
-        marked = text.replace("role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: [\"www.mnbc.ca\"]\n    allowed_paths: [\"/STEPS\"]\n    access_status: unreviewed",
-                              "role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: [\"www.mnbc.ca\"]\n    allowed_paths: [\"/STEPS\"]\n    access_status: restricted")
+        marked = text.replace(
+            'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: unreviewed',
+            'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: restricted',
+        )
         self.assertNotEqual(text, marked)
         path = self.data / "sources.yaml"
         path.write_text(marked, encoding="utf-8")
@@ -173,28 +217,35 @@ class LivePipelineTests(unittest.TestCase):
         with mock.patch("navigator.services.live.registry", return_value=adapters):
             result = self.run_pipeline(Router())
         self.assertEqual((result["exit_code"], result["rejected_candidates"]), (1, 1))
-        rows = [json.loads(line) for p in (self.data / "quarantine").glob("*.jsonl") for line in p.read_text().splitlines()]
+        rows = [
+            json.loads(line) for p in (self.data / "quarantine").glob("*.jsonl") for line in p.read_text().splitlines()
+        ]
         self.assertTrue(any(r["error_type"] == "evidence.quote_not_found" for r in rows))
 
     def test_extract_command_works_from_stored_snapshots_without_network(self):
         self.run_pipeline(Router())
         out = live.run_extract_only(self.rt, now=AS_OF)
-        self.assertEqual((out["exit_code"], out["candidates"], out["rejected"]), (0, 3 + 2, 0))  # includes the two draft sections
+        self.assertEqual(
+            (out["exit_code"], out["candidates"], out["rejected"]), (0, 3 + 2, 0)
+        )  # includes the two draft sections
         empty = tempfile.TemporaryDirectory()
         rt = dataclasses.replace(self.rt, data_dir=Path(empty.name), artifact_root=Path(empty.name))
         self.assertEqual(live.run_extract_only(rt, now=AS_OF)["exit_code"], 3)
         empty.cleanup()
 
     def test_fetch_command_only_downloads(self):
-        out = live.run_fetch_only(self.rt, now=AS_OF, max_pages=50, resume=False, refresh=False,
-                                  fetcher=live.build_fetcher(self.rt, Router()))
+        out = live.run_fetch_only(
+            self.rt, now=AS_OF, max_pages=50, resume=False, refresh=False, fetcher=live.build_fetcher(self.rt, Router())
+        )
         self.assertEqual(out["sources"]["succeeded"], 10)
         self.assertTrue((self.data / "discovery" / "fetch_index.json").is_file())
         self.assertFalse((self.data / "candidates").exists())
 
     def test_live_runtime_is_required(self):
         with self.assertRaises(ValueError):
-            live.run_live_pipeline(self.repo, derive_runtime({}, "demo"), now=AS_OF, limit=1, max_pages=1, resume=False, refresh=False)
+            live.run_live_pipeline(
+                self.repo, derive_runtime({}, "demo"), now=AS_OF, limit=1, max_pages=1, resume=False, refresh=False
+            )
 
 
 if __name__ == "__main__":

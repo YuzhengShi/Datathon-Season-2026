@@ -27,7 +27,9 @@ def model_fields() -> dict[str, dict[str, bool]]:
     """class name -> {field: required?} read from schemas/api.py and schemas/profile.py without importing pydantic."""
     out: dict[str, dict[str, bool]] = {}
     for rel in ("schemas/api.py", "schemas/profile.py"):
-        for cls in [n for n in ast.parse((ROOT / "src/navigator" / rel).read_text()).body if isinstance(n, ast.ClassDef)]:
+        for cls in [
+            n for n in ast.parse((ROOT / "src/navigator" / rel).read_text()).body if isinstance(n, ast.ClassDef)
+        ]:
             fields = {}
             for stmt in cls.body:
                 if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
@@ -35,7 +37,9 @@ def model_fields() -> dict[str, dict[str, bool]]:
                     if value is None:
                         required = True
                     elif isinstance(value, ast.Call) and ast.unparse(value.func) == "Field":
-                        required = not value.args and not any(k.arg in {"default", "default_factory"} for k in value.keywords)
+                        required = not value.args and not any(
+                            k.arg in {"default", "default_factory"} for k in value.keywords
+                        )
                     else:
                         required = False
                     fields[stmt.target.id] = required
@@ -46,10 +50,15 @@ def model_fields() -> dict[str, dict[str, bool]]:
 class StaticChecks(unittest.TestCase):
     def test_no_static_findings(self):
         files = check_static.ALL_FILES
-        findings = (check_static.check_py311_fstrings(files) + check_static.check_unused_imports(files)
-                    + check_static.check_internal_imports(files) + check_static.check_undefined_names(files)
-                    + check_static.check_fstring_quotes(files) + check_static.check_ruff_defaults(files)
-                    + check_static.check_schema_sync())
+        findings = (
+            check_static.check_py311_fstrings(files)
+            + check_static.check_unused_imports(files)
+            + check_static.check_internal_imports(files)
+            + check_static.check_undefined_names(files)
+            + check_static.check_fstring_quotes(files)
+            + check_static.check_ruff_defaults(files)
+            + check_static.check_schema_sync()
+        )
         self.assertEqual(findings, [])
 
     def test_exported_json_schema_is_current(self):
@@ -69,14 +78,24 @@ class ResponseModelTests(unittest.TestCase):
 
     def test_match_models(self):
         env = DemoEnv.get()
-        profile = {"indigenous_identity": ["metis"], "institution_id": "demo_college", "education_level": "undergraduate"}
+        profile = {
+            "indigenous_identity": ["metis"],
+            "institution_id": "demo_college",
+            "education_level": "undergraduate",
+        }
         flat = match_records(env.all_records(), profile, MatchOptions(as_of=AS_OF, limit=50), None, data_mode="demo")
         self.assert_matches("MatchResponse", flat)
         item = flat["results"][0]
         self.assert_matches("MatchItem", item)
         self.assert_matches("ApplicationRoute", item["application_route"])
         self.assert_matches("AvailabilityInfo", item["availability"])
-        grouped = match_records(env.all_records(), profile, MatchOptions(as_of=AS_OF, limit=50, group_by_application=True), None, data_mode="demo")
+        grouped = match_records(
+            env.all_records(),
+            profile,
+            MatchOptions(as_of=AS_OF, limit=50, group_by_application=True),
+            None,
+            data_mode="demo",
+        )
         self.assert_matches("MatchResponse", grouped)
         self.assert_matches("MatchGroup", grouped["groups"][0])
         shared = next(g for g in grouped["groups"] if g["group_id"])
@@ -87,7 +106,9 @@ class ResponseModelTests(unittest.TestCase):
 
     def test_listing_and_detail_models(self):
         env = DemoEnv.get()
-        out = list_opportunities(env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo", province="BC", limit=100)
+        out = list_opportunities(
+            env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo", province="BC", limit=100
+        )
         self.assert_matches("OpportunityList", out)
         for row in out["results"]:
             self.assert_matches("OpportunitySummary", row)
@@ -95,27 +116,45 @@ class ResponseModelTests(unittest.TestCase):
             self.assert_matches("ApplicabilityInfo", row["applicability"])
             self.assert_matches("ApplicationRoute", row["application_route"])
             self.assert_matches("ProviderRef", row["provider"])
-        detail = opportunity_detail(env.record("demo_shared_application_a"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo")
+        detail = opportunity_detail(
+            env.record("demo_shared_application_a"), env.all_records(), as_of=AS_OF, freshness_days=30, data_mode="demo"
+        )
         self.assert_matches("OpportunityDetail", detail)
         self.assert_matches("SiblingRef", detail["shared_application_with"][0])
 
     def test_health_error_and_profile_models(self):
-        health = {"status": "ok", "data_mode": "demo", "version": "x", "database": {"connected": True},
-                  "migrations": {"current": "0001", "expected": "0001", "up_to_date": True}}
+        health = {
+            "status": "ok",
+            "data_mode": "demo",
+            "version": "x",
+            "database": {"connected": True},
+            "migrations": {"current": "0001", "expected": "0001", "up_to_date": True},
+        }
         self.assert_matches("HealthResponse", health)
         self.assert_matches("DatabaseState", health["database"])
         self.assert_matches("MigrationState", health["migrations"])
         from navigator.api.body import error_body
-        body = error_body("validation_error", "request validation failed", "demo", [{"loc": ["body"], "type": "x", "msg": "y"}])
+
+        body = error_body(
+            "validation_error", "request validation failed", "demo", [{"loc": ["body"], "type": "x", "msg": "y"}]
+        )
         self.assert_matches("ErrorResponse", body)
         self.assert_matches("ErrorBody", body["error"])
         profile_fields = set(model_fields()["Profile"])
-        self.assertEqual(profile_fields, set(rules.PROFILE_FIELDS))  # every engine input is reachable, nothing extra is accepted
-        self.assertTrue({"name", "email", "sin", "address", "student_number", "status_card_number", "income"}.isdisjoint(profile_fields))
+        self.assertEqual(
+            profile_fields, set(rules.PROFILE_FIELDS)
+        )  # every engine input is reachable, nothing extra is accepted
+        self.assertTrue(
+            {"name", "email", "sin", "address", "student_number", "status_card_number", "income"}.isdisjoint(
+                profile_fields
+            )
+        )
 
     def test_match_request_defaults_agree_with_engine_options(self):
         fields = model_fields()["MatchRequest"]
-        self.assertEqual(set(fields), {"profile", "as_of", "cycle_key", "group_by_application", "include_closed", "limit", "offset"})
+        self.assertEqual(
+            set(fields), {"profile", "as_of", "cycle_key", "group_by_application", "include_closed", "limit", "offset"}
+        )
         self.assertEqual([k for k, required in fields.items() if required], ["profile"])
         self.assertIsNotNone(parse_as_of("2026-10-07"))
 

@@ -15,8 +15,11 @@ from navigator.ingestion.adapters.common import blocks_of
 from navigator.ingestion.builder import SnapshotView
 from navigator.ingestion.sources import SourceConfig
 
-_POLICY_CUE = re.compile(r"\b(deadline|one application|single application|apply once|shared|application form|"
-                         r"documents?|transcript|intake|cycle|submit|eligib)\b", re.I)
+_POLICY_CUE = re.compile(
+    r"\b(deadline|one application|single application|apply once|shared|application form|"
+    r"documents?|transcript|intake|cycle|submit|eligib)\b",
+    re.I,
+)
 
 
 class PolicyAdapter(Adapter):
@@ -33,11 +36,23 @@ class PolicyAdapter(Adapter):
                 if block.level:
                     heading = block.text
                 elif _POLICY_CUE.search(block.text):
-                    facts.append({"snapshot_id": snap.snapshot_id, "url": snap.url, "heading": heading,
-                                  "paragraph_index": block.index, "quote": normalize_text(block.text)[:400]})
+                    facts.append(
+                        {
+                            "snapshot_id": snap.snapshot_id,
+                            "url": snap.url,
+                            "heading": heading,
+                            "paragraph_index": block.index,
+                            "quote": normalize_text(block.text)[:400],
+                        }
+                    )
         result.stats = {"policy_facts": facts, "count": len(facts)}
-        result.pending.append({"item": source.source_id, "reason": "policy facts captured for curated linking; "
-                               "applying them to individual awards (shared forms, cycles) is not inferred"})
+        result.pending.append(
+            {
+                "item": source.source_id,
+                "reason": "policy facts captured for curated linking; "
+                "applying them to individual awards (shared forms, cycles) is not inferred",
+            }
+        )
         return result
 
 

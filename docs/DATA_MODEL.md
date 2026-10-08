@@ -252,7 +252,7 @@ Result mapping: any mandatory condition definitely false -> `fail` + `not_eligib
     "route_type": "institution_portal",
     "url": "https://demo.invalid/college/portal"
   },
-  "content_fingerprint": "sha256:e53cad368d7f7e895595d6d3187f561775d65cffdc1b73e1871a5053f9c679a0",
+  "content_fingerprint": "sha256:<hash of the canonical business content>",
   "cycles": [
     {
       "amount": {
@@ -270,7 +270,7 @@ Result mapping: any mandatory condition definitely false -> `fail` + `not_eligib
       "deadlines": [
         {
           "date": "2026-11-15",
-          "deadline_at_utc": "2026-11-16T08:00:00Z",
+          "deadline_at_utc": "<closing instant in UTC, recomputed from date + local_time + timezone>",
           "evidence_ids": [
             "ev_89b871319d0e6c3e"
           ],

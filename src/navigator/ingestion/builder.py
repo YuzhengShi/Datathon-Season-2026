@@ -80,9 +80,7 @@ def attach_evidence(record: dict, snaps: Mapping[str, SnapshotView], primary: st
         snap = snaps[item.snap or primary]
         if snap.key not in used:
             used.append(snap.key)
-        locator = locate_quote(
-            snap.text, item.quote, pdf_page=item.pdf_page, paragraph_index=item.paragraph_index
-        )
+        locator = locate_quote(snap.text, item.quote, pdf_page=item.pdf_page, paragraph_index=item.paragraph_index)
         eid = evidence_id(path, snap.snapshot_id, item.quote)
         evidence.setdefault(
             eid,

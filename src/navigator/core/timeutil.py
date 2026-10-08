@@ -12,11 +12,30 @@ application early. A date-only deadline closes at the *end* of that local date, 
 
 from __future__ import annotations
 
+import importlib.util
+import os
 import re
+import zoneinfo
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from typing import Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+
+def _prefer_packaged_tzdata() -> None:
+    """Use the pinned ``tzdata`` package instead of the operating system's copy.
+
+    Time-zone rules really do change (British Columbia moves to permanent daylight time in November 2026), and an
+    older system database would then close the same deadline an hour apart on two machines. With the package, the
+    rules are exactly those of the version in ``requirements.lock``. Set ``NAVIGATOR_SYSTEM_TZ=1`` to opt out.
+    """
+    if os.environ.get("NAVIGATOR_SYSTEM_TZ") == "1" or importlib.util.find_spec("tzdata") is None:
+        return
+    zoneinfo.reset_tzpath(to=[])
+    ZoneInfo.clear_cache()
+
+
+_prefer_packaged_tzdata()
 
 # Extreme UTC offsets that exist in the real world; used when the zone is unknown.
 _EARLIEST_ZONE = timezone(timedelta(hours=14))  # UTC+14: a given local time happens first here
@@ -272,11 +291,7 @@ def resolve_close_window(deadline: dict) -> CloseWindow | None:
                 if len(opts) == 2:
                     zone = ZoneInfo(cand.iana)
                     round_trip = opts[0].astimezone(zone).replace(tzinfo=None)
-                    flags.append(
-                        "dst_repeated_local_time"
-                        if round_trip == local_close
-                        else "dst_skipped_local_time"
-                    )
+                    flags.append("dst_repeated_local_time" if round_trip == local_close else "dst_skipped_local_time")
     else:
         flags.append("timezone_unknown")
         options = [

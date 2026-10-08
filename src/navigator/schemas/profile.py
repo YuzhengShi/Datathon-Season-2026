@@ -20,9 +20,11 @@ class Profile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     indigenous_identity: list[Identity] | None = Field(
-        None, description="Self-reported; one or more. Absent = unknown. [] = none of these.", max_length=3)
+        None, description="Self-reported; one or more. Absent = unknown. [] = none of these.", max_length=3
+    )
     first_nations_registered: bool | None = Field(
-        None, description="Self-reported registration (yes/no). Never send a card or registry number.")
+        None, description="Self-reported registration (yes/no). Never send a card or registry number."
+    )
     metis_citizen: bool | None = Field(None, description="Self-reported citizenship/membership; no number.")
     metis_org: str | None = Field(None, max_length=120, description="Which Métis government/organisation.")
     inuit_beneficiary: bool | None = Field(None, description="Self-reported beneficiary status; no number.")
@@ -31,14 +33,18 @@ class Profile(BaseModel):
     home_community: str | None = Field(None, max_length=120, description="Home community (separate from residence).")
     home_region: str | None = Field(None, max_length=120)
     institution_id: str | None = Field(None, max_length=80, description="Controlled institution id, if known.")
-    institution_name: str | None = Field(None, max_length=200, description="Used only if it matches the explicit alias map.")
+    institution_name: str | None = Field(
+        None, max_length=200, description="Used only if it matches the explicit alias map."
+    )
     institution_province: Province | None = Field(None, description="Province/territory of the school.")
     campus: str | None = Field(None, max_length=120)
     education_level: EducationLevel | None = None
     program_field: str | None = Field(None, max_length=120)
     study_status: StudyStatus | None = None
     year_of_study: int | None = Field(None, ge=1, le=12)
-    gpa: Decimal | None = Field(None, ge=0, le=1000, description="Compared only when gpa_scale equals the rule's scale.")
+    gpa: Decimal | None = Field(
+        None, ge=0, le=1000, description="Compared only when gpa_scale equals the rule's scale."
+    )
     gpa_scale: Decimal | None = Field(None, gt=0, le=1000)
 
     def to_engine(self) -> dict[str, Any]:
@@ -54,9 +60,17 @@ class MatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     profile: Profile
-    as_of: str | None = Field(None, max_length=40, description="Reference time (ISO date or datetime). A bare date means 12:00 UTC. Default: now.")
-    cycle_key: str | None = Field(None, pattern=r"^[a-z0-9][a-z0-9_.-]{0,59}$", description="Match this cycle instead of the most relevant one.")
-    group_by_application: bool = Field(False, description="Aggregate results by shared application form (each member still matched separately).")
+    as_of: str | None = Field(
+        None,
+        max_length=40,
+        description="Reference time (ISO date or datetime). A bare date means 12:00 UTC. Default: now.",
+    )
+    cycle_key: str | None = Field(
+        None, pattern=r"^[a-z0-9][a-z0-9_.-]{0,59}$", description="Match this cycle instead of the most relevant one."
+    )
+    group_by_application: bool = Field(
+        False, description="Aggregate results by shared application form (each member still matched separately)."
+    )
     include_closed: bool = Field(False, description="Include cycles whose application window has closed.")
     limit: int = Field(20, ge=1, le=100)
     offset: int = Field(0, ge=0)

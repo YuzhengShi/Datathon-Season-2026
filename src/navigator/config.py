@@ -64,9 +64,13 @@ class Runtime:
 
     def describe(self) -> dict:
         """Safe-to-print view (no credentials, no connection strings)."""
-        return {"data_mode": self.mode, "artifact_root": self.artifact_root.as_posix(),
-                "database_kind": self.database_url.split(":", 1)[0].split("+")[0],
-                "extraction_mode": self.extraction_mode, "freshness_days": self.freshness_days}
+        return {
+            "data_mode": self.mode,
+            "artifact_root": self.artifact_root.as_posix(),
+            "database_kind": self.database_url.split(":", 1)[0].split("+")[0],
+            "extraction_mode": self.extraction_mode,
+            "freshness_days": self.freshness_days,
+        }
 
 
 def _sqlite_path(url: str) -> Path | None:
@@ -100,7 +104,9 @@ def derive_runtime(raw: Mapping[str, str], mode_arg: str | None = None) -> Runti
     if not live_url or not demo_url:
         raise ConfigError("DATABASE_URL and DEMO_DATABASE_URL must both be set")
     if live_url == demo_url or (_sqlite_path(live_url) and _sqlite_path(live_url) == _sqlite_path(demo_url)):
-        raise ConfigError("DATABASE_URL and DEMO_DATABASE_URL must differ: demo data must never share the live database")
+        raise ConfigError(
+            "DATABASE_URL and DEMO_DATABASE_URL must differ: demo data must never share the live database"
+        )
 
     data_dir = Path(merged["DATA_DIR"])
     return Runtime(
@@ -129,7 +135,9 @@ def load_runtime(mode_arg: str | None = None, env_file: str | Path = ".env") -> 
         from pydantic import field_validator
         from pydantic_settings import BaseSettings, SettingsConfigDict
     except ImportError as exc:  # pragma: no cover - exercised only without the dependency
-        raise ConfigError("pydantic-settings is not installed; run `python -m pip install -r requirements.lock`") from exc
+        raise ConfigError(
+            "pydantic-settings is not installed; run `python -m pip install -r requirements.lock`"
+        ) from exc
 
     class Settings(BaseSettings):
         model_config = SettingsConfigDict(env_file=str(env_file), extra="ignore", case_sensitive=False)

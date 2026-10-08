@@ -15,6 +15,15 @@ from navigator.models.tables import (
 )
 
 __all__ = [
-    "ApplicationCycle", "ApplicationGroup", "ApplicationGroupMember", "Base", "Evidence", "Fetch",
-    "Opportunity", "OpportunityRevision", "Run", "Snapshot", "Source",
+    "ApplicationCycle",
+    "ApplicationGroup",
+    "ApplicationGroupMember",
+    "Base",
+    "Evidence",
+    "Fetch",
+    "Opportunity",
+    "OpportunityRevision",
+    "Run",
+    "Snapshot",
+    "Source",
 ]

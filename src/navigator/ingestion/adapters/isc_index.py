@@ -50,19 +50,32 @@ def parse_index_table(html: bytes, base_url: str) -> dict:
             detail = canonicalize_url(urljoin(base_url, link["href"])) if link else None
             entry = dict(zip(COLUMNS, values, strict=True))
             fingerprint = hashlib.sha1("|".join([*values, str(ordinal)]).encode("utf-8")).hexdigest()[:16]
-            entry.update(entry_id=detail or f"isc-row-{fingerprint}", detail_url=detail, row_ordinal=ordinal,
-                         status="discovery_only_not_verified")
+            entry.update(
+                entry_id=detail or f"isc-row-{fingerprint}",
+                detail_url=detail,
+                row_ordinal=ordinal,
+                status="discovery_only_not_verified",
+            )
             entries.append(entry)
-    pagination = [a for a in soup.find_all("a", href=True) if _NEXT.match(_norm(a.get_text(" "))) or a.get("rel") == ["next"]]
+    pagination = [
+        a for a in soup.find_all("a", href=True) if _NEXT.match(_norm(a.get_text(" "))) or a.get("rel") == ["next"]
+    ]
     coverage = (len(entries) / declared) if declared else None
     return {
-        "entries": entries, "pending": pending,
-        "stats": {"declared_count": declared, "entries_observed": len(entries),
-                  "coverage": round(coverage, 4) if coverage is not None else None,
-                  "pagination_links": len(pagination),
-                  "pagination_complete": bool(entries) and not pagination and declared is not None and len(entries) == declared,
-                  "update_in_progress_notice": "update in progress" in page_text.lower(),
-                  "note": "Historical audit saw 538 entries on 2026-10-05; that is an observation, not a target."},
+        "entries": entries,
+        "pending": pending,
+        "stats": {
+            "declared_count": declared,
+            "entries_observed": len(entries),
+            "coverage": round(coverage, 4) if coverage is not None else None,
+            "pagination_links": len(pagination),
+            "pagination_complete": bool(entries)
+            and not pagination
+            and declared is not None
+            and len(entries) == declared,
+            "update_in_progress_notice": "update in progress" in page_text.lower(),
+            "note": "Historical audit saw 538 entries on 2026-10-05; that is an observation, not a target.",
+        },
     }
 
 
@@ -73,17 +86,23 @@ class IscIndexAdapter(Adapter):
         if depth > 0:
             return []
         # detail pages of index rows; the page budget (default 50) bounds how many are followed
-        return [link.href for link in doc.links if link.text and "/eng/1351185180120/" in link.href and link.href != url]
+        return [
+            link.href for link in doc.links if link.text and "/eng/1351185180120/" in link.href and link.href != url
+        ]
 
     def parse(self, snaps: list[SnapshotView], source: SourceConfig, ctx: ParseContext) -> AdapterResult:
         result = AdapterResult()
-        index = next((s for s in snaps if s.url.split("?")[0].rstrip("/") == source.url.split("?")[0].rstrip("/")), None)
+        index = next(
+            (s for s in snaps if s.url.split("?")[0].rstrip("/") == source.url.split("?")[0].rstrip("/")), None
+        )
         if index is None or ctx.read_raw is None:
             result.pending.append({"item": source.url, "reason": "index page snapshot not available"})
             return result
         parsed = parse_index_table(ctx.read_raw(index), index.url)
         result.discovery, result.pending, result.stats = parsed["entries"], parsed["pending"], parsed["stats"]
         if not parsed["entries"]:
-            result.pending.append({"item": source.url, "reason": "no bursary table found; structure unknown, nothing guessed"})
+            result.pending.append(
+                {"item": source.url, "reason": "no bursary table found; structure unknown, nothing guessed"}
+            )
         result.stats["detail_pages_fetched"] = len(snaps) - 1
         return result
