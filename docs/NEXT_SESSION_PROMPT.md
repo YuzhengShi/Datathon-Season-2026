@@ -26,10 +26,9 @@
 4. **站点条款**：每个来源的 `access_status` 仍是 `unreviewed`，请人逐站确认后改成 `reviewed_ok` / `restricted`。
 5. **补验平台**（按你要支持的范围）：Python 3.11（锁定版本未必都支持）、Linux/macOS、可选 PostgreSQL。
 6. **Indspire 捐赠方页面**：`indspirefunding.ca` 是捐赠方名单。先打开真实的捐赠方页面确认结构，再写解析器和测试；在此之前保持 `max_pages: 1`。
-7. **已知未修复**：同一运行编号重跑会残留旧的 `data/quarantine/<run_id>.jsonl`（流水线每个运行编号会写两次，不能在 `write_quarantine` 里清理；应在运行开始时清理）。
-8. **人工审核流程**：目前没有任何记录是 `human_reviewed`。设计一个让人逐条确认解读（例如 "Open until …" 被读成已开放）的最小流程。
+7. **人工审核流程**：目前没有任何记录是 `human_reviewed`。设计一个让人逐条确认解读（例如 "Open until …" 被读成已开放）的最小流程。
 
-9. **网页应用**（`frontend/`，设计取舍见 `docs/HANDOFF.md` 第 8 节）：在 Firefox/Safari 和读屏器里验证；用工具实测配色对比度；补法语版；在 `frontend/assets/config.js` 和 `.env` 的 `USER_AGENT` 里填真实联系邮箱。改动后必须通过 `node tests/e2e/smoke.mjs`。
+8. **网页应用**（`frontend/`，设计取舍见 `docs/HANDOFF.md` 第 8 节）：在 Firefox/Safari 和读屏器里验证；用工具实测配色对比度；补法语版；在 `frontend/assets/config.js` 和 `.env` 的 `USER_AGENT` 里填真实联系邮箱。改动后必须通过 `node tests/e2e/smoke.mjs`。
 
 ## 最终报告（用中文，简洁）
 
