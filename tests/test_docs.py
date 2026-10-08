@@ -85,7 +85,9 @@ class DocsTests(unittest.TestCase):
     def test_data_sources_doc_covers_every_source_and_adapter(self):
         text = read("docs/DATA_SOURCES.md")
         for source in load_sources(ROOT / "sources.yaml"):
-            self.assertIn(f"`{source.source_id}`", text)
+            if not source.source_id.startswith("prov_"):  # generated provider pages are described once, as a group
+                self.assertIn(f"`{source.source_id}`", text)
+        self.assertIn("sources.providers.yaml", text)
         for name in registry():
             self.assertIn(f"`{name}`", text)
 

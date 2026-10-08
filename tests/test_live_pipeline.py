@@ -73,7 +73,9 @@ class LivePipelineTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.data = Path(self.tmp.name)
         # production sources.yaml gives some sources their own page budget; these tests exercise the generic fair share
-        stripped = re.sub(r"(?m)^    max_pages:.*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8"))
+        stripped = re.sub(
+            r"(?m)^(?:    max_pages:|include:).*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8")
+        )
         (self.data / "sources.test.yaml").write_text(stripped, encoding="utf-8")
         self.rt = derive_runtime(
             {
@@ -182,7 +184,7 @@ class LivePipelineTests(unittest.TestCase):
         )  # 3 published + 2 draft records, none re-imported as new
 
     def test_restricted_sources_are_not_fetched(self):
-        text = (ROOT / "sources.yaml").read_text(encoding="utf-8")
+        text = re.sub(r"(?m)^include:.*\n", "", (ROOT / "sources.yaml").read_text(encoding="utf-8"))
         marked = text.replace(
             'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: unreviewed',
             'role: funding_channel\n    parser: curated_channel\n    language: en\n    allowed_domains: ["www.mnbc.ca"]\n    allowed_paths: ["/STEPS"]\n    access_status: restricted',

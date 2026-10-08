@@ -128,6 +128,8 @@ def curated_record(entry: dict, snaps: list[SnapshotView], source: SourceConfig,
         record["review_status"], record["publication_status"] = "pending", "draft"
     elif body.get("review"):  # a real person's review record is the only way to human_reviewed
         record["review_status"], record["review"] = "human_reviewed", body["review"]
+    if body.get("publication_status") == "archived":  # the provider page says the programme is paused or discontinued
+        record["publication_status"] = "archived"
     return finalize(attach_evidence(record, by_key, default_key))
 
 

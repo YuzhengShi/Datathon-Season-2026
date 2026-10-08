@@ -1,14 +1,115 @@
 # Explicit institution alias map. Matching never guesses by fuzzy title: a name resolves only
 # when it equals a listed name/alias (case- and whitespace-insensitive). Original names are kept.
+# The web app offers the entries of this file in its "Which school?" question (live mode lists real schools only).
 institutions:
   - id: ubc
     name: The University of British Columbia
     province: BC
-    aliases: ["University of British Columbia", "UBC"]
+    aliases: ["University of British Columbia", "UBC", "UBC Okanagan", "UBC Vancouver"]
   - id: sfu
     name: Simon Fraser University
     province: BC
     aliases: ["SFU"]
+  - id: uvic
+    name: University of Victoria
+    province: BC
+    aliases: ["UVic"]
+  - id: unbc
+    name: University of Northern British Columbia
+    province: BC
+    aliases: ["UNBC"]
+  - id: viu
+    name: Vancouver Island University
+    province: BC
+    aliases: ["VIU"]
+  - id: tru
+    name: Thompson Rivers University
+    province: BC
+    aliases: ["TRU"]
+  - id: kpu
+    name: Kwantlen Polytechnic University
+    province: BC
+    aliases: ["KPU"]
+  - id: bcit
+    name: British Columbia Institute of Technology
+    province: BC
+    aliases: ["BCIT"]
+  - id: capilano
+    name: Capilano University
+    province: BC
+    aliases: ["Capilano", "CapU"]
+  - id: langara
+    name: Langara College
+    province: BC
+    aliases: ["Langara"]
+  - id: camosun
+    name: Camosun College
+    province: BC
+    aliases: ["Camosun"]
+  - id: douglas
+    name: Douglas College
+    province: BC
+    aliases: ["Douglas"]
+  - id: vcc
+    name: Vancouver Community College
+    province: BC
+    aliases: ["VCC"]
+  - id: emilycarr
+    name: Emily Carr University of Art + Design
+    province: BC
+    aliases: ["Emily Carr University", "ECUAD"]
+  - id: royalroads
+    name: Royal Roads University
+    province: BC
+    aliases: ["Royal Roads"]
+  - id: okanagan_college
+    name: Okanagan College
+    province: BC
+    aliases: []
+  - id: rockies
+    name: College of the Rockies
+    province: BC
+    aliases: []
+  - id: nic
+    name: North Island College
+    province: BC
+    aliases: ["NIC"]
+  - id: selkirk
+    name: Selkirk College
+    province: BC
+    aliases: []
+  - id: cnc
+    name: College of New Caledonia
+    province: BC
+    aliases: ["CNC"]
+  - id: coastmountain
+    name: Coast Mountain College
+    province: BC
+    aliases: []
+  - id: northernlights
+    name: Northern Lights College
+    province: BC
+    aliases: ["NLC"]
+  - id: coquitlam_college
+    name: Coquitlam College
+    province: BC
+    aliases: []
+  - id: nvit
+    name: Nicola Valley Institute of Technology
+    province: BC
+    aliases: ["NVIT"]
+  - id: nec
+    name: Native Education College
+    province: BC
+    aliases: ["NEC"]
+  - id: twu
+    name: Trinity Western University
+    province: BC
+    aliases: ["TWU"]
+  - id: ucw
+    name: University Canada West
+    province: BC
+    aliases: ["UCW"]
   - id: demo_college
     name: Demo College (synthetic)
     province: BC

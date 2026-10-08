@@ -1,0 +1,24 @@
+source_id: isc_metis_strategy
+records:
+  - key: metis-nation-post-secondary-education-strategy
+    title: Métis Nation Post-Secondary Education Strategy
+    opportunity_type: funding_channel
+    summary: >-
+      Federal strategy funding distributed by the Métis Nation governments, including Métis Nation British Columbia
+      (whose programme for students is STEPS). Students must contact the initial recipient to learn the eligibility criteria.
+    application:
+      route_type: contact_administrator
+      instructions: Contact your Métis Nation government (in British Columbia, Métis Nation British Columbia).
+      quotes: ["must contact the appropriate strategy's initial recipient to learn more about how to access the Métis Nation Post-Secondary Education Strategy funding and the eligibility criteria"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: not stated; set by each initial recipient
+        deadlines:
+          - kind: local_administrator
+            raw_text: Consult the appropriate initial recipient for deadlines.
+            quotes: ["must consult the appropriate strategy's initial recipient"]
+        amount: {kind: unspecified, currency: null, unit: unspecified, raw_text: not stated per student}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [metis], quotes: ["Métis Nation students who reside in Canada"]}
+            - {type: unknown, reason: "The initial recipient (for example Métis Nation British Columbia) sets the eligibility criteria", quotes: ["Each initial recipient will determine the mechanisms for funding distribution to the eligible ultimate recipients."]}

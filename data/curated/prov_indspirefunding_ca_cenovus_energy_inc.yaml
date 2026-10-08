@@ -1,0 +1,31 @@
+source_id: prov_indspirefunding_ca_cenovus_energy_inc
+records:
+  - key: cenovus-indigenous-scholarships
+    id: "cenovus_energy_inc:isc_cenovus_indigenous_scholarships_cenovus_energy_inc"
+    title: Cenovus Indigenous Scholarships
+    opportunity_type: award
+    donor_name: Cenovus Energy Inc.
+    summary: >-
+      Post-secondary scholarships from Cenovus Energy listed on Indspire's Bursaries, Scholarships and Awards portal, for full-time
+      study in specified fields; eligible for funding for up to four years within a five year period. The page gives no amount.
+    application:
+      route_type: unknown
+      url: https://indspirefunding.ca/cenovus-energy-inc/
+      instructions: The page lists the criteria only; see Indspire for how to apply.
+      quotes: ["Deadlines: August 1, November 1, February 1"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: "three intakes a year: August 1, November 1, February 1"
+        deadlines:
+          - {kind: annual_rule, annual_month: 8, annual_day: 1, raw_text: "August 1", quotes: ["Deadlines: August 1, November 1, February 1"]}
+          - {kind: annual_rule, annual_month: 11, annual_day: 1, raw_text: "November 1", quotes: ["Deadlines: August 1, November 1, February 1"]}
+          - {kind: annual_rule, annual_month: 2, annual_day: 1, raw_text: "February 1", quotes: ["Deadlines: August 1, November 1, February 1"]}
+        amount: {kind: unspecified, currency: null, unit: unspecified, raw_text: "not stated on the page"}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["Indigenous Affiliation: Any"]}
+            - {type: predicate, field: study_status, op: eq, value: full_time, quotes: ["Level of Study: Any full time program"]}
+            - {type: unknown, reason: "Limited to the listed programmes of study", quotes: ["Program of Study: Engineering Degree (Mechanical, Chemical, Petroleum); Geologist Degree; Business (related) Degree (Accounting)"]}
+          unstructured:
+            - {text: "Preference is given to applicants from the listed communities and regions.", quotes: ["Community/region of preference:"]}
+            - {text: "Eligible for funding for up to four years within a five year period.", quotes: ["Eligible for funding for up to four years within a five year period."]}

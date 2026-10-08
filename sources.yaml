@@ -2,6 +2,7 @@
 # this file is a verified award. `access_status` is about OUR review of terms (robots.txt is
 # checked at fetch time and recorded in the run manifest; robots allowing a path does not mean
 # the site's terms allow reuse). Domain/path rules bound every fetch AND every redirect hop.
+include: ["sources.providers.yaml"]  # generated provider pages, one start page each
 sources:
   - source_id: isc_bursaries_index
     name: ISC Indigenous Bursaries Search Tool

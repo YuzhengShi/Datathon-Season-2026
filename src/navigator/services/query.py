@@ -62,6 +62,12 @@ def _matches_text(record: dict, query: str) -> bool:
     return all(term in haystack for term in _fold(query).split())
 
 
+def source_kind(record: dict) -> str:
+    """``directory_listing`` when every source of the record is a discovery index (a directory entry), else ``official_page``."""
+    roles = {ref.get("role") for ref in record.get("source_refs", [])}
+    return "directory_listing" if roles and roles <= {"discovery_index"} else "official_page"
+
+
 def _summary(record: dict, cycle: dict, avail: dict, flags: list[str], applic: dict) -> dict:
     app = record["application"]
     return {
@@ -86,6 +92,7 @@ def _summary(record: dict, cycle: dict, avail: dict, flags: list[str], applic: d
         },
         "applicability": applic,
         "review_status": record["review_status"],
+        "source_kind": source_kind(record),
         "last_verified_at": record.get("last_verified_at"),
         "freshness_flags": flags,
     }
@@ -227,6 +234,7 @@ def opportunity_detail(
         "next_steps": _next_steps(record, siblings),
         "verification": {
             "review_status": record["review_status"],
+            "source_kind": source_kind(record),
             "last_verified_at": record.get("last_verified_at"),
             "last_fetched_at": record["last_fetched_at"],
             "note": "machine_checked means a source-specific parser and validation passed; it is not human review. "

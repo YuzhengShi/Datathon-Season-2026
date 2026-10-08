@@ -1,0 +1,28 @@
+source_id: prov_bcaafc_com_education_first_citizen_funds
+records:
+  - key: first-citizens-fund-student-bursary-program
+    id: "b_c_ministry_of_community_aboriginal_and:isc_first_citizens_fund_student_bursary_program_b_c_ministry_of_community"
+    title: First Citizens Fund Student Bursary Program
+    opportunity_type: award
+    publication_status: archived
+    summary: >-
+      PAUSED. The BC Association of Aboriginal Friendship Centres, which administers the programme for the Province, states that it
+      is paused until further notice because of funding cuts. The bursary was up to $1,200 per funding cycle. Kept as archived
+      so that nobody is sent to a programme that is not accepting applications.
+    application:
+      route_type: unknown
+      url: https://bcaafc.com/education/first-citizen-funds/
+      instructions: The programme is paused; check the BCAAFC page for any restart.
+      quotes: ["Applications must be completed and submitted by 5:00 p.m. on the application deadline."]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: paused until further notice
+        deadlines:
+          - {kind: unspecified, raw_text: "Paused until further notice; no deadline", quotes: ["the First Citizens Fund Student Bursary Program is paused until further notice"]}
+        amount: {kind: maximum, maximum: "1200", currency: CAD, unit: unspecified, raw_text: "up to a maximum of $1,200 per funding cycle", quotes: ["Bursaries up to a maximum of $1,200 per funding cycle"]}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["Post-secondary students of Indigenous ancestry (status, non-status, Métis, Inuit) who:"]}
+            - {type: predicate, field: residence_province, op: eq, value: BC, quotes: ["are permanent residents of British Columbia;"]}
+          unstructured:
+            - {text: "The programme is paused until further notice because of funding cuts.", quotes: ["the First Citizens Fund Student Bursary Program is paused until further notice"]}

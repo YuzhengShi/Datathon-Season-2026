@@ -317,9 +317,16 @@ class FetchStageTests(unittest.TestCase):
 
 class SourceConfigTests(unittest.TestCase):
     def test_shipped_sources_are_valid_and_scoped(self):
-        sources = load_sources(ROOT / "sources.yaml")
+        everything = load_sources(ROOT / "sources.yaml")
+        self.assertEqual(len({s.source_id for s in everything}), len(everything))
+        sources = [s for s in everything if not s.source_id.startswith("prov_")]
         self.assertEqual(len(sources), 10)
-        self.assertEqual(len({s.source_id for s in sources}), 10)
+        for provider_page in (
+            s for s in everything if s.source_id.startswith("prov_")
+        ):  # generated: one start page each
+            self.assertEqual(provider_page.max_pages, 1, provider_page.source_id)
+            self.assertTrue(provider_page.url.startswith("https://"), provider_page.source_id)
+            self.assertEqual(provider_page.access_status, "unreviewed")
         for s in sources:
             self.assertTrue(s.url.startswith("https://"), s.source_id)
             self.assertEqual(s.access_status, "unreviewed")  # terms have not been reviewed by a person

@@ -43,7 +43,7 @@ TARGET_MIN = 20
 def build_fetcher(rt: Runtime, transport: Any = None) -> Fetcher:
     """Real HTTP by default; tests inject a scripted transport (no DNS check in that case)."""
     policy = FetchPolicy(
-        user_agent=rt.user_agent,
+        user_agent=checked_user_agent(rt.user_agent),
         timeout=rt.fetch_timeout,
         max_bytes=rt.fetch_max_bytes,
         retries=rt.fetch_retries,
@@ -89,6 +89,45 @@ def snapshots_from_index(
             snapshot_view(e, source, store, key=f"{source.source_id}:{i}") for i, e in enumerate(entries)
         ]
     return out
+
+
+def prefer_provider_records(candidates: list[dict]) -> tuple[list[dict], list[tuple[dict, dict]]]:
+    """A curated record read from the provider's own page replaces the directory record with the same id.
+
+    The directory entry stays in ``data/discovery``; only the opportunity record is replaced. Two curated records, or two
+    directory records, with the same id are left alone: the planner rejects a duplicate id.
+    """
+    curated = {r["id"]: r for r in candidates if r.get("extraction_method") == "curated"}
+    kept: list[dict] = []
+    replaced: list[tuple[dict, dict]] = []
+    for record in candidates:
+        newer = curated.get(record["id"])
+        if newer is not None and record.get("extraction_method") == "deterministic_adapter":
+            replaced.append((record, newer))
+        else:
+            kept.append(record)
+    return kept, replaced
+
+
+def apply_supersession(outcome, root: Path, manifest):
+    """Replace verified directory records by verified provider-page records with the same id, and say so."""
+    import dataclasses as _dc
+
+    kept, replaced = prefer_provider_records(outcome.verified)
+    path = root / "discovery" / "superseded_directory_records.json"
+    if not replaced:
+        path.unlink(missing_ok=True)
+        return outcome
+    write_json(
+        path,
+        [
+            {"id": old["id"], "title": old["title"], "replaced_by_source": new["source_refs"][0]["source_id"]}
+            for old, new in replaced
+        ],
+    )
+    if manifest:
+        manifest.step_done("supersede", replaced=len(replaced))
+    return _dc.replace(outcome, verified=kept)
 
 
 def stage_parse(
@@ -241,6 +280,7 @@ def run_extract_only(rt: Runtime, *, now: datetime, limit: int | None = None) ->
         artifact_root=root, expected_mode=rt.mode, now=now, known_source_ids=frozenset(s.source_id for s in sources)
     )
     outcome = verify_records(parsed.candidates, ctx, now)
+    outcome = apply_supersession(outcome, root, manifest)
     verified = sorted(outcome.verified, key=lambda r: r["id"])[: limit or None]
     write_jsonl(root / "candidates" / "awards.jsonl", verified)
     if outcome.rejected:
@@ -330,6 +370,7 @@ def run_live_pipeline(
         artifact_root=root, expected_mode="live", now=now, known_source_ids=frozenset(s.source_id for s in sources)
     )
     outcome = verify_records(parsed.candidates, ctx, now)
+    outcome = apply_supersession(outcome, root, manifest)
     if outcome.rejected:
         quarantine = write_rejected_quarantine(root, run_id, outcome.rejected)
         if quarantine is not None:
@@ -431,3 +472,15 @@ def run_live_pipeline(
         }
     )
     return result
+
+
+def checked_user_agent(user_agent: str) -> str:
+    """The text sent to source sites. A crawler must be reachable: warn when it names no e-mail address or web page."""
+    import logging
+    import re
+
+    if not re.search(r"@|https?://", user_agent) or "YOUR-EMAIL" in user_agent:
+        logging.getLogger(__name__).warning(
+            "USER_AGENT gives source sites no way to contact you: set a real address in .env (docs/RUNBOOK.md) before a larger run"
+        )
+    return user_agent

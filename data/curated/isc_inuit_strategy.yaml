@@ -1,0 +1,25 @@
+source_id: isc_inuit_strategy
+records:
+  - key: inuit-post-secondary-education-strategy
+    title: Inuit Post-Secondary Education Strategy
+    opportunity_type: funding_channel
+    summary: >-
+      Federal strategy funding distributed by the Inuit land-claim organizations (and Inuit Tapiriit Kanatami for national
+      coordination); it covers student financial support such as tuition, books, living expenses and travel home.
+    application:
+      route_type: contact_administrator
+      instructions: Consult Inuit Tapiriit Kanatami or your Inuit land-claim organization.
+      quotes: ["should consult Inuit Tapiriit Kanatami or their respective Inuit land-claim organization for more information on how to apply"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: not stated; set by each Inuit organization
+        deadlines:
+          - kind: local_administrator
+            raw_text: Consult Inuit Tapiriit Kanatami or your Inuit land-claim organization for application deadlines.
+            quotes: ["should consult Inuit Tapiriit Kanatami or their respective Inuit land-claim organization for application deadlines"]
+        amount: {kind: unspecified, currency: null, unit: unspecified, raw_text: not stated per student}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [inuit], quotes: ["Inuit who are beneficiaries of an Inuit land-claims agreement, regardless of where they reside in Canada"]}
+            - {type: predicate, field: inuit_beneficiary, op: eq, value: true, quotes: ["Inuit who are beneficiaries of an Inuit land-claims agreement, regardless of where they reside in Canada"]}
+            - {type: unknown, reason: "Each Inuit organization decides how funding is distributed and to whom", quotes: ["Each initial recipient will determine the mechanisms for funding distribution to the eligible ultimate recipients."]}

@@ -1,0 +1,28 @@
+source_id: prov_fraserbasin_bc_ca_fnhes_grants_html
+records:
+  - key: first-nations-home-energysave-learning-grants
+    id: "fraser_basin_council:isc_first_nations_home_energysave_learning_grants_fraser_basin_council"
+    title: First Nations Home EnergySave Learning Grants
+    opportunity_type: award
+    summary: >-
+      Fraser Basin Council grants of up to $1,000 for First Nations, Inuit and Métis students in BC studying energy-efficiency
+      related subjects. Funding for the current programme year is fully allocated; the page says applications re-open in
+      mid-November 2026.
+    application:
+      route_type: unknown
+      url: https://www.fraserbasin.bc.ca/bc-wide-work/climate-change/first-nations-home-energysave/learning-grants/
+      instructions: Apply on the Fraser Basin Council Learning Grant page when applications re-open.
+      quotes: ["Applications will re-open in mid-November 2026."]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: funding fully allocated; applications re-open in mid-November 2026
+        deadlines:
+          - {kind: unspecified, raw_text: "Applications will re-open in mid-November 2026 (no closing date stated)", quotes: ["Applications will re-open in mid-November 2026."]}
+        amount: {kind: maximum, maximum: "1000", currency: CAD, unit: per_student, raw_text: "up to $1,000", quotes: ["Each Indigenous student can receive up to $1,000 in funding to support energy efficiency-focused learning opportunities."]}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["You must be an Indigenous individual (First Nations, Métis [Métis Nation of BC verified] or Inuit) residing in British Columbia"]}
+            - {type: predicate, field: residence_province, op: eq, value: BC, quotes: ["You must be an Indigenous individual (First Nations, Métis [Métis Nation of BC verified] or Inuit) residing in British Columbia"]}
+            - {type: unknown, reason: "Studies or work must relate to energy efficiency, community energy management or housing maintenance", quotes: ["You must study courses or work in a sector related to energy efficiency, community energy management, or housing/housing maintenance."]}
+          unstructured:
+            - {text: "Learning Grant funding for the current programme year has been fully allocated.", quotes: ["Learning Grant funding for the current program year has been fully allocated."]}

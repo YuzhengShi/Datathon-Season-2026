@@ -58,6 +58,7 @@ class ApiTests(unittest.TestCase):
                 ("/opportunities", "GET"),
                 ("/opportunities/{opportunity_id}", "GET"),
                 ("/match", "POST"),
+                ("/reference/institutions", "GET"),
                 ("/reports/freshness", "GET"),
             },
         )
@@ -65,23 +66,35 @@ class ApiTests(unittest.TestCase):
 
     # ----------------------------------------------------------- opportunities
     def test_listing_defaults_filters_and_pagination(self):
-        out = self.client.get("/opportunities?limit=100").json()
+        out = self.client.get("/opportunities?as_of=2026-10-07&limit=100").json()
         ids = [r["id"] for r in out["results"]]
         self.assertEqual((out["data_mode"], out["total"]), ("demo", 23))
         self.assertNotIn("demo_award_collection", ids)
         self.assertEqual(
-            [r["id"] for r in self.client.get("/opportunities?limit=5&offset=5").json()["results"]], ids[5:10]
+            [r["id"] for r in self.client.get("/opportunities?as_of=2026-10-07&limit=5&offset=5").json()["results"]],
+            ids[5:10],
         )
         self.assertIn(
             "demo_shared_application_a",
-            [r["id"] for r in self.client.get("/opportunities?province=BC&limit=100").json()["results"]],
+            [
+                r["id"]
+                for r in self.client.get("/opportunities?as_of=2026-10-07&province=BC&limit=100").json()["results"]
+            ],
         )
         self.assertNotIn(
             "demo_shared_application_a",
-            [r["id"] for r in self.client.get("/opportunities?province=ON&limit=100").json()["results"]],
+            [
+                r["id"]
+                for r in self.client.get("/opportunities?as_of=2026-10-07&province=ON&limit=100").json()["results"]
+            ],
         )
         self.assertEqual(
-            [r["id"] for r in self.client.get("/opportunities?opportunity_type=award_collection").json()["results"]],
+            [
+                r["id"]
+                for r in self.client.get("/opportunities?as_of=2026-10-07&opportunity_type=award_collection").json()[
+                    "results"
+                ]
+            ],
             ["demo_award_collection"],
         )
 

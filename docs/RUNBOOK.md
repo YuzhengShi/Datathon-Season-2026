@@ -128,3 +128,31 @@ compares the models with the hand-written migration. `DEMO_DATABASE_URL` must di
 ## 8. What has and has not been run
 
 See [HANDOFF.md](HANDOFF.md): it lists, command by command, what was executed and what was written but not run.
+
+## Pages that refuse automated access (HTTP 403)
+
+Some sites (for example `students.ubc.ca`) answer an automated client with HTTP 403. The project does not work around that: no
+changed User-Agent, no retries, no headless browser. If you can open the page in your own browser, a person may save it and import
+it with its provenance:
+
+1. Open the exact page in a browser, then *File > Save page as...* ("Webpage, HTML only") or save the PDF.
+2. `python -m navigator.cli import-snapshot --source ubc_award_descriptions --url "<the page address>" --file "<saved file>" --saved-by "<your name>"`
+3. `python -m navigator.cli extract --mode live`. Write the curated mapping with verbatim quotes as for any other page, and say in the
+   record's summary that the page was saved by a person on a given date.
+
+The snapshot is stored like a fetched one; the fetch index records `acquisition: manual_upload` and who saved it, the audit log gets a
+`manual_import` row, the source's allowlist still applies, and every evidence check runs unchanged. Ask the site for permission before
+relying on it for more than a handful of pages.
+
+## The web app
+
+* Start it with `python -m navigator.cli serve --mode live` and open `http://127.0.0.1:8000/` (it redirects to `/app/`). If Windows refuses the
+  port (`WinError 10013`), pass `--port 8080`.
+* The app is the folder `frontend/`: edit a file and reload, there is no build. `assets/logic.js` holds every rule that turns API data into words
+  (amounts, deadlines, fit, sorting); change it together with `tests/js/logic.test.mjs`.
+* Checks: `python -m pytest -q` (includes the JavaScript logic tests), and the real-browser run
+  `node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000 --out=shots` (use `--chrome="<path to chrome.exe or msedge.exe>"` if the default path is wrong;
+  it writes screenshots to `shots/`). It fails on any JavaScript error, sideways scrolling on a 390 px phone, stored data or an unnamed control.
+* The page is served with a strict Content-Security-Policy (no inline scripts or styles, no third-party hosts). Keep it that way: add files under
+  `frontend/assets/`, do not add CDN links.
+* A contact address for corrections goes in `frontend/assets/config.js` (`CONTACT_EMAIL`); the crawler's contact goes in `USER_AGENT` in `.env`.

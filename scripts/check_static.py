@@ -334,8 +334,16 @@ def check_ruff_defaults(files: list[Path]) -> list[str]:
         def noqa(lineno: int) -> bool:
             return "noqa" in lines[lineno - 1]
 
+        # a format spec such as the :<5 in f"{x:<5}" is itself a JoinedStr without placeholders: not a finding
+        format_specs = {
+            id(n.format_spec) for n in ast.walk(tree) if isinstance(n, ast.FormattedValue) and n.format_spec is not None
+        }
         for node in ast.walk(tree):
-            if isinstance(node, ast.JoinedStr) and not any(isinstance(v, ast.FormattedValue) for v in node.values):
+            if (
+                isinstance(node, ast.JoinedStr)
+                and id(node) not in format_specs
+                and not any(isinstance(v, ast.FormattedValue) for v in node.values)
+            ):
                 if not noqa(node.lineno):
                     findings.append(f"{rel}:{node.lineno}: F541 f-string without placeholders")
             elif isinstance(node, ast.ExceptHandler) and node.type is None and not noqa(node.lineno):

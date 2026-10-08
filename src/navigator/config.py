@@ -31,7 +31,7 @@ DEFAULTS: dict[str, str] = {
     "OPENAI_API_KEY": "",
     "OPENAI_MODEL": "",
     "CORS_ALLOW_ORIGINS": "",
-    "USER_AGENT": "IndigenousFundingNavigatorBot/0.1 (+contact: set USER_AGENT in .env)",
+    "USER_AGENT": "IndigenousFundingNavigatorBot/0.1 (free, non-commercial project that helps Indigenous students find funding; respects robots.txt; contact: set USER_AGENT in .env)",
 }
 
 

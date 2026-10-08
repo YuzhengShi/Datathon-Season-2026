@@ -55,7 +55,13 @@ def load_sources(path: Path) -> list[SourceConfig]:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     out: list[SourceConfig] = []
     seen: set[str] = set()
-    for raw in data.get("sources", []):
+    raws = list(data.get("sources", []))
+    for included in data.get("include", []):
+        extra = path.parent / included
+        if not extra.is_file():
+            raise SourceConfigError(f"included source file not found: {extra}")
+        raws.extend((yaml.safe_load(extra.read_text(encoding="utf-8")) or {}).get("sources", []))
+    for raw in raws:
         try:
             source = SourceConfig(
                 source_id=raw["source_id"],

@@ -1,0 +1,32 @@
+source_id: mnbc_steps
+records:
+  - key: steps-education-and-skills-training-funding
+    title: MNBC STEPS - Education and Skills Training Funding
+    opportunity_type: funding_channel
+    summary: >-
+      Métis Nation British Columbia's Skills Training, Employment and Post-Secondary programme: client-initiated funding
+      for tuition, mandatory fees and related costs for Métis Citizens. A funding waitlist is currently in place.
+    application:
+      route_type: online_application
+      url: https://www.mnbc.ca/STEPS
+      instructions: Use the education or skills training funding application on the STEPS page; a STEPS team member follows up.
+      quotes: ["If you are ready to request STEPS funding and support, please use one of the applications below:"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: no closing date stated; reviewed first-completed first-serve; waitlist in place
+        deadlines:
+          - kind: rolling
+            raw_text: Applications are reviewed first-completed first-serve and placed on a funding waitlist.
+            quotes: ['Applications are reviewed on a "first-completed first-serve" basis']
+        amount:
+          kind: unspecified
+          currency: null
+          unit: unspecified
+          raw_text: Tuition and mandatory fees are supported; a books allowance of $250 per semester or $500 per funding contract is stated.
+          quotes: ["$250 per semester or $500 per funding contract"]
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [metis], quotes: ["To be eligible to apply for MNBC services, you must be a Métis Citizen."]}
+            - {type: predicate, field: metis_citizen, op: eq, value: true, quotes: ["To be eligible to apply for MNBC services, you must be a Métis Citizen."]}
+          unstructured:
+            - {text: "Requests are being placed on a waitlist; placement on the waitlist does not guarantee funding within the current fiscal year.", quotes: ["placement on the waitlist does not guarantee that funding will be available within the current fiscal year"]}

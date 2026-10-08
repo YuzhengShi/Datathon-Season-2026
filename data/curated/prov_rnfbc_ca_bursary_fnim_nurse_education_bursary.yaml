@@ -1,0 +1,29 @@
+source_id: prov_rnfbc_ca_bursary_fnim_nurse_education_bursary
+records:
+  - key: first-nations-inuit-and-metis-nurse-education-bursary
+    id: "registered_nurses_foundation_of_british:isc_first_nations_inuit_and_metis_nurse_education_bursary_registered_nurse"
+    title: First Nations, Inuit and Métis Nurse Education Bursary
+    opportunity_type: award
+    summary: >-
+      Registered Nurses Foundation of BC bursary (created 2024) for First Nations, Inuit and Métis nursing students and nurses in BC
+      enrolled in LPN, RN, RPN and master's programmes. Recipients are chosen by a randomized draw of completed applications. The
+      page states neither an amount nor a deadline.
+    application:
+      route_type: unknown
+      url: https://www.rnfbc.ca/bursary/fnim-nurse-education-bursary/
+      instructions: Apply through the RNFBC bursary page; a written statement about your Indigenous heritage is required.
+      quotes: ["Provide a written statement, in your own words, describing your Indigenous heritage"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: not stated on the page
+        deadlines:
+          - {kind: unspecified, raw_text: "not stated on the page"}
+        amount: {kind: unspecified, currency: null, unit: unspecified, raw_text: "not stated on the page"}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["who identify as First Nations, Inuit and Métis peoples of Northern Turtle Island (Canada) and reside within the colonial borders of British Columbia"]}
+            - {type: predicate, field: residence_province, op: eq, value: BC, quotes: ["who identify as First Nations, Inuit and Métis peoples of Northern Turtle Island (Canada) and reside within the colonial borders of British Columbia"]}
+            - {type: predicate, field: institution_province, op: eq, value: BC, quotes: ["We invite applications from students entering or currently enrolled in such programs at an accredited institution in BC."]}
+            - {type: unknown, reason: "Must be entering or enrolled in a nursing programme (LPN, RN, RPN or master's)", quotes: ["We invite applications from students entering or currently enrolled in such programs at an accredited institution in BC."]}
+          unstructured:
+            - {text: "Completed applications are entered into a randomized draw; the winners are then checked against the criteria.", quotes: ["all completed bursary applications are entered into a randomized draw"]}

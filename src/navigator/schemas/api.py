@@ -76,6 +76,7 @@ class OpportunitySummary(BaseModel):
     current_cycle: CurrentCycle
     applicability: ApplicabilityInfo
     review_status: str
+    source_kind: str = Field(description="official_page, or directory_listing for a government directory entry")
     last_verified_at: str | None = None
     freshness_flags: list[str]
 
@@ -165,3 +166,15 @@ class MatchResponse(BaseModel):
     results: list[MatchItem] | None = None
     groups: list[MatchGroup] | None = None
     disclaimer: str
+
+
+class InstitutionRef(BaseModel):
+    id: str
+    name: str
+    province: str | None = None
+    aliases: list[str] = Field(default_factory=list)
+
+
+class InstitutionList(BaseModel):
+    data_mode: DataMode
+    institutions: list[InstitutionRef]

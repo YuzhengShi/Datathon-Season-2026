@@ -1,0 +1,25 @@
+source_id: prov_thecanadianpress_com_about_careers_gil_purcell_memor
+records:
+  - key: gillis-purcell-memorial-journalism-scholarship-for-indigenous-peoples
+    id: "the_canadian_press:isc_gillis_purcell_memorial_journalism_scholarship_for_indigenous_peoples"
+    title: Gillis Purcell Memorial Journalism Scholarship for Indigenous Peoples
+    opportunity_type: award
+    summary: >-
+      The Canadian Press scholarship to encourage Indigenous Peoples to pursue a career in journalism, combining studies at a
+      Canadian post-secondary institution with newsroom experience. Read from The Canadian Press's own page.
+    application:
+      route_type: unknown
+      url: https://www.thecanadianpress.com/about/careers/gil-purcell-memorial-journalism-scholarship/
+      instructions: Complete and submit the application form linked on The Canadian Press page.
+      quotes: ["Application forms: Complete and submit your form here."]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: annual; applications are due Nov. 1 of each year
+        deadlines:
+          - {kind: annual_rule, annual_month: 11, annual_day: 1, raw_text: "Applications are due Nov. 1 of each year.", quotes: ["Deadline: Applications are due Nov. 1 of each year."]}
+        amount: {kind: fixed, fixed: "4000", currency: CAD, unit: unspecified, raw_text: "$4,000", quotes: ["A gift of $4,000, intended to defray education costs, is awarded to the successful applicant."]}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["To be awarded to an Indigenous Peoples (status or non-status Indian, Metis or Inuit) enrolled at a Canadian university or college."]}
+            - {type: predicate, field: education_level, op: in, value: [college, undergraduate, masters, doctoral], quotes: ["To be awarded to an Indigenous Peoples (status or non-status Indian, Metis or Inuit) enrolled at a Canadian university or college."]}
+            - {type: unknown, reason: "Must be in a journalism programme or actively involved with a news organisation associated with the institution", quotes: ["must be either enrolled in a journalism program or actively involved with a news organization associated with the institution"]}

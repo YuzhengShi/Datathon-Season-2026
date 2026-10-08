@@ -1,0 +1,35 @@
+source_id: isc_psssp
+records:
+  - key: post-secondary-student-support-program
+    title: Post-Secondary Student Support Program (PSSSP)
+    opportunity_type: funding_channel
+    summary: >-
+      Federal funding for registered First Nations post-secondary students, delivered through First Nations or First
+      Nations-designated organizations, which set the selection criteria, run the application and decide allocations.
+      Funding is limited and may be partial.
+    application:
+      route_type: contact_administrator
+      instructions: Contact your First Nation, First Nations-designated organization or ISC regional office.
+      quotes: ["First Nations students who want to pursue post-secondary studies and access available student funding should contact their First Nation, First Nations-designated organization or ISC regional office"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: Applications are valid for 1 school year only; local due dates
+        deadlines:
+          - kind: local_administrator
+            raw_text: Contact your local band office or ISC regional office to find out when to apply for funding.
+            quotes: ["Contact your local band office or ISC regional office to find out when to apply for funding."]
+        amount:
+          kind: maximum
+          maximum: "53000"
+          currency: CAD
+          unit: per_year
+          raw_text: The maximum amount payable per full time student cannot exceed $53,000 per year.
+          quotes: ["The maximum amount payable per full time student cannot exceed $53,000 per year."]
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations], quotes: ["First Nations post-secondary students registered under the Indian Act"]}
+            - {type: predicate, field: first_nations_registered, op: eq, value: true, quotes: ["First Nations post-secondary students registered under the Indian Act"]}
+            - {type: unknown, reason: "Satisfactory academic standing at an eligible institution is judged by the First Nation or its organization", quotes: ["maintain satisfactory academic standing within an eligible post-secondary institution"]}
+            - {type: unknown, reason: "Selection criteria and allocations are decided by the student's First Nation or its designated organization", quotes: ["are responsible for determining the selection criteria for PSSSP funding"]}
+          unstructured:
+            - {text: "Funding is limited and not all students may be funded; partial funding may be provided.", quotes: ["Funding is limited and not all students may be funded. Partial funding may be provided."]}

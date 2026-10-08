@@ -1,0 +1,28 @@
+source_id: prov_fraserbasin_bc_ca_chief_roy_mussell_bursary_fund_htm
+records:
+  - key: chief-roy-mussell-bursary
+    id: "fraser_basin_council:isc_chief_roy_mussell_bursary_fraser_basin_council"
+    title: Chief Roy Mussell Bursary
+    opportunity_type: award
+    summary: >-
+      Fraser Basin Council bursary (established 2024) for Indigenous youth in British Columbia advancing sustainability and/or
+      reconciliation through a post-secondary course or programme. Applications for 2025-26 are closed; the page says they will
+      open again in fall 2026. The 2025/2026 award was $1000.
+    application:
+      route_type: unknown
+      url: https://www.fraserbasin.bc.ca/about-us/scholarships-bursaries/chief-roy-mussell-bursary/
+      instructions: Fill in the application form described on the Fraser Basin Council page when intake opens.
+      quotes: ["As an applicant, you will be asked to provide the following information in the form:"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: next intake - applications will open again in fall 2026
+        deadlines:
+          - {kind: unspecified, raw_text: "Closed for 2025-26; applications will open again in fall 2026 (no date stated)", quotes: ["Applications will open again in fall 2026."]}
+        amount: {kind: fixed, fixed: "1000", currency: CAD, unit: unspecified, raw_text: "$1000 (the 2025/2026 award)", quotes: ["the Bursary Fund offered a $1000 bursary"]}
+        eligibility:
+          mandatory:
+            - {type: predicate, field: indigenous_identity, op: overlaps, value: [first_nations, inuit, metis], quotes: ["The Chief Roy Mussell Bursary is open to Indigenous (First Nation, Inuit, Métis) applicants in British Columbia who are:"]}
+            - {type: predicate, field: residence_province, op: eq, value: BC, quotes: ["The Chief Roy Mussell Bursary is open to Indigenous (First Nation, Inuit, Métis) applicants in British Columbia who are:"]}
+            - {type: unknown, reason: "Age 17-30 cannot be checked from the profile", quotes: ["between 17-30 years of age"]}
+            - {type: unknown, reason: "Financial need is assessed by the provider", quotes: ["in need of financial assistance"]}
+            - {type: unknown, reason: "The course or programme must support sustainability and/or reconciliation in B.C.", quotes: ["enrolled in a post-secondary course or studies program that supports their pursuit of advancing sustainability and/or reconciliation in B.C."]}

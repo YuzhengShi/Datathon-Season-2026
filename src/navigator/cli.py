@@ -201,6 +201,47 @@ def fetch(
     raise typer.Exit(result["exit_code"])
 
 
+@app.command("import-snapshot")
+def import_snapshot(
+    source: str = typer.Option(..., "--source", help="source_id from sources.yaml"),
+    url: str = typer.Option(..., "--url", help="The page's address, exactly as it appears in the browser."),
+    file: Path = typer.Option(..., "--file", exists=True, dir_okay=False, help="The saved page (.html, .htm or .pdf)."),
+    saved_by: str = typer.Option(..., "--saved-by", help="Who saved the page in a browser."),
+    saved_at: Optional[str] = typer.Option(None, "--saved-at", help="When it was saved (default: now)."),
+    mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),
+) -> None:
+    """Import a page a PERSON saved in a browser, for sites that refuse automated access (live only, no network)."""
+    from navigator.ingestion.fetch_stage import FetchIndex
+    from navigator.ingestion.manual import ManualImportError, import_manual_snapshot
+    from navigator.ingestion.snapshots import SnapshotStore
+    from navigator.ingestion.sources import load_sources
+
+    rt = _runtime(mode)
+    if rt.mode != "live":
+        _fail("import-snapshot works in live mode only")
+    try:
+        configured = {s.source_id: s for s in load_sources(rt.sources_config)}
+    except SourceConfigError as exc:
+        _fail(f"source configuration error: {exc}")
+    if source not in configured:
+        _fail(f"unknown source {source!r}: it must exist in {rt.sources_config}")
+    root = rt.artifact_root
+    try:
+        summary = import_manual_snapshot(
+            configured[source],
+            url,
+            file,
+            saved_by=saved_by,
+            saved_at=_clock(saved_at),
+            store=SnapshotStore(root),
+            index=FetchIndex(root / "discovery" / "fetch_index.json"),
+            audit_path=root / "discovery" / "fetch_audit.jsonl",
+        )
+    except ManualImportError as exc:
+        _fail(str(exc))
+    _emit(summary)
+
+
 @app.command()
 def extract(
     mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP),

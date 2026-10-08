@@ -1,0 +1,27 @@
+source_id: prov_afoa_ca_awards_youth
+records:
+  - key: nutrien-indigenous-youth-financial-management-awards
+    id: "afoa_canada_and_nutrien:isc_nutrien_indigenous_youth_financial_management_awards_afoa_canada_and_n"
+    title: Nutrien Indigenous Youth Financial Management Awards
+    opportunity_type: award
+    donor_name: Nutrien
+    summary: >-
+      AFOA Canada and Nutrien annual awards for Indigenous youth interested in careers in Indigenous finance and management.
+      Recipients attend AFOA Canada's National Conference and become eligible for a scholarship of up to $5,000.
+      Read from AFOA Canada's own page, which shows the 2026 intake as open.
+    application:
+      route_type: online_application
+      url: https://afoa.ca/awards/youth/
+      instructions: Download the PDF application (English or French) or apply online from the AFOA Canada page.
+      quotes: ["Download a PDF application (English or French); or"]
+    cycles:
+      - cycle_key: unspecified
+        label_raw: "Status: Open until November 23, 2026"
+        starts_on: "2026-10-07"
+        window_quotes: ["Status: Open until November 23, 2026"]
+        deadlines:
+          - {kind: date, date: "2026-11-23", raw_text: "Open until November 23, 2026", quotes: ["Status: Open until November 23, 2026"]}
+        amount: {kind: maximum, maximum: "5000", currency: CAD, unit: unspecified, raw_text: "a scholarship of up to $5,000", quotes: ["become eligible for a scholarship of up to $5,000"]}
+        eligibility:
+          mandatory:
+            - {type: unknown, reason: "The page does not list eligibility criteria in its text (they are in the flyer and application)", quotes: ["That is why AFOA Canada and Nutrien have come together to offer the Annual Nutrien Indigenous Youth Financial Management Awards."]}

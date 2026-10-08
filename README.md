@@ -44,7 +44,7 @@ application forms are modelled without merging the awards' eligibility.
 | Dataset | Records | Real? | How it was produced |
 | --- | --- | --- | --- |
 | demo (`data/demo/`) | 25 (23 awards, 1 funding channel, 1 collection) | **No - synthetic** | `pipeline --mode demo`: synthetic snapshots -> evidence-quoted candidates -> validation -> import -> export |
-| live (`data/`) | **33 real opportunities** | Yes | Fetched on the real network and verified quote by quote; see HANDOFF section 3 for what each source gave (and what it did not). Target 20-30. |
+| live (`data/`) | **37 real records** (36 published) | Yes | Fetched on the real network and verified quote by quote; 7 verified on the provider's own page, 18 still directory-only; see HANDOFF sections 3 and 6. |
 
 Nothing synthetic was used to fill the live numbers. `sources.yaml` lists the ten official entry points. Source adapters
 exist for the ISC discovery index, UBC-style sectioned pages, listing/detail pages (Indspire funding) and policy/context
@@ -78,16 +78,34 @@ terminal (server still running): `python scripts/smoke_test.py --base-url http:/
 API docs: http://127.0.0.1:8000/docs. Full commands, live runs, resume/refresh and troubleshooting:
 [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
+### Web app (for students)
+
+`python -m navigator.cli serve --mode live`, then open <http://127.0.0.1:8000/>. The API serves the app from the same origin: no build step, no CORS.
+
+* **Flow:** welcome, five optional questions, a store-like results page (search, filters with live counts, sort, one card per scholarship with
+  its amount and deadline), a detail page that shows the evidence, and "My list".
+* **Honest by design:** every card says whether it was read on the provider's own page or comes from a government directory that may be out of
+  date; amounts read "listed value" or "up to"; a requirement only the provider can judge is shown as "to confirm", never as a pass or a fail.
+* **Private by design:** answers live in memory only (no cookies, no browser storage, nothing in the address bar); the service neither stores nor
+  logs the profile.
+* **Code and tests:** `frontend/` is plain HTML, CSS and ES modules; `frontend/assets/logic.js` is pure and tested (`pytest` runs those tests when
+  Node 20+ is installed). A real-browser end-to-end check clicks through everything on a desktop and on a 390 px phone:
+  `node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000` (Node 22+, Chrome or Edge, a running server).
+* **Settings:** `frontend/assets/config.js` (contact address shown in the footer and on the About page).
+
 ### Honest status (details and the acceptance table: [docs/HANDOFF.md](docs/HANDOFF.md))
 
-* **Verified (Windows, CPython 3.12.10, fresh venv from the exact `requirements.lock`):** 241 tests pass, including the database, API and
+* **Verified (Windows, CPython 3.12.10, fresh venv from the exact `requirements.lock`):** 258 tests pass, including the database, API and
   command-line suites; ruff is clean; the demo flow, the real FastAPI server and `scripts/smoke_test.py` work in demo and live mode; the real
-  HTTP transport was exercised against a local server and, once, the real network (`example.com`).
-* **Real data: 33 opportunities** (8 from a curated mapping of SFU's awards table, 25 from the dated ISC directory). The ISC ones have no
-  deadline and only free-text eligibility; all 33 come back as `needs_provider_confirmation` in `/match`. **UBC returned HTTP 403** to the
-  automated client and was not worked around. Site terms are unreviewed (`access_status: unreviewed`).
-* **Not verified:** Linux/macOS, Python 3.11, PostgreSQL; a human review workflow; mappings for the ISC channel pages, MNBC and the Indspire
-  donor pages. The LLM extractor is intentionally not implemented.
+  HTTP transport was exercised against a local server and the real network.
+* **Real data: 37 records** (36 published): 8 SFU awards (curated from a real table), 4 funding channels (ISC PSSSP, Inuit and Métis Nation
+  strategies, MNBC STEPS), **7 awards verified on the provider's own page** (for example one is paused and archived, one is open until
+  2026-11-23), and 18 awards that rest only on the dated ISC directory. `POST /match` returns `needs_provider_confirmation` whenever a rule
+  is unknown; nothing is presented as a confirmed fit.
+* **UBC is missing:** its pages answer HTTP 403 to an automated client. That is respected, not worked around: ask UBC (see HANDOFF) or use
+  `import-snapshot` for pages a person saved in a browser. Site terms are unreviewed (`access_status: unreviewed`).
+* **Not verified:** Linux/macOS, Python 3.11, PostgreSQL; a human review workflow; 6 provider pages that were fetched but are not mapped yet (3 more could not be fetched).
+  The LLM extractor is intentionally not implemented.
 
 A ready-to-paste task for the next session (verify and fix the unexecuted layers, then real data): [docs/NEXT_SESSION_PROMPT.md](docs/NEXT_SESSION_PROMPT.md).
 
