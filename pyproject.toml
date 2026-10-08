@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indigenous-funding-navigator"
+version = "0.1.0"
+description = "Backend for the Indigenous Student Funding Navigator: sourced, evidence-backed funding data and explainable eligibility matching."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "pydantic>=2.8,<3",
+    "pydantic-settings>=2.4,<3",
+    "sqlalchemy>=2.0.30,<3",
+    "alembic>=1.13,<2",
+    "httpx>=0.27,<1",
+    "beautifulsoup4>=4.12,<5",
+    "lxml>=5.2",
+    "pypdf>=4.2",
+    "typer>=0.12,<1",
+    "pyyaml>=6.0,<7",
+    "tzdata>=2024.1",
+    # the offline demo generates its synthetic HTML/PDF fixtures at run time
+    "reportlab>=4.0",
+    "pillow>=10",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+extract = ["trafilatura>=1.12"]  # optional better main-text extraction; the default path does not need it
+dev = ["pytest>=8,<10", "ruff>=0.5,<1", "jsonschema>=4.20,<5"]
+
+[project.scripts]
+navigator = "navigator.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not live'"
+markers = ["live: touches the real network; opt in with NAVIGATOR_LIVE_TESTS=1 and `pytest -m live`"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# ruff's default rule set (pycodestyle E4/E7/E9 + pyflakes F); formatting is checked by `ruff format`.
+select = ["E4", "E7", "E9", "F"]

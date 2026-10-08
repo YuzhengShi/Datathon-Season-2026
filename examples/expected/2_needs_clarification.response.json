@@ -1,0 +1,190 @@
+{
+  "as_of": "2026-10-07T12:00:00Z",
+  "data_mode": "demo",
+  "note": "Excerpt of a real engine run on SYNTHETIC demo data (data_mode=demo); not real funding.",
+  "results": [
+    {
+      "amount": {
+        "currency": "CAD",
+        "evidence_ids": [
+          "ev_df6bcd6af6ca55cc"
+        ],
+        "fixed": "1000",
+        "interpretation": "Stated award value as written by the provider.",
+        "is_per_recipient_figure": true,
+        "kind": "fixed",
+        "personal_benefit_estimated": false,
+        "raw_text": "$1,000 CAD",
+        "renewable": null,
+        "unit": "unspecified"
+      },
+      "application_group_id": null,
+      "application_route": {
+        "contact_url": null,
+        "instructions": "Apply in the college awards portal.",
+        "route_type": "institution_portal",
+        "url": "https://demo.invalid/college/portal"
+      },
+      "availability": {
+        "next_deadline_utc": "2026-12-02T08:00:00Z",
+        "reason": "the window has opened and a deadline is still ahead"
+      },
+      "availability_status": "open",
+      "clarification_questions": [
+        "Are you studying full-time or part-time?"
+      ],
+      "cycle_key": "2026-27",
+      "deadlines": [
+        {
+          "closing": {
+            "basis": "end_of_local_day",
+            "earliest_utc": "2026-12-02T08:00:00Z",
+            "flags": [],
+            "latest_utc": "2026-12-02T08:00:00Z",
+            "state": "not_closed"
+          },
+          "date": "2026-12-01",
+          "deadline_at_utc": "2026-12-02T08:00:00Z",
+          "evidence_ids": [
+            "ev_48b23562cb941788"
+          ],
+          "kind": "date",
+          "precision": "day",
+          "raw_text": "December 1, 2026 (Pacific Time)",
+          "timezone": "Pacific Time"
+        }
+      ],
+      "eligibility_result": "unknown",
+      "evidence_refs": [
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/0",
+          "id": "ev_8893410b285b5179",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 4,
+            "text_end": 75,
+            "text_start": 29
+          },
+          "quote": "self-identify as First Nations, Inuit or Métis",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/1",
+          "id": "ev_464501bcc32bc5ca",
+          "locator": {
+            "heading": "Demo Clarification Award",
+            "paragraph_index": 10,
+            "text_end": 123,
+            "text_start": 85
+          },
+          "quote": "are enrolled full-time at Demo College",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/2",
+          "id": "ev_4d495357ede739bd",
+          "locator": {
+            "heading": "Demo Clarification Award",
+            "paragraph_index": 10,
+            "text_end": 123,
+            "text_start": 85
+          },
+          "quote": "are enrolled full-time at Demo College",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/amount",
+          "id": "ev_df6bcd6af6ca55cc",
+          "locator": {
+            "heading": "Demo Clarification Award",
+            "paragraph_index": 11,
+            "text_end": 18,
+            "text_start": 0
+          },
+          "quote": "Value: $1,000 CAD.",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/deadlines/0",
+          "id": "ev_48b23562cb941788",
+          "locator": {
+            "heading": "Demo Clarification Award",
+            "paragraph_index": 12,
+            "text_end": 78,
+            "text_start": 38
+          },
+          "quote": "close on December 1, 2026 (Pacific Time)",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/application",
+          "id": "ev_8637dfc3a466a0e1",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 8,
+            "text_end": 45,
+            "text_start": 0
+          },
+          "quote": "Apply through the Demo College awards portal.",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        }
+      ],
+      "failed_rules": [],
+      "freshness_flags": [],
+      "funder_side_conditions": [],
+      "last_verified_at": "2026-10-07T12:00:00Z",
+      "match_status": "needs_information",
+      "missing_profile_fields": [
+        "study_status"
+      ],
+      "next_action": "Answer the clarification questions so the remaining conditions can be checked.",
+      "official_url": "https://demo.invalid/college/awards#clarification-award",
+      "opportunity_id": "demo_clarification_award",
+      "opportunity_type": "award",
+      "passed_rules": [
+        {
+          "evidence_ids": [
+            "ev_8893410b285b5179"
+          ],
+          "field": "indigenous_identity",
+          "outcome": "pass",
+          "path": "/cycles/?/eligibility/mandatory/0",
+          "rule": "Indigenous identity includes at least one of First Nations, Inuit, Métis"
+        },
+        {
+          "evidence_ids": [
+            "ev_464501bcc32bc5ca"
+          ],
+          "field": "institution_id",
+          "outcome": "pass",
+          "path": "/cycles/?/eligibility/mandatory/1",
+          "rule": "Institution is demo college"
+        }
+      ],
+      "preference_matches": [],
+      "review_status": "machine_checked",
+      "source_uncertainties": [],
+      "title": "Demo Clarification Award",
+      "unknown_rules": [
+        {
+          "evidence_ids": [
+            "ev_4d495357ede739bd"
+          ],
+          "field": "study_status",
+          "outcome": "unknown",
+          "path": "/cycles/?/eligibility/mandatory/2",
+          "rule": "Study status is full-time",
+          "unknown_reason": "profile_missing"
+        }
+      ]
+    }
+  ],
+  "total": 23,
+  "total_groups": null
+}

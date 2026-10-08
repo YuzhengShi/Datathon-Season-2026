@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.env
+# local databases and downloaded/derived artefacts (the canonical public export data/awards.jsonl IS tracked)
+*.db
+*.sqlite
+data/raw/*
+data/text/*
+data/demo/*
+data/runs/*
+data/quarantine/*
+data/candidates/*
+data/discovery/*
+data/reports/*
+!data/**/.gitkeep

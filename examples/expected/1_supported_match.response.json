@@ -1,0 +1,185 @@
+{
+  "as_of": "2026-10-07T12:00:00Z",
+  "data_mode": "demo",
+  "note": "Excerpt of a real engine run on SYNTHETIC demo data (data_mode=demo); not real funding.",
+  "results": [
+    {
+      "amount": {
+        "currency": "CAD",
+        "evidence_ids": [
+          "ev_6aa960939908c91e"
+        ],
+        "fixed": "2500",
+        "interpretation": "Stated award value as written by the provider.",
+        "is_per_recipient_figure": true,
+        "kind": "fixed",
+        "personal_benefit_estimated": false,
+        "raw_text": "$2,500 CAD, awarded once per year",
+        "renewable": null,
+        "unit": "per_year"
+      },
+      "application_group_id": null,
+      "application_route": {
+        "contact_url": null,
+        "instructions": "Apply in the college awards portal.",
+        "route_type": "institution_portal",
+        "url": "https://demo.invalid/college/portal"
+      },
+      "availability": {
+        "next_deadline_utc": "2026-11-16T08:00:00Z",
+        "reason": "the window has opened and a deadline is still ahead"
+      },
+      "availability_status": "open",
+      "clarification_questions": [],
+      "cycle_key": "2026-27",
+      "deadlines": [
+        {
+          "closing": {
+            "basis": "stated_time",
+            "earliest_utc": "2026-11-16T08:00:00Z",
+            "flags": [],
+            "latest_utc": "2026-11-16T08:00:00Z",
+            "state": "not_closed"
+          },
+          "date": "2026-11-15",
+          "deadline_at_utc": "2026-11-16T08:00:00Z",
+          "evidence_ids": [
+            "ev_89b871319d0e6c3e"
+          ],
+          "kind": "datetime",
+          "local_time": "23:59",
+          "precision": "minute",
+          "raw_text": "November 15, 2026 at 11:59 p.m. Pacific Time",
+          "timezone": "Pacific Time"
+        }
+      ],
+      "eligibility_result": "pass",
+      "evidence_refs": [
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/0",
+          "id": "ev_8893410b285b5179",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 4,
+            "text_end": 75,
+            "text_start": 29
+          },
+          "quote": "self-identify as First Nations, Inuit or Métis",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/1",
+          "id": "ev_a1da0c24dd230092",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 4,
+            "text_end": 104,
+            "text_start": 77
+          },
+          "quote": "be enrolled at Demo College",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/eligibility/mandatory/2",
+          "id": "ev_f74daeacff130df6",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 4,
+            "text_end": 140,
+            "text_start": 110
+          },
+          "quote": "be in an undergraduate program",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/amount",
+          "id": "ev_6aa960939908c91e",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 5,
+            "text_end": 41,
+            "text_start": 0
+          },
+          "quote": "Value: $2,500 CAD, awarded once per year.",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/cycles/2026-27/deadlines/0",
+          "id": "ev_89b871319d0e6c3e",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 6,
+            "text_end": 98,
+            "text_start": 37
+          },
+          "quote": "The deadline is November 15, 2026 at 11:59 p.m. Pacific Time.",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        },
+        {
+          "field_path": "/application",
+          "id": "ev_8637dfc3a466a0e1",
+          "locator": {
+            "heading": "Demo Supported Award",
+            "paragraph_index": 8,
+            "text_end": 45,
+            "text_start": 0
+          },
+          "quote": "Apply through the Demo College awards portal.",
+          "snapshot_id": "snap_b552f0c4e02efb655fac",
+          "source_url": "https://demo.invalid/college/awards"
+        }
+      ],
+      "failed_rules": [],
+      "freshness_flags": [],
+      "funder_side_conditions": [],
+      "last_verified_at": "2026-10-07T12:00:00Z",
+      "match_status": "potential_fit",
+      "missing_profile_fields": [],
+      "next_action": "You appear to meet the recorded conditions and the application window looks open. Review the official page and apply: https://demo.invalid/college/portal",
+      "official_url": "https://demo.invalid/college/awards#supported-award",
+      "opportunity_id": "demo_supported_award",
+      "opportunity_type": "award",
+      "passed_rules": [
+        {
+          "evidence_ids": [
+            "ev_8893410b285b5179"
+          ],
+          "field": "indigenous_identity",
+          "outcome": "pass",
+          "path": "/cycles/?/eligibility/mandatory/0",
+          "rule": "Indigenous identity includes at least one of First Nations, Inuit, Métis"
+        },
+        {
+          "evidence_ids": [
+            "ev_a1da0c24dd230092"
+          ],
+          "field": "institution_id",
+          "outcome": "pass",
+          "path": "/cycles/?/eligibility/mandatory/1",
+          "rule": "Institution is demo college"
+        },
+        {
+          "evidence_ids": [
+            "ev_f74daeacff130df6"
+          ],
+          "field": "education_level",
+          "outcome": "pass",
+          "path": "/cycles/?/eligibility/mandatory/2",
+          "rule": "Education level is one of undergraduate"
+        }
+      ],
+      "preference_matches": [],
+      "review_status": "machine_checked",
+      "source_uncertainties": [],
+      "title": "Demo Supported Award",
+      "unknown_rules": []
+    }
+  ],
+  "total": 23,
+  "total_groups": null
+}

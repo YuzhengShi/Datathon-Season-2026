@@ -1,0 +1,528 @@
+{
+  "as_of": "2026-10-07T12:00:00Z",
+  "data_mode": "demo",
+  "groups": [
+    {
+      "application_url": "https://demo.invalid/foundation/shared-form",
+      "cycle_key": "2026-27",
+      "group_id": "demo_foundation_shared_form",
+      "label": "Demo Foundation Shared Application Form",
+      "member_status_counts": {
+        "not_eligible": 1,
+        "potential_fit": 1
+      },
+      "members": [
+        {
+          "amount": {
+            "currency": "CAD",
+            "evidence_ids": [
+              "ev_f16d1ce40cdf5c96"
+            ],
+            "fixed": "3000",
+            "interpretation": "Stated award value as written by the provider.",
+            "is_per_recipient_figure": true,
+            "kind": "fixed",
+            "personal_benefit_estimated": false,
+            "raw_text": "$3,000 CAD",
+            "renewable": null,
+            "unit": "unspecified"
+          },
+          "application_group_id": "demo_foundation_shared_form",
+          "application_route": {
+            "contact_url": null,
+            "instructions": "Use the shared form.",
+            "route_type": "shared_application_form",
+            "url": "https://demo.invalid/foundation/shared-form"
+          },
+          "availability": {
+            "next_deadline_utc": "2026-12-01T08:00:00Z",
+            "reason": "the window has opened and a deadline is still ahead"
+          },
+          "availability_status": "open",
+          "clarification_questions": [],
+          "cycle_key": "2026-27",
+          "deadlines": [
+            {
+              "closing": {
+                "basis": "end_of_local_day",
+                "earliest_utc": "2026-12-01T08:00:00Z",
+                "flags": [],
+                "latest_utc": "2026-12-01T08:00:00Z",
+                "state": "not_closed"
+              },
+              "date": "2026-11-30",
+              "deadline_at_utc": "2026-12-01T08:00:00Z",
+              "evidence_ids": [
+                "ev_a9bf23dadd40c497"
+              ],
+              "kind": "date",
+              "precision": "day",
+              "raw_text": "November 30, 2026 (Pacific Time)",
+              "timezone": "Pacific Time"
+            }
+          ],
+          "eligibility_result": "pass",
+          "evidence_refs": [
+            {
+              "field_path": "/cycles/2026-27/eligibility/mandatory/0",
+              "id": "ev_693dc9e652dea3f3",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 7,
+                "text_end": 51,
+                "text_start": 13
+              },
+              "quote": "First Nations, Inuit or Métis students",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/eligibility/mandatory/1",
+              "id": "ev_62cb40b3c8302a66",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 7,
+                "text_end": 89,
+                "text_start": 56
+              },
+              "quote": "live in British Columbia or Yukon",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/amount",
+              "id": "ev_f16d1ce40cdf5c96",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 8,
+                "text_end": 18,
+                "text_start": 0
+              },
+              "quote": "Value: $3,000 CAD.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/deadlines/0",
+              "id": "ev_a9bf23dadd40c497",
+              "locator": {
+                "heading": "Demo Foundation Shared Application",
+                "paragraph_index": 5,
+                "text_end": 56,
+                "text_start": 0
+              },
+              "quote": "The shared form is due November 30, 2026 (Pacific Time).",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_0e95defb3d191d81",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 9,
+                "text_end": 55,
+                "text_start": 0
+              },
+              "quote": "Apply with the Demo Foundation Shared Application Form.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_86d95f094d4816dc",
+              "locator": {
+                "heading": "Demo Foundation Shared Application",
+                "paragraph_index": 3,
+                "text_end": 115,
+                "text_start": 0
+              },
+              "quote": "The Demo Foundation Shared Application Form covers both the Demo Northern Scholarship and the Demo Coastal Bursary.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_fcaf20170acd8f17",
+              "locator": {
+                "paragraph_index": 0,
+                "pdf_page": 2,
+                "text_end": 127,
+                "text_start": 43
+              },
+              "quote": "Only one shared form is needed for the Northern Scholarship and the Coastal Bursary.",
+              "snapshot_id": "snap_a0321bf0241596ce8c93",
+              "source_url": "https://demo.invalid/foundation/guide.pdf"
+            }
+          ],
+          "failed_rules": [],
+          "freshness_flags": [],
+          "funder_side_conditions": [],
+          "last_verified_at": "2026-10-07T12:00:00Z",
+          "match_status": "potential_fit",
+          "missing_profile_fields": [],
+          "next_action": "You appear to meet the recorded conditions and the application window looks open. Review the official page and apply: https://demo.invalid/foundation/shared-form",
+          "official_url": "https://demo.invalid/foundation/awards#northern-scholarship",
+          "opportunity_id": "demo_shared_application_a",
+          "opportunity_type": "award",
+          "passed_rules": [
+            {
+              "evidence_ids": [
+                "ev_693dc9e652dea3f3"
+              ],
+              "field": "indigenous_identity",
+              "outcome": "pass",
+              "path": "/cycles/?/eligibility/mandatory/0",
+              "rule": "Indigenous identity includes at least one of First Nations, Inuit, Métis"
+            },
+            {
+              "evidence_ids": [
+                "ev_62cb40b3c8302a66"
+              ],
+              "field": "residence_province",
+              "outcome": "pass",
+              "path": "/cycles/?/eligibility/mandatory/1",
+              "rule": "Province/territory of residence is one of BC, YT"
+            }
+          ],
+          "preference_matches": [],
+          "review_status": "machine_checked",
+          "source_uncertainties": [],
+          "title": "Demo Northern Scholarship",
+          "unknown_rules": []
+        },
+        {
+          "amount": {
+            "currency": "CAD",
+            "evidence_ids": [
+              "ev_5617f2b3ccd2b0f6"
+            ],
+            "fixed": "1500",
+            "interpretation": "Stated award value as written by the provider.",
+            "is_per_recipient_figure": true,
+            "kind": "fixed",
+            "personal_benefit_estimated": false,
+            "raw_text": "$1,500 CAD",
+            "renewable": null,
+            "unit": "unspecified"
+          },
+          "application_group_id": "demo_foundation_shared_form",
+          "application_route": {
+            "contact_url": null,
+            "instructions": "Use the shared form.",
+            "route_type": "shared_application_form",
+            "url": "https://demo.invalid/foundation/shared-form"
+          },
+          "availability": {
+            "next_deadline_utc": "2026-12-01T08:00:00Z",
+            "reason": "the window has opened and a deadline is still ahead"
+          },
+          "availability_status": "open",
+          "clarification_questions": [],
+          "cycle_key": "2026-27",
+          "deadlines": [
+            {
+              "closing": {
+                "basis": "end_of_local_day",
+                "earliest_utc": "2026-12-01T08:00:00Z",
+                "flags": [],
+                "latest_utc": "2026-12-01T08:00:00Z",
+                "state": "not_closed"
+              },
+              "date": "2026-11-30",
+              "deadline_at_utc": "2026-12-01T08:00:00Z",
+              "evidence_ids": [
+                "ev_a9bf23dadd40c497"
+              ],
+              "kind": "date",
+              "precision": "day",
+              "raw_text": "November 30, 2026 (Pacific Time)",
+              "timezone": "Pacific Time"
+            }
+          ],
+          "eligibility_result": "fail",
+          "evidence_refs": [
+            {
+              "field_path": "/cycles/2026-27/eligibility/mandatory/1",
+              "id": "ev_70dfd75369d209d6",
+              "locator": {
+                "heading": "Demo Coastal Bursary",
+                "paragraph_index": 11,
+                "text_end": 82,
+                "text_start": 52
+              },
+              "quote": "in a college or trades program",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/amount",
+              "id": "ev_5617f2b3ccd2b0f6",
+              "locator": {
+                "heading": "Demo Coastal Bursary",
+                "paragraph_index": 12,
+                "text_end": 18,
+                "text_start": 0
+              },
+              "quote": "Value: $1,500 CAD.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/deadlines/0",
+              "id": "ev_a9bf23dadd40c497",
+              "locator": {
+                "heading": "Demo Foundation Shared Application",
+                "paragraph_index": 5,
+                "text_end": 56,
+                "text_start": 0
+              },
+              "quote": "The shared form is due November 30, 2026 (Pacific Time).",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_0e95defb3d191d81",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 9,
+                "text_end": 55,
+                "text_start": 0
+              },
+              "quote": "Apply with the Demo Foundation Shared Application Form.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_86d95f094d4816dc",
+              "locator": {
+                "heading": "Demo Foundation Shared Application",
+                "paragraph_index": 3,
+                "text_end": 115,
+                "text_start": 0
+              },
+              "quote": "The Demo Foundation Shared Application Form covers both the Demo Northern Scholarship and the Demo Coastal Bursary.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_fcaf20170acd8f17",
+              "locator": {
+                "paragraph_index": 0,
+                "pdf_page": 2,
+                "text_end": 127,
+                "text_start": 43
+              },
+              "quote": "Only one shared form is needed for the Northern Scholarship and the Coastal Bursary.",
+              "snapshot_id": "snap_a0321bf0241596ce8c93",
+              "source_url": "https://demo.invalid/foundation/guide.pdf"
+            }
+          ],
+          "failed_rules": [
+            {
+              "evidence_ids": [
+                "ev_70dfd75369d209d6"
+              ],
+              "field": "education_level",
+              "outcome": "fail",
+              "path": "/cycles/?/eligibility/mandatory/1",
+              "rule": "Education level is one of college, trades/vocational"
+            }
+          ],
+          "freshness_flags": [],
+          "funder_side_conditions": [],
+          "last_verified_at": "2026-10-07T12:00:00Z",
+          "match_status": "not_eligible",
+          "missing_profile_fields": [],
+          "next_action": "You do not appear to meet the recorded conditions. Check the failed rules and the official page in case your situation is an exception: https://demo.invalid/foundation/awards#coastal-bursary",
+          "official_url": "https://demo.invalid/foundation/awards#coastal-bursary",
+          "opportunity_id": "demo_shared_application_b",
+          "opportunity_type": "award",
+          "passed_rules": [],
+          "preference_matches": [],
+          "review_status": "machine_checked",
+          "source_uncertainties": [],
+          "title": "Demo Coastal Bursary",
+          "unknown_rules": []
+        }
+      ],
+      "notice": "These awards share one application form, but each award has its own eligibility result. A fit for one is not a fit for the others."
+    },
+    {
+      "application_url": "https://demo.invalid/foundation/apply",
+      "cycle_key": "2026-27",
+      "group_id": null,
+      "label": null,
+      "member_status_counts": {
+        "needs_information": 1
+      },
+      "members": [
+        {
+          "amount": {
+            "currency": "CAD",
+            "evidence_ids": [
+              "ev_aa923645eb9fb9f3"
+            ],
+            "fixed": "2200",
+            "interpretation": "Stated award value as written by the provider.",
+            "is_per_recipient_figure": true,
+            "kind": "fixed",
+            "personal_benefit_estimated": false,
+            "raw_text": "$2,200 CAD",
+            "renewable": null,
+            "unit": "unspecified"
+          },
+          "application_group_id": null,
+          "application_route": {
+            "contact_url": null,
+            "instructions": "Apply separately from the shared form.",
+            "route_type": "independent_application",
+            "url": "https://demo.invalid/foundation/apply"
+          },
+          "availability": {
+            "next_deadline_utc": "2026-12-11T08:00:00Z",
+            "reason": "the window has opened and a deadline is still ahead"
+          },
+          "availability_status": "open",
+          "clarification_questions": [
+            "What is your GPA, and on what scale (e.g. 3.4 on a 4.0 scale)?"
+          ],
+          "cycle_key": "2026-27",
+          "deadlines": [
+            {
+              "closing": {
+                "basis": "end_of_local_day",
+                "earliest_utc": "2026-12-11T08:00:00Z",
+                "flags": [],
+                "latest_utc": "2026-12-11T08:00:00Z",
+                "state": "not_closed"
+              },
+              "date": "2026-12-10",
+              "deadline_at_utc": "2026-12-11T08:00:00Z",
+              "evidence_ids": [
+                "ev_1face6aaf2bcd8d9"
+              ],
+              "kind": "date",
+              "precision": "day",
+              "raw_text": "December 10, 2026 (Pacific Time)",
+              "timezone": "Pacific Time"
+            }
+          ],
+          "eligibility_result": "unknown",
+          "evidence_refs": [
+            {
+              "field_path": "/cycles/2026-27/eligibility/mandatory/0",
+              "id": "ev_693dc9e652dea3f3",
+              "locator": {
+                "heading": "Demo Northern Scholarship",
+                "paragraph_index": 7,
+                "text_end": 51,
+                "text_start": 13
+              },
+              "quote": "First Nations, Inuit or Métis students",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/eligibility/mandatory/1",
+              "id": "ev_a4a112495f210a83",
+              "locator": {
+                "heading": "Demo Leadership Award",
+                "paragraph_index": 16,
+                "text_end": 93,
+                "text_start": 57
+              },
+              "quote": "a GPA of at least 3.0 on a 4.0 scale",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/amount",
+              "id": "ev_aa923645eb9fb9f3",
+              "locator": {
+                "heading": "Demo Leadership Award",
+                "paragraph_index": 17,
+                "text_end": 18,
+                "text_start": 0
+              },
+              "quote": "Value: $2,200 CAD.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/cycles/2026-27/deadlines/0",
+              "id": "ev_1face6aaf2bcd8d9",
+              "locator": {
+                "heading": "Demo Leadership Award",
+                "paragraph_index": 18,
+                "text_end": 65,
+                "text_start": 0
+              },
+              "quote": "The separate application is due December 10, 2026 (Pacific Time).",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            },
+            {
+              "field_path": "/application",
+              "id": "ev_477e6f9d43b7f0e8",
+              "locator": {
+                "heading": "Demo Leadership Award",
+                "paragraph_index": 15,
+                "text_end": 82,
+                "text_start": 0
+              },
+              "quote": "The Demo Leadership Award is not part of the shared application. Apply separately.",
+              "snapshot_id": "snap_bfde6cf06b7e20bdb7be",
+              "source_url": "https://demo.invalid/foundation/awards"
+            }
+          ],
+          "failed_rules": [],
+          "freshness_flags": [],
+          "funder_side_conditions": [],
+          "last_verified_at": "2026-10-07T12:00:00Z",
+          "match_status": "needs_information",
+          "missing_profile_fields": [
+            "gpa"
+          ],
+          "next_action": "Answer the clarification questions so the remaining conditions can be checked.",
+          "official_url": "https://demo.invalid/foundation/awards#leadership-award",
+          "opportunity_id": "demo_shared_application_exception",
+          "opportunity_type": "award",
+          "passed_rules": [
+            {
+              "evidence_ids": [
+                "ev_693dc9e652dea3f3"
+              ],
+              "field": "indigenous_identity",
+              "outcome": "pass",
+              "path": "/cycles/?/eligibility/mandatory/0",
+              "rule": "Indigenous identity includes at least one of First Nations, Inuit, Métis"
+            }
+          ],
+          "preference_matches": [],
+          "review_status": "machine_checked",
+          "source_uncertainties": [],
+          "title": "Demo Leadership Award",
+          "unknown_rules": [
+            {
+              "evidence_ids": [
+                "ev_a4a112495f210a83"
+              ],
+              "field": "gpa",
+              "outcome": "unknown",
+              "path": "/cycles/?/eligibility/mandatory/1",
+              "rule": "GPA is at least 3.0 (on a 4.0 scale)",
+              "unknown_reason": "profile_missing"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "note": "Excerpt of a real engine run on SYNTHETIC demo data (data_mode=demo); not real funding.",
+  "total": 23,
+  "total_groups": 22
+}

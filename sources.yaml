@@ -1,0 +1,119 @@
+# Official entry points for the live run. They are discovery starting points only: nothing in
+# this file is a verified award. `access_status` is about OUR review of terms (robots.txt is
+# checked at fetch time and recorded in the run manifest; robots allowing a path does not mean
+# the site's terms allow reuse). Domain/path rules bound every fetch AND every redirect hop.
+sources:
+  - source_id: isc_bursaries_index
+    name: ISC Indigenous Bursaries Search Tool
+    url: "https://www.sac-isc.gc.ca/eng/1351185180120/1351685455328?wbdisable=true"
+    provider: {id: isc, name: Indigenous Services Canada}
+    role: discovery_index
+    parser: isc_index
+    language: en
+    allowed_domains: ["www.sac-isc.gc.ca"]
+    allowed_paths: ["/eng/1351185180120/"]
+    terms_url: "https://www.canada.ca/en/transparency/terms.html"
+    access_status: unreviewed
+    notes: "National discovery index. Entries are NOT verified awards; they go to data/discovery."
+  - source_id: indspire_apply_now
+    name: Indspire Apply Now
+    url: "https://indspire.ca/apply-now/"
+    provider: {id: indspire, name: Indspire}
+    role: application_policy
+    parser: indspire_policy
+    language: en
+    allowed_domains: ["indspire.ca"]
+    allowed_paths: ["/apply-now"]
+    access_status: unreviewed
+    notes: "Application cycle, shared documents and shared-application policy."
+  - source_id: indspire_funding
+    name: Indspire Funding
+    url: "https://indspirefunding.ca/"
+    provider: {id: indspire, name: Indspire}
+    role: award_listing
+    parser: indspire_funding
+    language: en
+    allowed_domains: ["indspirefunding.ca"]
+    allowed_paths: ["/"]
+    access_status: unreviewed
+    notes: "Independent awards. Donors are recorded as donor_name, never as separate administrators."
+  - source_id: isc_psssp
+    name: ISC Post-Secondary Student Support Program
+    url: "https://www.sac-isc.gc.ca/eng/1100100033682/1531933580211"
+    provider: {id: isc, name: Indigenous Services Canada}
+    role: funding_channel
+    parser: curated_channel
+    language: en
+    allowed_domains: ["www.sac-isc.gc.ca"]
+    allowed_paths: ["/eng/1100100033682/"]
+    terms_url: "https://www.canada.ca/en/transparency/terms.html"
+    access_status: unreviewed
+    notes: "First Nations education funding channel; student route is via the local administrator."
+  - source_id: isc_inuit_strategy
+    name: ISC Inuit Post-Secondary Education Strategy
+    url: "https://www.sac-isc.gc.ca/eng/1578850688146/1578850715764"
+    provider: {id: isc, name: Indigenous Services Canada}
+    role: funding_channel
+    parser: curated_channel
+    language: en
+    allowed_domains: ["www.sac-isc.gc.ca"]
+    allowed_paths: ["/eng/1578850688146/"]
+    terms_url: "https://www.canada.ca/en/transparency/terms.html"
+    access_status: unreviewed
+    notes: "Follow to the regional administrators (e.g. land-claim organisations) when pages are found."
+  - source_id: isc_metis_strategy
+    name: ISC Métis Post-Secondary Education Strategy
+    url: "https://www.sac-isc.gc.ca/eng/1578855031863/1578855057804"
+    provider: {id: isc, name: Indigenous Services Canada}
+    role: funding_channel
+    parser: curated_channel
+    language: en
+    allowed_domains: ["www.sac-isc.gc.ca"]
+    allowed_paths: ["/eng/1578855031863/"]
+    terms_url: "https://www.canada.ca/en/transparency/terms.html"
+    access_status: unreviewed
+    notes: "Entry to the participating Métis governments."
+  - source_id: ubc_award_descriptions
+    name: UBC Indigenous award descriptions
+    url: "https://students.ubc.ca/finances/awards-scholarships-bursaries/awards-indigenous/descriptions-awards-indigenous/"
+    provider: {id: ubc, name: The University of British Columbia}
+    role: award_listing
+    parser: ubc_sections
+    language: en
+    allowed_domains: ["students.ubc.ca"]
+    allowed_paths: ["/finances/awards-scholarships-bursaries/"]
+    access_status: unreviewed
+    notes: "One page, many awards. Keep UBC award numbers and paragraph boundaries."
+  - source_id: ubc_award_context
+    name: UBC Indigenous awards application context
+    url: "https://students.ubc.ca/finances/awards-scholarships-bursaries/awards-indigenous/"
+    provider: {id: ubc, name: The University of British Columbia}
+    role: application_context
+    parser: context_only
+    language: en
+    allowed_domains: ["students.ubc.ca"]
+    allowed_paths: ["/finances/awards-scholarships-bursaries/"]
+    access_status: unreviewed
+    notes: "Context for how and when UBC students apply; not an award source by itself."
+  - source_id: sfu_indigenous_awards
+    name: SFU Indigenous scholarships and awards
+    url: "https://www.sfu.ca/students/financial-aid/indigenous/scholarship-and-awards.html"
+    provider: {id: sfu, name: Simon Fraser University}
+    role: award_listing
+    parser: curated_awards
+    language: en
+    allowed_domains: ["www.sfu.ca"]
+    allowed_paths: ["/students/financial-aid/"]
+    access_status: unreviewed
+    notes: "List page + linked official detail pages; imported through an evidence-checked curated mapping."
+  - source_id: mnbc_steps
+    name: MNBC STEPS
+    url: "https://www.mnbc.ca/STEPS"
+    provider: {id: mnbc, name: Métis Nation British Columbia}
+    role: funding_channel
+    parser: curated_channel
+    language: en
+    allowed_domains: ["www.mnbc.ca"]
+    allowed_paths: ["/STEPS"]
+    access_status: unreviewed
+    notes: "Regional education and training support; follow the current official description."

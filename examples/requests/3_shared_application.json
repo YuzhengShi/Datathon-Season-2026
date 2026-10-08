@@ -1,0 +1,12 @@
+{
+  "profile": {
+    "indigenous_identity": [
+      "inuit"
+    ],
+    "residence_province": "BC",
+    "education_level": "undergraduate"
+  },
+  "as_of": "2026-10-07",
+  "group_by_application": true,
+  "limit": 100
+}

@@ -1,0 +1,192 @@
+"""Generate docs/DATA_MODEL.md from the contract (enums, field tables) plus a real demo record.
+
+Run after changing the contract:  python scripts/generate_data_model_doc.py
+tests/test_docs.py fails if the committed file is out of date.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from navigator.core import contract  # noqa: E402
+from navigator.core.timeutil import parse_as_of  # noqa: E402
+from navigator.demo.dataset import build_demo_artifacts, build_demo_records  # noqa: E402
+
+MEANING = {
+    "schema_version": "Contract version, currently `1.0`.",
+    "id": "Stable id: official award number/detail key under a namespace (`ubc:1234`), else a persistent `source_record_key` mapping. Never a UUID4, never derived from amounts, dates or fetch time. Demo ids start with `demo_`.",
+    "source_record_key": "The source-side key (`<source_id>#<native key>`). One key maps to one id; a URL is never the unique key (one page can hold many awards).",
+    "title": "Official name as shown by the source.",
+    "opportunity_type": "`award` (single opportunity), `funding_channel` (a route to funding, rules often local), `award_collection` (navigation only; hidden from listings and never matched).",
+    "provider": "Administering organisation `{id, name, donor_name?}`. A donor is *not* an administrator: several Indspire donors still count as one administrator.",
+    "official_url": "Official description page (may point at one award on a multi-award page).",
+    "application": "How to apply: `{url?, route_type, instructions?, contact_url?, group_id?, group_label?, evidence_ids}`.",
+    "summary": "Short plain-language description.",
+    "cycles": "One or more application cycles. `cycle_key` is `unspecified` when the source gives no cycle; it is never guessed. Old cycles are kept.",
+    "required_documents": "Types of documents submitted to the administrator (never student files), each with evidence.",
+    "evidence": "Field-level evidence (see below).",
+    "conflicts": "Official statements that contradict each other (`{field_path, summary, evidence_ids >= 2}`): both are kept as evidence and the record must stay `pending` and unpublished until a person resolves it. Automatic detection is not implemented; curated mappings declare conflicts.",
+    "source_refs": "The stored snapshots the record relies on (ids, URLs, relative paths, hashes, fetch time, source dates).",
+    "review_status": "`pending` | `machine_checked` (parser + validation passed; NOT human review) | `human_reviewed` (needs a `review` record) | `rejected`.",
+    "review": "Who reviewed and when. Required for `human_reviewed`.",
+    "publication_status": "`draft` | `published` | `archived`. Only `machine_checked`/`human_reviewed` records can be published.",
+    "extraction_method": "`deterministic_adapter`, `curated`, `llm` (unreviewed LLM output stays pending+draft) or `demo_synthetic`.",
+    "last_fetched_at": "When the page was last downloaded (UTC).",
+    "last_verified_at": "When validation last passed for the current content. Null = never verified. Fetching never sets it.",
+    "content_fingerprint": "SHA-256 of the canonical business content (excludes fetch time and workflow status).",
+    "is_demo": "True exactly when `extraction_method` is `demo_synthetic`.",
+}
+
+
+def fmt_type(prop: dict) -> str:
+    if "$ref" in prop:
+        return prop["$ref"].rsplit("/", 1)[-1]
+    if "enum" in prop:
+        return " \\| ".join(f"`{v}`" for v in prop["enum"])
+    if "const" in prop:
+        return f"`{prop['const']}`"
+    kind = prop.get("type", "any")
+    kinds = " or ".join(kind) if isinstance(kind, list) else kind
+    if kinds.startswith("array") or kind == "array":
+        item = prop.get("items", {})
+        return f"array of {fmt_type(item)}" if item else "array"
+    return kinds
+
+
+def table(properties: dict, required: list[str], notes: dict[str, str] | None = None) -> list[str]:
+    rows = ["| field | type | required | meaning |", "| --- | --- | --- | --- |"]
+    for name, prop in properties.items():
+        meaning = (notes or {}).get(name) or prop.get("description", "")
+        rows.append(f"| `{name}` | {fmt_type(prop)} | {'yes' if name in required else 'no'} | {meaning} |")
+    return rows
+
+
+def render() -> str:
+    schema = contract.record_schema()
+    defs = schema["$defs"]
+    when = parse_as_of("2026-10-07")
+    with tempfile.TemporaryDirectory() as tmp:
+        record = next(r for r in build_demo_records(build_demo_artifacts(Path(tmp), when)) if r["id"] == "demo_supported_award")
+    record["last_verified_at"] = "2026-10-07T12:00:00Z"
+    for ref in record["source_refs"]:
+        ref["raw_path"] = ref["raw_path"][:12] + "..."
+        ref["text_path"] = ref["text_path"][:12] + "..."
+    out = ["# Data model", "",
+           "*Generated by `scripts/generate_data_model_doc.py` from `navigator.core.contract`; do not edit by hand.*", "",
+           "The machine-readable contract is [`docs/schemas/opportunity-record-1.0.schema.json`](schemas/opportunity-record-1.0.schema.json) "
+           "(JSON Schema 2020-12). Rules that JSON Schema cannot express are enforced by `navigator.ingestion.validation`.", "",
+           "## 1. Entities", "",
+           "| table | purpose |", "| --- | --- |",
+           "| `sources` | One row per configured source: stable id, URL, administrator, role, parser, language, terms review status |",
+           "| `fetches` | One audit row per fetch attempt: UTC time, URL, final URL, HTTP status, ETag/Last-Modified, duration, bytes, failure reason, robots status, snapshot, run |",
+           "| `snapshots` | Content-addressed raw file (SHA-256, relative path, media type) + extracted text (path, SHA-256, extractor, version) + source dates |",
+           "| `opportunities` | One row per opportunity (stable id) with the scalar fields and JSON objects of the record |",
+           "| `application_cycles` | `(opportunity_id, cycle_key)` unique; deadlines, amount and the eligibility rule tree live in `data` |",
+           "| `application_groups` / `application_group_members` | Shared application forms per cycle and their members (membership can differ by cycle) |",
+           "| `evidence` | Field-level evidence rows (quote, locator, snapshot, hashes) |",
+           "| `opportunity_revisions` | What changed on each content update (JSON diff, run, time); old versions are never silently overwritten |",
+           "| `runs` | Run audit: kind, mode, status, counts and the freshness context |", "",
+           "Eligibility rules are stored inside each cycle (`eligibility`), not in a separate table; they are fully serialised, "
+           "validated and re-exported. Four different times are never conflated: the source's publication date, its *Date modified*, "
+           "`last_fetched_at` and `last_verified_at`. HTTP 200 does not mean the rules were verified.", "",
+           "## 2. The JSONL record (one opportunity per line)", ""]
+    out += table(schema["properties"], schema["required"], MEANING)
+    sections = [
+        ("provider", "properties", None), ("application", "properties", None),
+        ("cycle", "defs", {"cycle_key": "`unspecified` when unknown (never a guessed school year).",
+                           "label_raw": "Cycle wording as the source writes it.",
+                           "starts_on": "Explicit opening date or null.", "ends_on": "Explicit end of the window or null.",
+                           "window_evidence_ids": "Evidence for `starts_on`/`ends_on` (required when either is set).",
+                           "application_group_id": "Per-cycle override of `application.group_id`. An explicit null marks an independent exception for this cycle (needs `group_evidence_ids`).",
+                           "group_evidence_ids": "Evidence for group membership or for an exception."}),
+        ("deadline", "defs", {"kind": "`date`, `datetime`, `annual_rule` (month/day only), `rolling`, `local_administrator`, `unspecified`.",
+                              "date": "Only with an explicit year in the source (or a documented `derived_from`). Old-year dates are never rolled forward.",
+                              "timezone": "Verbatim text (`Pacific Time`, `America/Toronto`, `EST`). Unknown stays unknown.",
+                              "deadline_at_utc": "Present only when the closing instant is *exact*; null when the zone is unknown/ambiguous.",
+                              "precision": "`day`, `minute`, `second`, `month_day`, `none`."}),
+        ("amount", "defs", {"kind": "See amount kinds below.", "unit": "What the figure applies to. `pooled_total` can never be `per_student`.",
+                            "currency": "Explicit currency; required for any numeric amount."}),
+        ("eligibility", "defs", {"mandatory": "Rule AST nodes, all of which must hold. Empty = nothing structured is recorded (matching returns *unknown*, never *pass*).",
+                                 "preferences": "Predicates that are preferred, never required.",
+                                 "unstructured": "Conditions the source states but nobody has structured yet; they keep matching at *unknown*.",
+                                 "funder_conditions": "Conditions on the organisation or government that *receives* the funds (for example an annual plan). They are shown to students for context but never decide the student's result."}),
+        ("evidence", "defs", {"field_path": "JSON Pointer; the token under `/cycles` is the `cycle_key`.",
+                              "locator": "`heading?`, `paragraph_index?` (0-based text block), `pdf_page?` (1-based), `text_start?`/`text_end?` (offsets into the normalised cited scope).",
+                              "quote": "Short passage that must exist in the cited scope after normalisation v1."}),
+        ("source_ref", "defs", None), ("required_document", "defs", None),
+    ]
+    for name, where, notes in sections:
+        prop = schema["properties"][name] if where == "properties" else defs[name]
+        out += ["", f"### `{name}`", ""] + table(prop["properties"], prop.get("required", []), notes)
+    out += ["", "## 3. Semantics", "",
+            "**Null, unknown, false, empty.** An optional field that is absent or `null` means *unknown / not stated*. `false` and "
+            "`0` are real values. An empty list means *nothing recorded* - never \"no restrictions\". A default never hides an unknown.", "",
+            "**Amounts.** Decimal *strings* (never floats). Kinds: " + ", ".join(f"`{k}`" for k in contract.AMOUNT_KINDS) +
+            ". Units: " + ", ".join(f"`{u}`" for u in contract.AMOUNT_UNITS) + ". Unknown is not zero; a pooled yearly total is not what one "
+            "student receives; a maximum is not a guaranteed amount; the API never estimates personal benefit.", "",
+            "**Deadlines are windows.** A deadline resolves to `[earliest, latest]` closing instants; an application counts as *closed* "
+            "only when `as_of >= latest`. A date-only deadline closes at the end of that local date. Unknown zones, a literal `EST` in "
+            "summer, and a repeated or skipped local hour at a daylight-saving change all widen the window instead of closing early.", "",
+            "**Cycles.** Unique per `(opportunity, cycle_key)`. A re-import replaces only the cycles it lists; others are retained.", "",
+            "**Evidence normalisation v1** (applied to quote and text before comparing): Unicode NFKC; delete zero-width characters and soft "
+            "hyphens; map typographic quotes and dashes to ASCII; collapse whitespace; case-sensitive.", "",
+            "**Fingerprint.** SHA-256 over the canonical JSON of the record without `last_fetched_at`, `content_fingerprint`, "
+            "`review_status`, `publication_status`, `last_verified_at`, `review` and `source_refs[].fetched_at`; `evidence`, `source_refs` "
+            "and `cycles` are sorted so their order does not matter.", "",
+            "**Statuses.** `last_verified_at` needs `machine_checked`/`human_reviewed`; `published` needs the same; `human_reviewed` needs a "
+            "`review` record; `llm` output stays `pending` + `draft`; `is_demo` <=> `demo_synthetic`.", "",
+            "## 4. Eligibility rules (matching)", "",
+            "Nodes: `all`, `any` (>= 1 child each), `predicate {field, op, value, scale?}`, `unknown {reason}`. Operators: `eq`, `in`, "
+            "`overlaps`, `gte`, `lte` (no free-form expressions). Three-valued logic: `all` = any False -> False, all True -> True, else "
+            "Unknown; `any` = any True -> True, all False -> False, else Unknown.", "",
+            "| field | kind | operators | note |", "| --- | --- | --- | --- |"]
+    from navigator.matching.rules import FIELD_SPECS
+
+    notes = {"soft": "free text: equality can pass but a mismatch is *unknown* (ask the provider), never a hard fail",
+             "decimal": "compared only when the profile's `gpa_scale` equals the rule's `scale`",
+             "code": "controlled vocabulary", "id": "controlled id (institution aliases are an explicit map)",
+             "set": "self-reported set; `[]` = none of them, absent = unknown"}
+    for spec in FIELD_SPECS.values():
+        out.append(f"| `{spec.name}` | {spec.kind} | {', '.join(spec.ops)} | {notes.get(spec.kind, '')} |")
+    out += ["", "Result mapping: any mandatory condition definitely false -> `fail` + `not_eligible`; all true -> `pass` + `potential_fit` "
+            "(\"meets the recorded conditions\", not a promise); unknown only because the profile lacks fields -> `needs_information`; "
+            "unknown because the source is silent, conflicting, unstructured or local -> `needs_provider_confirmation`. Availability "
+            "(`open`, `upcoming`, `closed`, `unknown`, `contact_administrator`) is computed separately: a closed cycle is never "
+            "\"not eligible\".", "",
+            "## 5. Vocabularies", ""]
+    for label, values in [("opportunity_type", contract.OPPORTUNITY_TYPES), ("application.route_type", contract.ROUTE_TYPES),
+                          ("review_status", contract.REVIEW_STATUSES), ("publication_status", contract.PUBLICATION_STATUSES),
+                          ("extraction_method", contract.EXTRACTION_METHODS), ("deadline.kind", contract.DEADLINE_KINDS),
+                          ("deadline.precision", contract.DEADLINE_PRECISIONS), ("amount.kind", contract.AMOUNT_KINDS),
+                          ("amount.unit", contract.AMOUNT_UNITS), ("required_document.type", contract.DOCUMENT_TYPES)]:
+        out.append(f"* `{label}`: " + ", ".join(f"`{v}`" for v in values))
+    out += ["", "## 6. Demo coverage (synthetic records, ids start with `demo_`)", "",
+            "| required situation | demo record(s) |", "| --- | --- |",
+            "| all conditions pass, with evidence | `demo_supported_award` |",
+            "| one profile field missing -> question | `demo_clarification_award` |",
+            "| two awards share a form + an explicit independent exception | `demo_shared_application_a`, `demo_shared_application_b`, `demo_shared_application_exception` |",
+            "| First Nations registration / Métis citizenship / Inuit beneficiary (broad identity is not enough) | `demo_first_nations_registered_award`, `demo_metis_citizen_award`, `demo_inuit_beneficiary_award` |",
+            "| residence vs home community vs school province | `demo_residence_community_award` |",
+            "| preference that never disqualifies | `demo_preference_award` |",
+            "| OR rules (true / unknown / false combinations) | `demo_or_rule_award`, `demo_or_unknown_branch_award` |",
+            "| unknown amount, pooled total, maximum | `demo_amount_unknown_award`, `demo_pooled_total_award`, `demo_maximum_award` |",
+            "| 2020 deadline, annual rule, several dates, local administrator, old + current cycle | `demo_deadline_2020_award`, `demo_annual_rule_award`, `demo_multi_deadline_award`, `demo_local_admin_deadline_award`, `demo_multi_cycle_award` |",
+            "| unknown timezone, daylight-saving boundary, date-only deadline | `demo_tz_unknown_award`, `demo_tz_dst_boundary_award`, `demo_date_only_deadline_award` |",
+            "| forged/missing evidence (import must fail and roll back) | built in the tests (`tests/test_importer.py`, `tests/test_validation.py`) - not part of the demo data |",
+            "| legitimate funding channel with thin rules; funder-side conditions kept apart from student rules | `demo_funding_channel` |",
+            "| conflicting official statements (kept as evidence, record pending) | built in the tests (`tests/test_validation.py`) - not part of the demo data |",
+            "| navigation collection (hidden, never matched) | `demo_award_collection` |", "",
+            "## 7. Example (real output of the demo build; storage paths shortened)", "", "```json",
+            json.dumps(record, indent=2, ensure_ascii=False, sort_keys=True), "```", ""]
+    return "\n".join(out)
+
+
+if __name__ == "__main__":
+    (ROOT / "docs" / "DATA_MODEL.md").write_text(render(), encoding="utf-8")
+    print("wrote docs/DATA_MODEL.md")

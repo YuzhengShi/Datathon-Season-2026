@@ -1,0 +1,16 @@
+# Explicit institution alias map. Matching never guesses by fuzzy title: a name resolves only
+# when it equals a listed name/alias (case- and whitespace-insensitive). Original names are kept.
+institutions:
+  - id: ubc
+    name: The University of British Columbia
+    province: BC
+    aliases: ["University of British Columbia", "UBC"]
+  - id: sfu
+    name: Simon Fraser University
+    province: BC
+    aliases: ["SFU"]
+  - id: demo_college
+    name: Demo College (synthetic)
+    province: BC
+    is_demo: true
+    aliases: ["Demo College"]

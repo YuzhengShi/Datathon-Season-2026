@@ -1,0 +1,882 @@
+{
+  "$defs": {
+    "amount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "fixed": {
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "fixed",
+            "range",
+            "variable",
+            "maximum",
+            "pooled_total",
+            "unspecified"
+          ]
+        },
+        "maximum": {
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "minimum": {
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pooled_total": {
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_text": {
+          "type": "string"
+        },
+        "renewable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "enum": [
+            "per_student",
+            "per_year",
+            "per_term",
+            "program_total",
+            "unspecified"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "currency",
+        "unit",
+        "renewable",
+        "raw_text",
+        "evidence_ids"
+      ],
+      "type": "object"
+    },
+    "cycle": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "$ref": "#/$defs/amount"
+        },
+        "application_group_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cycle_key": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,59}$",
+          "type": "string"
+        },
+        "deadlines": {
+          "items": {
+            "$ref": "#/$defs/deadline"
+          },
+          "type": "array"
+        },
+        "eligibility": {
+          "$ref": "#/$defs/eligibility"
+        },
+        "ends_on": {
+          "format": "date",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "group_evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "label_raw": {
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window_evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cycle_key",
+        "label_raw",
+        "deadlines",
+        "amount",
+        "eligibility"
+      ],
+      "type": "object"
+    },
+    "deadline": {
+      "additionalProperties": false,
+      "properties": {
+        "annual_day": {
+          "maximum": 31,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "annual_month": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "date": {
+          "format": "date",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deadline_at_utc": {
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "derived_from": {
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "method"
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "date",
+            "datetime",
+            "annual_rule",
+            "rolling",
+            "local_administrator",
+            "unspecified"
+          ]
+        },
+        "local_time": {
+          "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "day",
+            "minute",
+            "second",
+            "month_day",
+            "none"
+          ]
+        },
+        "raw_text": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "raw_text",
+        "precision",
+        "evidence_ids"
+      ],
+      "type": "object"
+    },
+    "eligibility": {
+      "additionalProperties": false,
+      "properties": {
+        "funder_conditions": {
+          "description": "Conditions on the organisation/government that RECEIVES the funds; never student conditions.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "evidence_ids": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "text": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "evidence_ids"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "mandatory": {
+          "items": {
+            "$ref": "#/$defs/rule_node"
+          },
+          "type": "array"
+        },
+        "preferences": {
+          "items": {
+            "$ref": "#/$defs/rule_node"
+          },
+          "type": "array"
+        },
+        "rules_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unstructured": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "evidence_ids": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "text": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "evidence_ids"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "mandatory",
+        "preferences",
+        "unstructured"
+      ],
+      "type": "object"
+    },
+    "evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "field_path": {
+          "description": "JSON Pointer into the record; the token under /cycles is the cycle_key",
+          "pattern": "^(/[^/]+)*$",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "locator": {
+          "additionalProperties": false,
+          "properties": {
+            "heading": {
+              "type": "string"
+            },
+            "paragraph_index": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "pdf_page": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "text_end": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "text_start": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "type": "object"
+        },
+        "quote": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "raw_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_url": {
+          "format": "uri",
+          "maxLength": 2000,
+          "type": "string"
+        },
+        "text_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "field_path",
+        "source_id",
+        "snapshot_id",
+        "source_url",
+        "quote",
+        "locator",
+        "raw_sha256",
+        "text_sha256"
+      ],
+      "type": "object"
+    },
+    "evidence_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "required_document": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "enum": [
+            "application_form",
+            "transcript",
+            "proof_of_enrolment",
+            "proof_of_indigenous_identity",
+            "reference_letter",
+            "essay",
+            "resume",
+            "financial_need_statement",
+            "community_support_letter",
+            "other"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "evidence_ids"
+      ],
+      "type": "object"
+    },
+    "rule_node": {
+      "additionalProperties": false,
+      "description": "Eligibility AST node. all/any need >=1 child; predicate needs field/op/value; unknown needs reason. Deep checks: navigator.matching.rules.",
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/rule_node"
+          },
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "field": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "in",
+            "overlaps",
+            "gte",
+            "lte"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "scale": {
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "enum": [
+            "all",
+            "any",
+            "predicate",
+            "unknown"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "source_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "fetched_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "media_type": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "raw_path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "raw_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "snapshot_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_modified_at": {
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_published_at": {
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text_path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "text_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "snapshot_id",
+        "url",
+        "raw_path",
+        "text_path",
+        "raw_sha256",
+        "text_sha256",
+        "media_type",
+        "fetched_at"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://example.invalid/navigator/opportunity-record-1.0.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "application": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_url": {
+          "format": "uri",
+          "maxLength": 2000,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "group_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "group_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instructions": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route_type": {
+          "enum": [
+            "online_application",
+            "institution_portal",
+            "shared_application_form",
+            "independent_application",
+            "email_application",
+            "mail_application",
+            "contact_administrator",
+            "unknown"
+          ]
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2000,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "route_type",
+        "evidence_ids"
+      ],
+      "type": "object"
+    },
+    "conflicts": {
+      "description": "Statements in official sources that contradict each other. Both are kept; the record stays pending.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 2,
+            "type": "array"
+          },
+          "field_path": {
+            "pattern": "^(/[^/]+)*$",
+            "type": "string"
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "field_path",
+          "summary",
+          "evidence_ids"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "content_fingerprint": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "cycles": {
+      "items": {
+        "$ref": "#/$defs/cycle"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/evidence"
+      },
+      "type": "array"
+    },
+    "extraction_method": {
+      "enum": [
+        "deterministic_adapter",
+        "curated",
+        "llm",
+        "demo_synthetic"
+      ]
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9_.:/-]{0,199}$",
+      "type": "string"
+    },
+    "is_demo": {
+      "type": "boolean"
+    },
+    "last_fetched_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "last_verified_at": {
+      "format": "date-time",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "official_url": {
+      "format": "uri",
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "opportunity_type": {
+      "enum": [
+        "award",
+        "funding_channel",
+        "award_collection"
+      ]
+    },
+    "provider": {
+      "additionalProperties": false,
+      "properties": {
+        "donor_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "type": "object"
+    },
+    "publication_status": {
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ]
+    },
+    "required_documents": {
+      "items": {
+        "$ref": "#/$defs/required_document"
+      },
+      "type": "array"
+    },
+    "review": {
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "reviewer": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewer",
+        "reviewed_at"
+      ],
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "review_status": {
+      "enum": [
+        "pending",
+        "machine_checked",
+        "human_reviewed",
+        "rejected"
+      ]
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "source_record_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "#/$defs/source_ref"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "source_record_key",
+    "title",
+    "opportunity_type",
+    "provider",
+    "official_url",
+    "application",
+    "summary",
+    "cycles",
+    "required_documents",
+    "evidence",
+    "source_refs",
+    "review_status",
+    "publication_status",
+    "extraction_method",
+    "last_fetched_at",
+    "content_fingerprint",
+    "is_demo"
+  ],
+  "title": "Indigenous Student Funding Navigator - opportunity record (one JSONL line)",
+  "type": "object"
+}

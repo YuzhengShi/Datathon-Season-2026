@@ -1,0 +1,11 @@
+{
+  "profile": {
+    "indigenous_identity": [
+      "metis"
+    ],
+    "institution_id": "demo_college",
+    "education_level": "undergraduate"
+  },
+  "as_of": "2026-10-07",
+  "limit": 100
+}
