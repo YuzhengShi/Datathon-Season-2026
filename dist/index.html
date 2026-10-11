@@ -13,10 +13,12 @@
   <link rel="stylesheet" href="styles.css?v=4">
   <link rel="stylesheet" href="workspace.css?v=4">
   <link rel="stylesheet" href="program.css?v=4">
-  <link rel="stylesheet" href="insights.css?v=6">
-  <script src="model.js?v=6" defer></script>
-  <script src="insights.js?v=6" defer></script>
-  <script src="app.js?v=6" defer></script>
+  <link rel="stylesheet" href="insights.css?v=7">
+  <script src="model.js?v=7" defer></script>
+  <script src="regions.js?v=7" defer></script>
+  <script src="regionview.js?v=7" defer></script>
+  <script src="insights.js?v=7" defer></script>
+  <script src="app.js?v=7" defer></script>
 </head>
 <body>
 <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -126,13 +128,17 @@
         <div class="stats-context" id="stats-context" role="status"></div>
         <div class="kpi-grid" id="statistics-kpis"></div>
         <div class="insights-grid">
-          <article class="insight-panel map-panel"><div class="panel-heading"><div><span class="panel-kicker">GEOGRAPHY</span><h2>Support across Canada</h2></div><div class="segmented-control" role="group" aria-label="Map counting mode"><button data-map-mode="regional" aria-pressed="true">Regional</button><button data-map-mode="reach" aria-pressed="false">Incl. national</button></div></div><div class="map-body"><div class="canada-map" id="canada-map"></div><div class="map-region-summary" id="map-region-summary"></div></div><div class="map-footer"><span class="map-scale"><i></i>Fewer <i></i>More records</span><span>Natural Earth · provincial coverage</span></div><details class="map-accessible"><summary>View all 13 regions as a table</summary><div id="region-table"></div></details></article>
+          <article class="insight-panel map-panel"><div class="panel-heading"><div><span class="panel-kicker">GEOGRAPHY</span><h2>Support across Canada</h2></div><div class="map-controls"><div class="segmented-control" role="group" aria-label="Map counting mode"><button data-map-mode="regional" aria-pressed="true">Regional</button><button data-map-mode="reach" aria-pressed="false">Incl. national</button></div><div class="segmented-control" role="group" aria-label="Map style"><button data-map-view="map" aria-pressed="true">Map</button><button data-map-view="tiles" aria-pressed="false">Tiles</button></div></div></div><p class="map-coverage" id="map-coverage" role="status"></p><div class="map-body"><div class="map-stage"><div class="canada-map" id="canada-map"></div><div class="tile-map" id="tile-map" hidden></div><div class="map-tooltip" id="map-tooltip" role="presentation" hidden></div></div><div class="map-region-summary" id="map-region-summary"></div></div><div class="map-legend" id="map-legend"></div><div class="map-footer"><span>Colour shows region-specific records. Nationwide records are not painted onto any region.</span><span>Natural Earth · provincial coverage</span></div></article><article class="insight-panel ranking-panel"><div class="panel-heading"><div><span class="panel-kicker">COVERAGE</span><h2>Every province and territory</h2></div></div><div class="region-ranking" id="region-ranking"></div><details class="map-accessible"><summary>View all 13 regions as a table</summary><div id="region-table"></div></details></article>
           <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">COMPOSITION</span><h2>Ways to fund a future</h2></div></div><div id="type-chart"></div><div class="national-summary" id="national-summary"></div></article>
           <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">COMMUNITY</span><h2>Who support reaches</h2></div></div><div id="community-chart"></div><p class="chart-note">Communities overlap. Counts aren’t additive.</p></article>
           <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">LISTED FIGURES</span><h2>A sense of the amounts</h2></div></div><div id="amount-chart"></div><p class="chart-note" id="amount-chart-note">Example figures, including caps. Not allocated funding.</p></article>
           <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">APPLICATION TIMING</span><h2>When to take a next step</h2></div></div><div id="deadline-chart"></div><p class="chart-note">Contact routes aren’t confirmed open windows.</p></article>
         </div>
-        <article class="insight-panel amount-panel"><div class="panel-heading"><div><span class="panel-kicker">RECORD EXPLORER</span><h2>Every amount, in context</h2></div><a class="text-link" href="#explore">Explore this selection <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div><div class="table-scroll"><table class="amount-table"><thead><tr><th scope="col">Opportunity</th><th scope="col">Coverage</th><th scope="col">Listed figure</th><th scope="col">What it means</th></tr></thead><tbody id="amount-table-body"></tbody></table></div><p class="chart-note" id="stats-empty-note" hidden>No records in this selection. Reset or keep unknown source details.</p></article>
+        <div class="insights-grid sources-grid">
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">SOURCES</span><h2>Where the records come from</h2></div></div><div id="source-chart"></div><p class="chart-note">Provider pages were read and quote-checked. Federal directory entries can be years old and state no deadline.</p></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">CURRENCY</span><h2>How current are the sources</h2></div></div><div id="currency-chart"></div><p class="chart-note">The year a source page says it was last changed. Many provider pages state no date.</p></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">PROVIDERS</span><h2>Who lists the most</h2></div></div><div id="provider-chart"></div><p class="chart-note">Records per provider in this selection. Select one to filter.</p></article>
+        </div>        <article class="insight-panel amount-panel"><div class="panel-heading"><div><span class="panel-kicker">RECORD EXPLORER</span><h2>Every amount, in context</h2></div><a class="text-link" href="#explore">Explore this selection <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div><div class="table-scroll"><table class="amount-table"><thead><tr><th scope="col">Opportunity</th><th scope="col">Coverage</th><th scope="col">Listed figure</th><th scope="col">What it means</th></tr></thead><tbody id="amount-table-body"></tbody></table></div><p class="chart-note" id="stats-empty-note" hidden>No records in this selection. Reset or keep unknown source details.</p><p class="rows-note" id="stats-rows-note" hidden></p></article>
         <details class="statistics-methods"><summary>Data quality & counting rules <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></summary><div id="statistics-methods-content"></div></details>
       </section>
     </div>

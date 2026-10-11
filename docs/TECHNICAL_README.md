@@ -1,5 +1,7 @@
 # Indigenous Student Funding Navigator: technical reference
 
+> **Status after Build Session 3 (2026-10-11).** The dataset described below has since grown from 58 to 529 published records covering every province and territory, and the site has a Statistics page with a map. The current numbers are in the [README](../README.md) and [DEMO.md](DEMO.md); this document is kept as written for the earlier state.
+
 *The project README is [../README.md](../README.md). This file is the former backend README: running the pipeline, exit codes, decisions to make.*
 
 A backend that helps First Nations, Inuit and Métis students find scholarships, bursaries and funding channels they may

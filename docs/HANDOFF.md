@@ -1,5 +1,7 @@
 # Handoff
 
+> **Status after Build Session 3 (2026-10-11).** The dataset described below has since grown from 58 to 529 published records covering every province and territory, and the site has a Statistics page with a map. The current numbers are in the [README](../README.md) and [DEMO.md](DEMO.md); this document is kept as written for the earlier state.
+
 *Updated after the provider-page verification run (October 2026). Every statement says where it was run.*
 
 > **Since then (2026-10-10):** the former `backend/` is now the package `navigator.app` and the site in `dist/` is served at `/` by the same server (`docs/APP_LAYER.md`). This web app is at `/app/`; in section 8 below `frontend/assets/logic.js` is now `frontend/model.js` and `frontend/assets/config.js` is `frontend/config.js`. Current test count: 321.

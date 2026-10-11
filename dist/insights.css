@@ -188,3 +188,92 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .evidence-list a{font-size:10.5px;color:#4b6645;justify-self:start}
 .evidence-checked{font-size:10.5px;color:#75826f;margin-top:12px}
 .gov-attribution{font-size:10.5px;line-height:1.7;color:#6a786c;margin:16px 0 0;padding-top:12px;border-top:1px solid #e5eadd}
+/* Provinces and territories: the map (north up), equal-size tiles, colour scale, region card and ranking */
+.kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.map-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.map-coverage{font-size:11px;line-height:1.7;color:#5c7157;margin:-6px 0 14px}
+.map-coverage strong{font-weight:600;color:#365334}
+.map-body{grid-template-columns:minmax(0,1fr) 236px;gap:20px;align-items:start}
+.map-stage{position:relative;min-width:0}
+.canada-map{min-height:240px}
+.canada-map>svg{max-height:440px}
+.canada-map .map-label{font-size:9px;font-weight:600;letter-spacing:.03em;fill:#35503a}
+.canada-map .map-label .map-count{font-size:13px;font-weight:650;letter-spacing:-.02em}
+.canada-map .map-label.is-light{fill:#fff;stroke:#3a6e36;stroke-width:2px}
+.canada-map .map-leader{stroke:#a3b194;stroke-width:1;vector-effect:non-scaling-stroke}
+.canada-map .map-chip{cursor:pointer}
+.canada-map .map-chip rect{stroke:#fcfdf9;stroke-width:1.5;transition:fill .15s}
+.canada-map .map-chip:hover rect,.canada-map .map-chip:focus rect{stroke:#324e38;stroke-width:2}
+.canada-map .map-chip.is-selected rect{stroke:#2f4d38;stroke-width:2.5}
+.canada-map .map-chip:focus{outline:0}
+.canada-map .map-chip-text{font-family:inherit;font-size:10px;font-weight:600;fill:#35503a;pointer-events:none}
+.canada-map .map-chip-text.is-light{fill:#fff}
+.tile-map{min-height:240px}
+.tile-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(74px,auto);gap:6px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid #fcfdf9;color:#35503a;min-width:0;transition:transform .12s,box-shadow .12s}
+.tile b{font-size:10px;font-weight:650;letter-spacing:.05em}
+.tile span{font-size:21px;font-weight:600;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile small{font-size:8.5px;line-height:1.3;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.tile.is-light{color:#fff}
+.tile:hover,.tile:focus-visible{transform:translateY(-2px);box-shadow:0 6px 14px #2c47142b;outline:0}
+.tile.is-selected{outline:2px solid #2f4d38;outline-offset:1px}
+.map-tooltip{position:absolute;z-index:3;display:grid;gap:3px;min-width:150px;max-width:190px;padding:10px 12px;border-radius:8px;background:#27402f;color:#f3f6ec;font-size:10px;line-height:1.5;box-shadow:0 8px 22px #1b301f40;pointer-events:none}
+.map-tooltip[hidden]{display:none}
+.map-tooltip strong{font-size:11px;font-weight:600}
+.map-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:14px 0 0;font-size:10px;color:#6c7e63}
+.map-legend ul{display:flex;gap:11px;flex-wrap:wrap;list-style:none;margin:0;padding:0}
+.map-legend li{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.map-legend li i{display:block;width:16px;height:11px;border-radius:2px;border:1px solid #0000001a}
+.legend-title{font-weight:550;color:#4d6648}
+.map-region-summary{min-width:0;align-self:start}
+.region-facts{display:grid;gap:11px;margin:15px 0 14px;padding-top:14px;border-top:1px solid #e2e8d9}
+.region-facts dt{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#869379;margin-bottom:3px}
+.region-facts dd{font-size:11px;line-height:1.55;color:#4d6648;overflow-wrap:anywhere}
+.source-split{display:flex;height:8px;border-radius:3px;overflow:hidden;background:#eef2e8;margin:0 0 6px}
+.source-split i{display:block;height:100%}
+.is-verified{background:#5b8f45}
+.is-directory{background:#cdb892}
+.source-split-note{font-size:10px;color:#738169;line-height:1.5}
+.region-empty{font-size:11px;color:#8a7a52;background:#fbf6ea;border:1px solid #efe4c8;border-radius:7px;padding:9px 10px;line-height:1.55;margin:12px 0 0}
+.region-explore{font-size:11px}
+.region-explore .icon{width:13px;height:13px}
+.region-ranking{margin-top:22px;padding-top:18px;border-top:1px solid #e5eadc}
+.ranking-title{font-size:12px;font-weight:550;color:#34503a;margin:0 0 9px}
+.ranking-key{display:flex;gap:14px;font-size:10px;color:#6f8066;margin-bottom:12px}
+.ranking-key span{display:flex;align-items:center;gap:5px}
+.ranking-key i{display:block;width:9px;height:9px;border-radius:2px}
+.ranking-list{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.ranking-list button{display:grid;grid-template-columns:148px minmax(0,1fr) 38px;align-items:center;gap:12px;width:100%;padding:5px 6px;border-radius:6px;text-align:left}
+.ranking-list button:hover{background:#f1f5ea}
+.ranking-list button.is-selected{background:#e9f0de;box-shadow:inset 0 0 0 1px #c5d6b0}
+.rank-name{font-size:11px;color:#4c6548;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-bar{display:block;height:9px;background:#f0f3ea;border-radius:3px;overflow:hidden}
+.rank-fill{display:flex;height:100%;min-width:2px;border-radius:3px;overflow:hidden}
+.rank-fill i{display:block;height:100%}
+.ranking-list b{font-size:11px;font-weight:550;color:#34503a;text-align:right;font-variant-numeric:tabular-nums}
+.ranking-list button.is-empty .rank-name,.ranking-list button.is-empty b{color:#9aa68f}
+.ranking-list button.is-empty .rank-fill{min-width:0}
+.chart-bar.is-static{cursor:default}
+.sources-grid{margin-top:16px}
+.rows-note{font-size:11px;color:#6c7e63;margin:14px 2px 0}
+.rows-note .text-link{font-size:11px;margin-left:6px}
+@media(max-width:1180px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.map-body{grid-template-columns:minmax(0,1fr) 210px;gap:16px}}
+@media(max-width:860px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.map-body{grid-template-columns:1fr}.map-region-summary{display:block}.ranking-list button{grid-template-columns:124px minmax(0,1fr) 34px}}
+@media(max-width:680px){.tile-grid{gap:4px}.tile{padding:7px}.tile span{font-size:17px}.tile small{display:none}.ranking-list button{grid-template-columns:104px minmax(0,1fr) 32px;gap:8px}.map-controls{justify-content:flex-start}}
+/* A full-width map (north up) with the ranking of every region in its own panel beside the composition donut */
+.map-panel{grid-column:1/-1}
+.ranking-panel{grid-column:span 2}
+.ranking-panel .region-ranking{margin:0;padding:0;border:0}
+.map-body{grid-template-columns:minmax(0,1fr) 270px;gap:30px}
+.canada-map>svg{max-height:520px}
+.canada-map .map-label{font-size:11px}
+.canada-map .map-label .map-count{font-size:15px}
+.canada-map .map-chip-text{font-size:11px}
+.tile-grid{grid-auto-rows:minmax(88px,auto);gap:8px}
+.tile{padding:10px 11px}
+.tile small{white-space:normal;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:1180px){.map-body{grid-template-columns:minmax(0,1fr) 230px;gap:20px}}
+@media(max-width:860px){.map-body{grid-template-columns:1fr}}
+@media(max-width:680px){.ranking-panel{grid-column:auto}}
+.region-facts dd{margin:0}
+@media(max-width:860px){.kpi-grid>.kpi:last-child:nth-child(odd){grid-column:1/-1}}

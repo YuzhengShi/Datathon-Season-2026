@@ -81,7 +81,11 @@ async function newPage(cdp, { width, height, mobile }) {
     click: (selector) => page.eval(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) throw new Error('no element ' + ${JSON.stringify(selector)}); if (typeof el.click === 'function') el.click(); else el.dispatchEvent(new MouseEvent('click', { bubbles: true })); return true; })()`),
     async shot(name) {
       if (!OUT) return;
-      const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+      // A page with hundreds of cards is taller than the browser can capture in one image ("Page is too large"): keep the top 8000 px.
+      const height = await page.eval('document.documentElement.scrollHeight'), width = await page.eval('document.documentElement.clientWidth');
+      const params = { format: 'png', captureBeyondViewport: true };
+      if (height > 8000) params.clip = { x: 0, y: 0, width, height: 8000, scale: 1 };
+      const { data } = await send('Page.captureScreenshot', params);
       fs.writeFileSync(path.join(OUT, name + '.png'), Buffer.from(data, 'base64'));
     },
   };
@@ -92,15 +96,39 @@ const noSideScroll = (page) => page.eval('document.documentElement.scrollWidth <
 
 async function statistics(page, expected, label) {
   await page.go(`${BASE}/#statistics`);
-  await page.waitFor("document.querySelectorAll('#statistics-kpis .kpi').length === 4 && document.querySelectorAll('#canada-map path').length === 13", 'the Statistics page');
+  await page.waitFor("document.querySelectorAll('#statistics-kpis .kpi').length === 5 && document.querySelectorAll('#canada-map path').length === 13", 'the Statistics page');
   await page.waitFor("document.querySelector('#stats-backend-status').textContent === 'Backend analytics'", 'the backend analytics');
-  const kpis = await page.eval("[...document.querySelectorAll('.kpi-value')].map((x) => x.textContent)");
-  check(`${label}: KPIs show the records, nationwide and region-specific counts`, JSON.stringify(kpis.slice(0, 3)) === JSON.stringify([String(expected.total), String(expected.national), String(expected.regional)]), kpis.join(' | '));
+  const kpis = await page.eval("Object.fromEntries([...document.querySelectorAll('.kpi')].map((x) => [x.querySelector('p').textContent, x.querySelector('.kpi-value').textContent]))");
+  check(`${label}: KPIs show the records, the regions covered, nationwide and region-specific counts`, JSON.stringify([kpis.Opportunities, kpis['Regions covered'], kpis['National coverage'], kpis['Regional support']]) === JSON.stringify([String(expected.total), '13 / 13', String(expected.national), String(expected.regional)]), JSON.stringify(kpis));
   const buckets = await page.eval("[...document.querySelectorAll('#national-summary button')].map((x) => [x.querySelector('span').textContent, Number(x.querySelector('strong').textContent)])");
   check(`${label}: three region buckets that add up to the total`, JSON.stringify(buckets) === JSON.stringify([['Across Canada', expected.national], ['Region-specific', expected.regional], ['Region not stated', expected.unstated]]) && expected.national + expected.regional + expected.unstated === expected.total, JSON.stringify(buckets));
   const bars = await page.eval("[...document.querySelectorAll('#deadline-chart .chart-bar-label b')].map((x) => Number(x.textContent))");
   check(`${label}: the timing chart covers every record`, bars.length === 5 && bars.reduce((a, b) => a + b, 0) === expected.total, bars.join(','));
   check(`${label}: all 13 regions on the map and in the table`, (await page.eval("document.querySelectorAll('#region-table tbody tr').length")) === 13);
+  // The map, as a person sees it.
+  const regions = await page.eval('FundingModel.regions');
+  const count = (code) => expected.records.filter((x) => x.province === regions[code]).length;
+  const geo = await page.eval(`(() => { const out = {}; for (const k of ['YT', 'BC', 'NU', 'ON', 'QC', 'NS', 'NL']) { const r = document.querySelector('#canada-map path[data-region="' + k + '"]').getBoundingClientRect(); out[k] = { x: Math.round((r.left + r.right) / 2), y: Math.round((r.top + r.bottom) / 2) }; } return out; })()`);
+  check(`${label}: the map has north at the top and west on the left`, geo.YT.y < geo.BC.y && geo.NU.y < geo.ON.y && geo.NS.y > geo.QC.y && geo.BC.x < geo.ON.x && geo.ON.x < geo.NL.x, JSON.stringify(geo));
+  const fills = await page.eval("[...document.querySelectorAll('#canada-map path[data-region]')].map((p) => getComputedStyle(p).fill)");
+  check(`${label}: every region is painted by its count (none is left at the empty colour)`, fills.length === 13 && fills.every((f) => f !== 'rgb(230, 236, 221)'), fills.join(' '));
+  const marks = await page.eval("({ labels: [...document.querySelectorAll('#canada-map .map-label .map-count')].map((x) => Number(x.textContent)), chips: [...document.querySelectorAll('#canada-map .map-chip text')].map((x) => x.textContent) })");
+  const wanted = Object.keys(regions).filter((c) => !['NB', 'NS', 'PE'].includes(c)).map(count).sort((a, b) => a - b);
+  check(`${label}: the counts are written on the map (10 labels and 3 Atlantic chips)`, JSON.stringify([...marks.labels].sort((a, b) => a - b)) === JSON.stringify(wanted) && JSON.stringify(marks.chips.sort()) === JSON.stringify(['NB', 'NS', 'PE'].map((c) => `${c} ${count(c)}`).sort()), JSON.stringify(marks));
+  const ranking = await page.eval("[...document.querySelectorAll('#region-ranking .ranking-list button')].map((x) => [x.querySelector('.rank-name').textContent, Number(x.querySelector('b').textContent)])");
+  check(`${label}: the ranking lists all 13 regions with the dataset's counts, none empty`, ranking.length === 13 && ranking.every(([name, n]) => n > 0 && n === expected.records.filter((x) => x.province === name).length), JSON.stringify(ranking));
+  await page.eval(`(() => { const p = document.querySelector('#canada-map path[data-region="MB"]'); const r = p.getBoundingClientRect(); p.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, clientX: (r.left + r.right) / 2, clientY: (r.top + r.bottom) / 2 })); })()`);
+  const tip = await page.eval(`(() => { const t = document.querySelector('#map-tooltip'); const s = document.querySelector('.map-stage').getBoundingClientRect(); const r = t.getBoundingClientRect(); return { hidden: t.hidden, text: t.innerText, inside: r.left >= s.left - 1 && r.right <= s.right + 1 && r.top >= s.top - 1 }; })()`);
+  check(`${label}: hovering a region shows a card with its counts, inside the map`, !tip.hidden && tip.text.includes('Manitoba') && tip.text.includes(`${count('MB')} region-specific`) && tip.inside, JSON.stringify(tip));
+  await page.shot(`${label}-statistics-hover`);
+  await page.eval("document.querySelector('#canada-map').dispatchEvent(new PointerEvent('pointerleave'))");
+  await page.click('[data-map-view="tiles"]');
+  await page.waitFor("!document.querySelector('#tile-map').hidden", 'the tile map');
+  const tiles = await page.eval("[...document.querySelectorAll('#tile-map .tile')].map((t) => [t.dataset.region, Number(t.querySelector('span').textContent), t.getBoundingClientRect().width])");
+  check(`${label}: the tile map shows 13 readable tiles with the same counts`, tiles.length === 13 && tiles.every(([code, n, w]) => n === count(code) && w > 28), JSON.stringify(tiles));
+  await page.shot(`${label}-statistics-tiles`);
+  await page.click('[data-map-view="map"]');
+  await page.waitFor("document.querySelector('#tile-map').hidden && !document.querySelector('#canada-map').hidden", 'the map again');
   check(`${label}: the page does not scroll sideways`, await noSideScroll(page));
   await page.shot(`${label}-statistics`);
 }
@@ -113,6 +141,7 @@ async function main() {
     national: records.filter((x) => x.province === 'all').length,
     regional: records.filter((x) => x.province && x.province !== 'all').length,
     unstated: records.filter((x) => !x.province).length,
+    records,
   };
   check('the server publishes the live dataset', data.data_mode === 'live' && records.length > 0, data.data_mode);
 
@@ -135,7 +164,8 @@ async function main() {
     await desktop.click('#stats-clear-filters');
     await desktop.click('#canada-map [data-region="BC"]');
     await desktop.waitFor("document.querySelector('#quick-location').value === 'British Columbia'", 'the BC selection');
-    check('desktop: a map click selects the region and the table follows', (await desktop.eval("document.querySelectorAll('#amount-table-body tr').length")) === expected.national + records.filter((x) => x.province === 'British Columbia').length + expected.unstated);
+    const inBc = expected.national + records.filter((x) => x.province === 'British Columbia').length + expected.unstated;
+    check('desktop: a map click selects the region; the KPI and the (40-row) table follow', (await desktop.eval("document.querySelector('.kpi-value').textContent")) === String(inBc) && (await desktop.eval("document.querySelectorAll('#amount-table-body tr').length")) === Math.min(40, inBc));
     await desktop.click('#stats-clear-filters');
 
     await desktop.go(`${BASE}/#explore`);

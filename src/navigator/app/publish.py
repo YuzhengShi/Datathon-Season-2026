@@ -47,6 +47,7 @@ MONTHS = {
     "December": "Dec",
 }
 _DIRECTORY_REGION = re.compile(r"Province/territory:\s*([^.]+)\.")
+_DIRECTORY_GROUP = re.compile(r"Indigenous group:\s*([^.]+)\.")
 _TRAINING_TITLE = re.compile(r"\b(skills?|training|trades?|apprentice\w*)\b", re.IGNORECASE)
 
 
@@ -87,12 +88,44 @@ def _community(nodes: list[dict]) -> list[str]:
     return list(COMMUNITY_NAMES.values())
 
 
+def _community_of(record: dict, nodes: list[dict]) -> list[str]:
+    """Eligibility rules first; for a directory entry without them, the directory's own group column; otherwise every
+    community (nothing recorded restricts it)."""
+    fields = ("indigenous_identity", "first_nations_registered", "metis_citizen", "inuit_beneficiary")
+    if any(_find_predicate(nodes, field) for field in fields):
+        return _community(nodes)
+    return _directory_community(record) or _community(nodes)
+
+
+def _directory_community(record: dict) -> list[str] | None:
+    """The communities the federal directory names for its own entries ("Indigenous group: M\u00e9tis; First Nations.").
+
+    "All Indigenous People" is all three. A group this code does not know makes the whole answer unknown (None), not a guess.
+    Like the region, it feeds the filters and the statistics, never the eligibility check."""
+    if record.get("extraction_method") != "deterministic_adapter":
+        return None
+    match = _DIRECTORY_GROUP.search(record.get("summary") or "")
+    if not match:
+        return None
+    names = {"first nations": "First Nations", "inuit": "Inuit", "m\u00e9tis": "M\u00e9tis", "metis": "M\u00e9tis"}
+    found: list[str] = []
+    for part in match.group(1).split(";"):
+        part = part.strip().casefold()
+        if part == "all indigenous people":
+            return list(COMMUNITY_NAMES.values())
+        if part not in names:
+            return None
+        found.append(names[part])
+    return [c for c in COMMUNITY_NAMES.values() if c in found] or None
+
+
 def _directory_region(record: dict) -> str | None:
     """The region the federal directory lists for its own entries ("Province/territory: British Columbia.").
 
     Only entries built by the deterministic directory adapter carry this line. It is the directory's
     statement, not an eligibility rule, so it feeds coverage and statistics but never the eligibility check.
-    Anything other than "National" or one province or territory is left unstated rather than guessed.
+    "National" and "Any Location" both say the award is not tied to a place, so both count as across Canada. Anything else
+    that is not one province or territory is left unstated rather than guessed.
     """
     if record.get("extraction_method") != "deterministic_adapter":
         return None
@@ -100,7 +133,7 @@ def _directory_region(record: dict) -> str | None:
     if not match:
         return None
     listed = match.group(1).strip()
-    if listed.casefold() == "national":
+    if listed.casefold() in ("national", "any location"):
         return NATIONAL
     return listed if listed in REGIONS.values() else None
 
@@ -132,7 +165,24 @@ def _location_label(province: str | None) -> str:
 def _goals(record: dict) -> list[str]:
     """Every record funds post-secondary study (that is what this dataset is); "training" is added only when the
     record's own title names skills, training or trades. Nothing is guessed from the body text."""
-    return ["postsecondary", "training"] if _TRAINING_TITLE.search(record.get("title") or "") else ["postsecondary"]
+    title = record.get("title") or ""
+    # "Research Training Awards" fund graduate research, not skills or trades training.
+    training = _TRAINING_TITLE.search(title) and not re.search(r"\bresearch\b", title, re.I)
+    return ["postsecondary", "training"] if training else ["postsecondary"]
+
+
+def _number(raw: object) -> float | None:
+    try:
+        return float(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _source_modified(record: dict) -> str | None:
+    """The newest "last modified" date that the record's own source pages state (a federal directory page says when it
+    was last changed), as YYYY-MM-DD; null when no source states one. It shows how current a source is, nothing more."""
+    dates = [ref.get("source_modified_at") for ref in record.get("source_refs", []) if ref.get("source_modified_at")]
+    return max(dates)[:10] if dates else None
 
 
 def _source_kind(record: dict) -> str:
@@ -266,6 +316,8 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
             amount_value = float(raw)
         except (TypeError, ValueError):
             amount_value = None
+    low, high = _number(amount.get("minimum")), _number(amount.get("maximum"))
+    spread = amount.get("kind") == "range" and low is not None and high is not None
     deadlines = cycle.get("deadlines", [])
     kind = deadlines[0].get("kind", "unspecified") if deadlines else "unspecified"
     education = _find_predicate(nodes, "education_level")
@@ -281,17 +333,20 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
         "provider": record["provider"]["name"],
         "summary": record.get("summary") or "",
         "type": "Program" if record.get("opportunity_type") == "funding_channel" else "Scholarship",
-        "community": _community(nodes),
+        "community": _community_of(record, nodes),
         "province": province,
         "region_basis": region_basis,
         "location": _location_label(province),
         "source_kind": _source_kind(record),
+        "source_modified_at": _source_modified(record),
         "amount": amount_value,
         "amount_details": {
             "kind": amount.get("kind", "unspecified"),
             "currency": amount.get("currency"),
             "unit": amount.get("unit", "unspecified"),
             "renewable": amount.get("renewable"),
+            "minimum": low if spread else None,  # a stated range is shown as a range, never as one figure
+            "maximum": high if spread else None,
             "source_text": amount.get("raw_text"),
         },
         "deadline_kind": kind,

@@ -1,7 +1,7 @@
 'use strict';
 
 FundingModel.ready.then(()=>{
-const {opportunities,getResults,amountText,amountNote,regionNote,copy,governmentAttribution,evidenceItems}=FundingModel;
+const {opportunities,getResults,amountText,amountNote,hasAmount,regionNote,copy,governmentAttribution,evidenceItems}=FundingModel;
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -58,10 +58,10 @@ function saveButton(item,extraClass=''){
   return `<button class="save-button ${saved?'is-saved':''} ${extraClass}" data-save="${item.id}" aria-label="${saved?'Remove':'Save'} ${escapeHTML(item.title)}${saved?' from':' to'} My saved" aria-pressed="${saved}">${icon('bookmark')}</button>`;
 }
 function previewCard(item){
-  return `<article class="preview-card"><div class="preview-card-top">${badge(item)}${saveButton(item)}</div><h3><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h3><p class="preview-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}</p><p class="preview-amount-note">${item.amount===null?'Ask the provider':amountNote(item)}</p><p class="preview-card-location">${escapeHTML(item.location)}</p><button class="preview-detail" data-detail="${item.id}">View details ${icon('arrow')}</button></article>`;
+  return `<article class="preview-card"><div class="preview-card-top">${badge(item)}${saveButton(item)}</div><h3><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h3><p class="preview-amount ${!hasAmount(item)?'is-unknown':''}">${!hasAmount(item)?'Varies':amountText(item)}</p><p class="preview-amount-note">${!hasAmount(item)?'Ask the provider':amountNote(item)}</p><p class="preview-card-location">${escapeHTML(item.location)}</p><button class="preview-detail" data-detail="${item.id}">View details ${icon('arrow')}</button></article>`;
 }
 function card(item){
-  return `<article class="opportunity-card"><div class="card-top">${badge(item)}<p class="card-provider">${escapeHTML(item.provider)}<span>${item.type==='Scholarship'?'Scholarship & award':'Funding program'}</span></p>${saveButton(item)}</div><div class="card-content"><h2 class="card-title"><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h2><div class="card-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}<small>${item.amount===null?'Confirm amount':amountNote(item)}</small></div></div><div class="card-meta"><span>${icon('pin')}${escapeHTML(item.location)}</span><span class="community-tag">${escapeHTML(item.community.join(' · '))}</span></div><div class="card-bottom"><span class="card-timing">${icon('compass')}${escapeHTML(item.timing)}</span><button class="card-link" data-detail="${item.id}">View details ${icon('arrow')}</button></div></article>`;
+  return `<article class="opportunity-card"><div class="card-top">${badge(item)}<p class="card-provider">${escapeHTML(item.provider)}<span>${item.type==='Scholarship'?'Scholarship & award':'Funding program'}</span></p>${saveButton(item)}</div><div class="card-content"><h2 class="card-title"><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h2><div class="card-amount ${!hasAmount(item)?'is-unknown':''}">${!hasAmount(item)?'Varies':amountText(item)}<small>${!hasAmount(item)?'Confirm amount':amountNote(item)}</small></div></div><div class="card-meta"><span>${icon('pin')}${escapeHTML(item.location)}</span><span class="community-tag">${escapeHTML(item.community.join(' · '))}</span></div><div class="card-bottom"><span class="card-timing">${icon('compass')}${escapeHTML(item.timing)}</span><button class="card-link" data-detail="${item.id}">View details ${icon('arrow')}</button></div></article>`;
 }
 /* The source's own sentences behind a record (inside the collapsed "Source & current details"). */
 function sourceDetails(item){
@@ -213,7 +213,7 @@ function openDetail(id,navigate=false){
     </header>
     <div class="program-scroll">
       <div class="program-heading"><div class="program-provider">${badge(item)}<span>${escapeHTML(item.provider)}<small>${item.type==='Scholarship'?'Scholarship & award':'Education support program'}</small></span></div><h2 id="detail-title" tabindex="-1">${escapeHTML(item.title)}</h2></div>
-      <dl class="program-highlights"><div class="funding-highlight"><dt>Funding</dt><dd class="program-amount ${item.amount===null?'varies':''}">${item.amount===null?'Funding varies':amountText(item)}<small>${item.amount===null?'Confirm available support':amountNote(item)}</small></dd></div><div><dt>${icon('compass')}When to apply</dt><dd>${escapeHTML(item.timing)}<small>Confirm the current cycle</small></dd></div><div><dt>${icon('pin')}Study location</dt><dd>${escapeHTML(item.location)}${regionNote(item)?`<small>${escapeHTML(regionNote(item))}</small>`:''}</dd></div></dl>
+      <dl class="program-highlights"><div class="funding-highlight"><dt>Funding</dt><dd class="program-amount ${!hasAmount(item)?'varies':''}">${!hasAmount(item)?'Funding varies':amountText(item)}<small>${!hasAmount(item)?'Confirm available support':amountNote(item)}</small></dd></div><div><dt>${icon('compass')}When to apply</dt><dd>${escapeHTML(item.timing)}<small>Confirm the current cycle</small></dd></div><div><dt>${icon('pin')}Study location</dt><dd>${escapeHTML(item.location)}${regionNote(item)?`<small>${escapeHTML(regionNote(item))}</small>`:''}</dd></div></dl>
       <div class="program-layout">
       <section class="program-main">
         <div class="program-tabs" role="tablist" aria-label="Program information">${tab('overview','Overview',true)}${tab('eligibility','Who it’s for',false)}${tab('steps','Next steps',false)}</div>

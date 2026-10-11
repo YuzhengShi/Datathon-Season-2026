@@ -44,5 +44,5 @@ against which AI provider is [LLM_PROVIDERS.md](LLM_PROVIDERS.md).
 
 ## What it is not
 
-Not a crawler and not a verification pipeline: those are the core. Not a national market census: the live data is the 58 published
+Not a crawler and not a verification pipeline: those are the core. Not a national market census: the live data is the 529 published
 records, and the demo mode is four illustrative ones. No accounts, uploads or public write endpoints.

@@ -13,6 +13,7 @@ from navigator.app.main import create_app
 from navigator.app.publish import (
     DEFAULT_DATASET,
     FRONTEND_DATASET,
+    _directory_community,
     _directory_region,
     build_payload,
     ensure_read_model,
@@ -56,7 +57,7 @@ def live_settings(tmp_path):
 
 def test_dataset_is_published_and_unique(payload):
     assert payload["data_mode"] == "live"
-    assert N == 58
+    assert N == 529  # the committed dataset; update it on purpose when the dataset is refreshed
     assert len(payload["records"]) == N
     assert len({x["id"] for x in payload["records"]}) == N
     assert all(not x["is_demo"] for x in payload["records"])
@@ -78,8 +79,24 @@ def test_community_and_province_mapping(payload):
 
 
 def test_region_comes_from_rules_then_the_directory_and_silence_is_not_national(payload):
-    assert Counter(x["region_basis"] for x in payload["records"]) == {"rule": 36, "directory": 15, "not_stated": 7}
-    assert Counter(x["province"] for x in payload["records"]) == {"British Columbia": 48, "all": 3, None: 7}
+    assert Counter(x["region_basis"] for x in payload["records"]) == {"rule": 36, "directory": 486, "not_stated": 7}
+    assert Counter(x["province"] for x in payload["records"]) == {
+        "Manitoba": 130,
+        "British Columbia": 95,
+        "Ontario": 88,
+        "Alberta": 62,
+        "Saskatchewan": 50,
+        "all": 38,  # "National" and "Any Location" in the directory
+        "Northwest Territories": 21,
+        "Nova Scotia": 15,
+        "New Brunswick": 7,
+        None: 7,
+        "Yukon": 6,
+        "Quebec": 3,
+        "Nunavut": 3,
+        "Newfoundland and Labrador": 2,
+        "Prince Edward Island": 2,
+    }
     assert {x["province"] for x in payload["records"]} <= set(REGIONS.values()) | {"all", None}
     # The federal directory lists these entries itself ("Province/territory: British Columbia." / "National.").
     hydro = by_provider(payload, "B.C. Hydro")
@@ -98,6 +115,7 @@ def test_a_directory_region_it_cannot_read_stays_unstated():
     adapter = {"extraction_method": "deterministic_adapter"}
     assert _directory_region({**adapter, "summary": "x. Province/territory: Ontario. y"}) == "Ontario"
     assert _directory_region({**adapter, "summary": "Province/territory: National. y"}) == "all"
+    assert _directory_region({**adapter, "summary": "Province/territory: Any Location. y"}) == "all"
     assert _directory_region({**adapter, "summary": "Province/territory: Narnia. y"}) is None
     assert _directory_region({**adapter, "summary": "Province/territory: Ontario, Alberta. y"}) is None
     assert _directory_region({**adapter, "summary": "no such line"}) is None
@@ -107,13 +125,17 @@ def test_a_directory_region_it_cannot_read_stays_unstated():
 def test_study_plans_are_post_secondary_and_training_only_when_the_title_says_so(payload):
     assert all("postsecondary" in x["goals"] for x in payload["records"])  # the dataset is post-secondary funding
     training = {x["title"] for x in payload["records"] if "training" in x["goals"]}
-    assert len(training) == 2 and by_title(payload, "MNBC STEPS")["title"] in training
+    assert len(training) == 5 and by_title(payload, "MNBC STEPS")["title"] in training
     assert any("Trades" in title for title in training)
+    assert not any("Research" in title for title in training)  # research training is graduate research funding
 
 
 def test_a_directory_entry_is_not_presented_as_the_providers_own_page(payload):
     kinds = Counter(x["source_kind"] for x in payload["records"])
-    assert kinds == {"official_page": 43, "directory_listing": 15}
+    assert kinds == {"official_page": 43, "directory_listing": 486}
+    # ... and it agrees with how each record was built: the directory adapter makes the directory listings.
+    built = Counter(r["extraction_method"] for r in RECORDS)
+    assert (built["curated"], built["deterministic_adapter"]) == (kinds["official_page"], kinds["directory_listing"])
     assert by_provider(payload, "B.C. Hydro")["source_kind"] == "directory_listing"
     assert by_title(payload, "Nutrien")["source_kind"] == "official_page"
 
@@ -148,8 +170,56 @@ def test_eligibility_rules_map_to_profile_fields(payload):
     communities = next(c for c in rule["children"] if c.get("field") == "communities")
     assert communities["value"] == ["First Nations", "Inuit", "Métis"]
     unknown = [x for x in payload["records"] if x["eligibility_rule"]["type"] == "unknown"]
-    assert len(unknown) == 16  # 15 directory-only entries + Nutrien; other unknown nodes sit inside mixed rules
+    assert len(unknown) == 487  # 486 directory-only entries + Nutrien; other unknown nodes sit inside mixed rules
+    assert all(
+        x["eligibility_rule"]["type"] == "unknown"
+        for x in payload["records"]
+        if x["source_kind"] == "directory_listing"
+    )
     assert all("confirm with the provider" in x["note"] for x in unknown)
+
+
+def test_every_province_and_territory_has_records(payload):
+    """The point of the multi-province dataset: no region is empty."""
+    counts = Counter(x["province"] for x in payload["records"])
+    empty = [name for name in REGIONS.values() if counts[name] == 0]
+    assert empty == [], f"no record for: {empty}"
+
+
+def test_a_directory_entry_gets_its_communities_from_the_directorys_own_group_column(payload):
+    adapter = {"extraction_method": "deterministic_adapter"}
+    everyone = ["First Nations", "Inuit", "M\u00e9tis"]
+    assert _directory_community({**adapter, "summary": "x. Indigenous group: All Indigenous People. y"}) == everyone
+    assert _directory_community({**adapter, "summary": "Indigenous group: M\u00e9tis. y"}) == ["M\u00e9tis"]
+    assert (
+        _directory_community({**adapter, "summary": "Indigenous group: Inuit; M\u00e9tis; First Nations. y"})
+        == everyone
+    )
+    assert _directory_community({**adapter, "summary": "Indigenous group: M\u00e9tis; First Nations. y"}) == [
+        "First Nations",
+        "M\u00e9tis",
+    ]
+    assert (
+        _directory_community({**adapter, "summary": "Indigenous group: Narnians. y"}) is None
+    )  # unknown is not everyone
+    assert _directory_community({**adapter, "summary": "no such line"}) is None
+    assert _directory_community({"extraction_method": "curated", "summary": "Indigenous group: Inuit."}) is None
+    # In the dataset: an entry that names one group is not shown as open to all three.
+    one_group = [x for x in RECORDS if "Indigenous group: M\u00e9tis." in (x.get("summary") or "")]
+    assert one_group, "the dataset has entries the directory lists for M\u00e9tis students only"
+    published = {x["source_id"]: x for x in payload["records"]}
+    assert all(published[r["id"]]["community"] == ["M\u00e9tis"] for r in one_group)
+
+
+def test_a_stated_range_is_a_range_never_one_figure(payload):
+    ranges = [x for x in payload["records"] if x["amount_details"]["kind"] == "range"]
+    assert ranges, "the dataset has stated ranges"
+    for x in ranges:
+        assert x["amount"] is None
+        assert 0 < x["amount_details"]["minimum"] < x["amount_details"]["maximum"], x["title"]
+    assert all(
+        x["amount_details"]["minimum"] is None for x in payload["records"] if x["amount_details"]["kind"] != "range"
+    )
 
 
 def test_evidence_refs_carry_quotes(payload):
@@ -231,19 +301,39 @@ def test_live_api_serves_the_canonical_dataset(tmp_path):
         health = client.get("/api/health").json()
         assert health["data_mode"] == "live" and health["migration_ready"]
         assert total() == N
+        published = build_payload(RECORDS, INSTITUTIONS, date(2026, 10, 10))["records"]
+        counts = Counter(x["province"] for x in published)
+        national, unstated = counts["all"], counts[None]
+        regional = N - national - unstated
+        unspecified_deadline = sum(1 for x in published if x["deadline_kind"] == "unspecified")
         assert total(deadline_kind="annual_rule", include_unknown=False) == 27
-        assert total(deadline_kind="annual_rule") == 53  # default keeps the 26 unspecified-deadline records
+        assert (
+            total(deadline_kind="annual_rule") == 27 + unspecified_deadline
+        )  # the default keeps unspecified deadlines
         # Region: three separate buckets, and a province filter keeps what reaches it.
-        assert (total(scope="regional"), total(scope="national"), total(scope="unspecified")) == (48, 3, 7)
-        assert total(provinces=["British Columbia"], scope="regional") == 48
-        assert total(provinces=["Ontario"], include_unknown=False) == 3  # only the nationwide records reach Ontario
-        assert total(provinces=["Ontario"]) == 10  # ... plus the 7 that state no region
+        assert (total(scope="regional"), total(scope="national"), total(scope="unspecified")) == (
+            regional,
+            national,
+            unstated,
+        )
+        assert total(provinces=["British Columbia"], scope="regional") == counts["British Columbia"]
+        # A province filter keeps its own records and the nationwide ones; the ones that state no region only with unknowns.
+        assert total(provinces=["Ontario"], include_unknown=False) == counts["Ontario"] + national
+        assert total(provinces=["Ontario"]) == counts["Ontario"] + national + unstated
+        by_region = {name: total(provinces=[name], scope="regional") for name in REGIONS.values()}
+        assert by_region == {name: counts[name] for name in REGIONS.values()}
+        assert all(by_region.values()), "every province and territory has records"
         stats = client.post("/api/statistics", json={"filters": {}}).json()
         assert stats["dataset_version"] == "live-read-model"
-        assert (stats["national_count"], stats["regional_count"], stats["unspecified_region_count"]) == (3, 48, 7)
+        assert (stats["national_count"], stats["regional_count"], stats["unspecified_region_count"]) == (
+            national,
+            regional,
+            unstated,
+        )
         assert stats["national_count"] + stats["regional_count"] + stats["unspecified_region_count"] == stats["total"]
         assert stats["quality"]["verified_records"] == N
-        assert stats["amounts"]["listed"] == 43 and stats["amounts"]["unknown"] == 15
+        listed = sum(1 for x in published if x["amount"] is not None)
+        assert stats["amounts"]["listed"] == listed and stats["amounts"]["unknown"] == N - listed
         match = client.post(
             "/api/match/evaluate",
             json={"filters": {}, "profile": {"communities": ["Métis"], "metis_citizen": True}},

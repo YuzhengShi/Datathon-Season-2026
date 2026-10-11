@@ -16,7 +16,7 @@ sources:
     terms_url: "https://www.canada.ca/en/transparency/terms.html"
     access_status: unreviewed
     notes: "National discovery index. Entries are NOT verified awards; they go to data/discovery."
-    max_pages: 26
+    max_pages: 600  # the index page + one detail page per directory row (540 seen on 2026-10-05); was 26 when only BC and National rows were followed
   - source_id: indspire_apply_now
     name: Indspire Apply Now
     url: "https://indspire.ca/apply-now/"

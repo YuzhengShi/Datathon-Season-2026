@@ -197,3 +197,37 @@ python -m navigator.cli app init-demo              # the four illustrative demo 
 * `/app/` is served with a strict Content-Security-Policy (no inline scripts or styles, no third-party hosts). Keep it that way: do not add CDN links.
   The site at `/` is not under that policy because its charts use inline styles.
 * A contact address for corrections goes in `frontend/config.js` (`contactEmail`); the crawler's contact goes in `USER_AGENT` in `.env`.
+
+## Build Session 3: every province, the map and the leftovers
+
+**Reading the whole federal directory.** `sources.yaml` gives the directory source a page budget of 600 (the index page plus one detail page per row; 540 rows on
+2026-10-05). Run `python -m navigator.cli pipeline --mode live --limit 1000 --max-pages 700 --resume`: about 540 polite requests at one per second, roughly ten
+minutes the first time. `--resume` reuses stored pages, so later runs need no network (about 30 seconds). Do not open `data/discovery/fetch_audit.jsonl` while a
+run is fetching: on Windows the audit file is replaced after every request and a reader can make the replace fail (the writer now retries for about ten seconds,
+but a program that keeps the file open longer still stops the run).
+
+**What the directory adapter does with the rows.**
+
+* Repeated listings of the same award by the same provider (one Métis bursary is listed about forty times) become one record. The listing with the smallest id is
+  kept, so the choice does not depend on fetch order; the number merged is in the source summary (`repeated_listings_merged`).
+* A page without "Provider Name" uses its "Contact Organisation" (the summary says so). A page with neither stays pending.
+* The directory's "Indigenous group" column is added to the summary ("Indigenous group: Métis.") and `navigator app publish` reads it to set the community;
+  "Province/Territory" sets the region, and "National" and "Any Location" both count as across Canada. None of them is an eligibility rule.
+* A directory entry whose title equals a curated provider-page record's title, and whose provider name contains the other's, is replaced by the provider-page
+  record (`data/discovery/superseded_directory_records.json`). If the directory entry was imported earlier, rebuild the database (below).
+
+**Exit codes.** A normal live run still exits 3 when a few provider sites cannot be read (robots.txt unavailable: camosun.ca, langara.bc.ca). That is a source
+failure, not a data failure: the import reports `rejected: 0`.
+
+**Rebuilding the live database from the saved pages (offline).** Stop every server that has `data/navigator.db` open (Windows will not delete it otherwise), delete
+`data/navigator.db`, and run the pipeline command above twice: the first run creates every record, the second must report all of them unchanged. Then run
+`python -m navigator.cli app publish`.
+
+**A leftover `backend/` folder overwrites the site's data.** Before the application layer was merged into the main package (`navigator.app`) its code lived in
+`backend/`. If an old, untracked copy is still on disk, starting its server (or its `publish`) rewrites `dist/data/opportunities.json` in the old format.
+`tests/test_app_publish.py::test_the_committed_static_dataset_matches_what_publish_writes` fails when that happens; `python -m navigator.cli app publish` restores
+the file. Delete the folder if it is there.
+
+**Checks of the site.** `node scripts/qa-ui.cjs` (simulated DOM, 44 checks, including the map, the tiles, the ranking and the amounts);
+`node tests/e2e/site.mjs --base=http://127.0.0.1:8000 --out=shots` (real Chrome with screenshots; `--ai` adds one real model search); `node --test tests/js/`
+(the numbers behind the map are in `tests/js/regions.test.mjs`, the wording of amounts in `tests/js/amounts.test.mjs`).

@@ -2,7 +2,7 @@
   'use strict';
   function init(ctx){
     const {state,$,$$,icon,escapeHTML:e,toast,renderResults,renderProfile,clearFilters,route}=ctx;
-    const {regions,filterKeys,opportunities,toFilters,fromFilters,amountText}=FundingModel;
+    const {regions,filterKeys,opportunities,toFilters,fromFilters,amountText,hasAmount}=FundingModel;
     const labels={goal:{postsecondary:'University or college',training:'Skills & training'},amount:{listed:'Amount listed',high:'Above $5,000',under5000:'Up to $5,000',unknown:'Amount not listed'},level:{high_school:'High school',college:'College',undergraduate:'Undergraduate',graduate:'Graduate',vocational:'Vocational training'},field:{business:'Business & finance',stem:'STEM',health:'Health',arts:'Arts & humanities',trades:'Skilled trades'},studyMode:{full_time:'Full-time',part_time:'Part-time'},expense:{tuition:'Tuition',living:'Living costs',travel:'Travel',books:'Books & materials'},renewable:{yes:'Renewable',no:'Non-renewable',unknown:'Renewal unknown'},deadline:{date:'Date listed',annual_rule:'Annual deadline',rolling:'Rolling intake',local_administrator:'Set by administrator',unspecified:'Date unspecified'},scope:{national:'National coverage',regional:'Region-specific',unspecified:'Region not stated'},type:{Scholarship:'Scholarships & awards',Program:'Funding programs'}};
     const descriptors=[['goal','Study plans'],['level','Education level'],['field','Field of study'],['studyMode','Study mode'],['expense','Funding covers'],['renewable','Renewal'],['deadline','Deadline type'],['provider','Provider'],['scope','Coverage']];
     const filterLabel=(key,value)=>Array.isArray(value)?value.map(x=>labels[key]?.[x]||x).join(' · '):labels[key]?.[value]||value;
@@ -13,7 +13,10 @@
       return `<div class="select-field"><label for="filter-${key}">${label}</label><select id="filter-${key}" data-filter="${key}"><option value="all">Any ${label.toLowerCase()}</option>${Object.entries(values).map(([value,text])=>`<option value="${e(value)}">${e(text)}</option>`).join('')}</select>${icon('chevron')}</div>`;
     }).join('');
     const manualKeys=new Set();
-    let connection={backend:false,ai:false,mode:'demo'},mapMode='regional',geometry=null,latestStats=null,statsRevision=0;
+    const regionView=FundingRegionView.init({$,icon,e,regions,amountText});
+    const localRows=()=>FundingModel.getResults({...state,query:'',savedOnly:false,aiIds:null});
+    const repaintMap=()=>{if(latestStats)regionView.paint({summary:FundingRegions.summarize(localRows(),regions),state,geometry,mapMode,mapView});};
+    let connection={backend:false,ai:false,mode:'demo'},mapMode='regional',mapView='map',geometry=null,latestStats=null,statsRevision=0,showAllRows=false;
     let conversationMode='match',history=[],profile={},messages=[],lastAnswer=null,busy=false,conversationRevision=0,currentController=null;
     const geometryReady=fetch('data/canada-map.json').then(r=>{if(!r.ok)throw new Error();return r.json();}).then(value=>{geometry=value;if(!$('#statistics-view').hidden&&latestStats)paintStatistics(latestStats);}).catch(()=>{if(!$('#statistics-view').hidden)$('#canada-map').innerHTML='<p class="chart-note">Map unavailable. Use the region table below.</p>';});
     function activeDescription(){const values=filterKeys.filter(k=>state[k]!=='all').map(k=>filterLabel(k,state[k]));if(!state.includeUnknown)values.push('Only specified source details');return values.length?values.join(' · '):'All records · select a chart or region to narrow the view';}
@@ -45,27 +48,15 @@
       const maximum=Math.max(1,...entries.map(x=>x[1]));
       return '<div class="chart-bars">'+entries.map(([label,count,value],i)=>`<button class="chart-bar" data-stats-selection="${key}" data-value="${e(value)}" aria-label="Filter by ${e(label)}: ${count} records"><span class="chart-bar-label"><span>${e(label)}</span><b>${count}</b></span><span class="chart-bar-track"><i style="--bar-width:${count/maximum*100}%;--chart-color:${colors?.[i]||'#8fa875'}"></i></span></button>`).join('')+'</div>';
     }
-    function renderMap(data){
-      if(!geometry){$('#canada-map').innerHTML='<p class="chart-note">Loading map… The region table is available below.</p>';}
-      else{
-        const byCode=Object.fromEntries(data.regions.map(x=>[x.code,x]));
-        const max=Math.max(1,...data.regions.map(x=>x[mapMode==='regional'?'regional_count':'reach_count']));
-        const selected=Array.isArray(state.location)?state.location:[state.location];
-        const fill=count=>count===0?'#e7eddf':count/max>.7?'#759258':count/max>.35?'#a7bc8b':'#c8d6b2';
-        $('#canada-map').innerHTML=`<svg viewBox="${geometry.viewBox}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Canadian provinces and territories. Press a region to filter the dataset.">${geometry.regions.map(region=>{
-          const row=byCode[region.code],name=regions[region.code],count=row[mapMode==='regional'?'regional_count':'reach_count'];
-          return `<path d="${region.path}" fill="${fill(count)}" class="${selected.includes(name)?'is-selected':''}" tabindex="0" role="button" aria-pressed="${selected.includes(name)}" data-region="${region.code}" aria-label="${e(name)}: ${row.regional_count} regional, ${row.national_count} national records"><title>${e(name)} · ${row.regional_count} regional + ${row.national_count} national</title></path>`;
-        }).join('')}${geometry.regions.filter(x=>!['PE','NB','NS'].includes(x.code)).map(x=>`<text class="map-label" x="${x.label[0]}" y="${x.label[1]}" text-anchor="middle">${x.code}</text>`).join('')}</svg>`;
-      }
-      const chosen=data.regions.find(x=>x.name===state.location)||data.regions.slice().sort((a,b)=>b.regional_count-a.regional_count)[0];
-      const count=chosen[mapMode==='regional'?'regional_count':'reach_count'];
-      $('#map-region-summary').innerHTML=`<p class="region-insight-label">${state.location==='all'?'Leading regional coverage':'Selected region'}</p><h3 class="region-insight-name">${e(chosen.name)}</h3><div class="region-insight-value">${count}</div><p class="region-insight-small">${mapMode==='regional'?'region-specific records': 'national + regional records'}<br>${chosen.national_count} national records also shown in Explore</p><div class="region-picker">${data.regions.slice().sort((a,b)=>b.regional_count-a.regional_count).slice(0,5).map(row=>`<button data-region="${row.code}" class="${state.location===row.name?'is-selected':''}"><span>${e(row.name)}</span><b>${row[mapMode==='regional'?'regional_count':'reach_count']}</b></button>`).join('')}</div>`;
-      $('#region-table').innerHTML=`<table><thead><tr><th scope="col">Region</th><th scope="col">Regional</th><th scope="col">National</th><th scope="col">Unique reach</th></tr></thead><tbody>${data.regions.map(row=>`<tr><td><button data-region="${row.code}">${e(row.name)}</button></td><td>${row.regional_count}</td><td>${row.national_count}</td><td>${row.reach_count}</td></tr>`).join('')}</tbody></table><p>National reach is repeated across regions. Do not sum the reach column.</p>`;
+    function plainBars(entries,total){
+      return '<div class="chart-bars">'+entries.map(([label,count,color])=>`<div class="chart-bar is-static"><span class="chart-bar-label"><span>${e(label)}</span><b>${count}${total?` · ${Math.round(count/total*100)}%`:''}</b></span><span class="chart-bar-track"><i style="--bar-width:${total?count/total*100:0}%;--chart-color:${color}"></i></span></div>`).join('')+'</div>';
     }
     function paintStatistics(data){
       latestStats=data;
       const focusRegion=document.activeElement?.dataset?.region;
       const live=FundingModel.mode==='live';
+      const rows=localRows(),summary=FundingRegions.summarize(rows,regions);
+      const focusScope=document.activeElement?.closest?.('#canada-map,#tile-map,#region-ranking,#region-table')?.id;
       document.querySelector('.dataset-banner strong').textContent=live?'Live dataset':'Example dataset';
       $('#stats-dataset-note').textContent=live
         ?`${opportunities.length} published records · quote-checked · not a national market census`
@@ -75,21 +66,29 @@
         const value=state[el.dataset.statsFilter];el.querySelector('[data-multiple]')?.remove();
         if(Array.isArray(value)){const option=document.createElement('option');option.value='multiple';option.textContent=value.join(' · ');option.disabled=true;option.dataset.multiple='true';el.append(option);el.value='multiple';}else el.value=value;
       });
-      const figures=[['Opportunities',data.total,'Unique records in this selection','compass'],['National coverage',data.national_count,'Counted once, not per province','pin'],['Regional support',data.regional_count,'Restricted to a specific region','chart'],['Amounts listed',`${data.amounts.listed} / ${data.total}`,live?'Unknown ≠ $0 · caps are not awards':'Unknown ≠ $0 · figures are examples','book']];
+      const figures=[['Opportunities',data.total,'Unique records in this selection','compass'],['Regions covered',`${summary.covered} / ${summary.regions.length}`,'Provinces and territories with region-specific records','grid'],['National coverage',data.national_count,'Counted once, not per province','pin'],['Regional support',data.regional_count,'Restricted to a specific region','chart'],['Amounts listed',`${data.amounts.listed} / ${data.total}`,live?'Unknown ≠ $0 · caps are not awards':'Unknown ≠ $0 · figures are examples','book']];
       $('#statistics-kpis').innerHTML=figures.map(([label,value,note,symbol])=>`<div class="kpi"><p>${label}</p><span class="kpi-value">${value}</span><small>${note}</small><span class="kpi-decoration">${icon(symbol)}</span></div>`).join('');
-      renderMap(data);
+      regionView.paint({summary,state,geometry,mapMode,mapView});
       const total=data.total||1,r=64,c=2*Math.PI*r,scholarships=data.by_type.Scholarship||0,programs=data.by_type.Program||0;
       $('#type-chart').innerHTML=`<div class="donut-wrap"><svg viewBox="0 0 165 165" role="img" aria-label="${scholarships} scholarships and ${programs} programs"><circle cx="82.5" cy="82.5" r="64" stroke="#eff3e8"/><circle cx="82.5" cy="82.5" r="64" stroke="#819e62" stroke-dasharray="${programs/total*c} ${c}"/><circle cx="82.5" cy="82.5" r="64" stroke="#d8af85" stroke-dasharray="${scholarships/total*c} ${c}" stroke-dashoffset="-${programs/total*c}"/></svg><div class="donut-center"><strong>${data.total}</strong><small>opportunities</small></div></div><div class="chart-legend"><button data-stats-selection="type" data-value="Program" style="--chart-color:#819e62"><i></i>Funding programs <b>${programs}</b></button><button data-stats-selection="type" data-value="Scholarship" style="--chart-color:#d8af85"><i></i>Scholarships & awards <b>${scholarships}</b></button></div>`;
       $('#national-summary').innerHTML=`<button data-stats-selection="scope" data-value="national"><span>Across Canada</span><strong>${data.national_count}</strong></button><button data-stats-selection="scope" data-value="regional"><span>Region-specific</span><strong>${data.regional_count}</strong></button><button data-stats-selection="scope" data-value="unspecified"><span>Region not stated</span><strong>${data.unspecified_region_count||0}</strong></button>`;
       $('#community-chart').innerHTML=bars(Object.entries(data.by_community).map(([name,count])=>[name,count,name]),'community',['#819e62','#a8bd90','#cfb08a']);
       $('#amount-chart').innerHTML=bars([['Up to $5,000',data.amount_bands.up_to_5000,'under5000'],['Above $5,000',data.amount_bands.above_5000,'high'],['Not listed',data.amount_bands.unknown,'unknown']],'amount',['#a4b986','#83a365','#d4dcca']);
-      $('#amount-chart-note').textContent=live?'Listed figures, including caps. Not allocated funding.':'Example figures, including caps. Not allocated funding.';
+      const ranges=rows.filter(x=>x.amount===null&&hasAmount(x)).length;
+      $('#amount-chart-note').textContent=(live?'Listed figures, including caps. Not allocated funding.':'Example figures, including caps. Not allocated funding.')+(ranges?` ${ranges} state a range instead (shown on their cards, counted here as not listed).`:'');
       const dl=data.by_deadline_kind;
       $('#deadline-chart').innerHTML=bars([['Due every year',dl.annual_rule||0,'annual_rule'],['Date listed',dl.date||0,'date'],['Set by administrator',dl.local_administrator||0,'local_administrator'],['Rolling intake',dl.rolling||0,'rolling'],['Date unspecified',dl.unspecified||0,'unspecified']],'deadline',['#7f9b66','#a9bf8f','#9eb489','#c8b697','#d7dfce']);
-      $('#amount-table-body').innerHTML=data.amount_rows.map(row=>`<tr><td><button data-detail="${e(row.id)}">${e(row.title)}</button><small>${e(row.provider)}</small></td><td>${e(row.location)}</td><td>${row.amount===null?'Not listed':amountText({amount:Number(row.amount)})}<small>${live?'Confirm with the provider':'Example · confirm provider'}</small></td><td><span class="amount-semantic">${({maximum:'Unverified up-to figure',fixed:'Fixed · stated unit',range:'Range · stated unit',variable:'Varies by program',pooled_total:'Pool, not per student',unspecified:'Unspecified'})[row.amount_details.kind]||'Unspecified'}</span></td></tr>`).join('');
+      const mix=FundingRegions.sourceMix(rows),age=FundingRegions.currency(rows);
+      $('#source-chart').innerHTML=plainBars([['Provider pages',mix.verified,FundingRegionView.SOURCE_COLORS.verified],['Federal directory',mix.directory,FundingRegionView.SOURCE_COLORS.directory]],rows.length);
+      $('#currency-chart').innerHTML=plainBars([...age.groups.map(g=>[g.label,g.count,'#8fa875']),['Page states no date',age.unknown,'#d4dcca']],rows.length);
+      $('#provider-chart').innerHTML=rows.length?bars(FundingRegions.topProviders(rows,8).map(x=>[x.name,x.count,x.name]),'provider',null):'<p class="chart-note">No records in this selection.</p>';
+      const rowCap=40,visibleRows=showAllRows?data.amount_rows:data.amount_rows.slice(0,rowCap);
+      $('#stats-rows-note').hidden=data.amount_rows.length<=rowCap;
+      $('#stats-rows-note').innerHTML=showAllRows?`All ${data.amount_rows.length} records are listed. <button class="text-link" data-rows-toggle>Show fewer</button>`:`Showing ${rowCap} of ${data.amount_rows.length} records. <button class="text-link" data-rows-toggle>Show all ${data.amount_rows.length}</button>`;
+      $('#amount-table-body').innerHTML=visibleRows.map(row=>`<tr><td><button data-detail="${e(row.id)}">${e(row.title)}</button><small>${e(row.provider)}</small></td><td>${e(row.location)}</td><td>${!hasAmount(row)?'Not listed':amountText(row.amount===null?row:{...row,amount:Number(row.amount)})}<small>${live?'Confirm with the provider':'Example · confirm provider'}</small></td><td><span class="amount-semantic">${({maximum:'Unverified up-to figure',fixed:'Fixed · stated unit',range:'Range · stated unit',variable:'Varies by program',pooled_total:'Pool, not per student',unspecified:'Unspecified'})[row.amount_details.kind]||'Unspecified'}</span></td></tr>`).join('');
       $('#stats-empty-note').hidden=data.total!==0;
-      $('#statistics-methods-content').innerHTML=`<p>${data.quality.verified_records} of ${data.total} selected records have a verified current cycle. ${live?'Records come from the canonical, quote-checked dataset; directory-only entries are labelled in their source notes.':'These are carried-over source examples, not a census of Canadian scholarships.'}</p><p>Province counts describe program coverage, not headquarters. National records count once in the total; regional reach and community tags overlap. Listed caps, pooled totals and unknown figures are never summed as allocated funding.</p><p>A record’s region comes from its eligibility rules or, for federal directory entries, from the region the directory lists. When the source states no region the record is counted as “not stated” (${data.unspecified_region_count||0} in this selection), never as national.</p><p>Education level, field, study mode, covered costs and renewal are unknown unless a source states them. “Keep unspecified details” controls whether such records remain in a filtered view. <a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener noreferrer">Map: Natural Earth, public-domain geography.</a></p>`;
-      if(focusRegion)$(`#canada-map [data-region="${focusRegion}"]`)?.focus({preventScroll:true});
+      $('#statistics-methods-content').innerHTML=`<p>${data.quality.verified_records} of ${data.total} selected records have a verified current cycle. ${live?'Records come from the canonical, quote-checked dataset; directory-only entries are labelled in their source notes.':'These are carried-over source examples, not a census of Canadian scholarships.'}</p><p>Province counts describe program coverage, not headquarters. National records count once in the total; regional reach and community tags overlap. Listed caps, pooled totals and unknown figures are never summed as allocated funding.</p><p>A record’s region comes from its eligibility rules or, for federal directory entries, from the region the directory lists. When the source states no region the record is counted as “not stated” (${data.unspecified_region_count||0} in this selection), never as national.</p><p>Map colours use up to five classes cut from the data itself, so one large region does not wash out the others; the tiles show every region at the same size. Provider pages were read and quote-checked; federal directory entries are listed as the directory states them, and a source page that states no date is counted as such.</p><p>Education level, field, study mode, covered costs and renewal are unknown unless a source states them. “Keep unspecified details” controls whether such records remain in a filtered view. <a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener noreferrer">Map: Natural Earth, public-domain geography.</a></p>`;
+      if(focusRegion)$(`#${focusScope||'canada-map'} [data-region="${focusRegion}"]`)?.focus({preventScroll:true});
     }
     async function renderStatistics(){
       const revision=++statsRevision;
@@ -104,13 +103,13 @@
       if(!latestStats)return;
       const live=FundingModel.mode==='live';
       const safe=value=>{let text=String(value??'');if(/^[\t\r\n ]*[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
-      const rows=[['data_mode','opportunity_id','title','provider','coverage','listed_figure','amount_kind','currency','unit','note'],...latestStats.amount_rows.map(x=>[FundingModel.mode,x.id,x.title,x.provider,x.location,x.amount,x.amount_details.kind,x.amount_details.currency,x.amount_details.unit,live?'Quote-checked; unknown is not zero':'Illustrative, unverified; unknown is not zero'])];
+      const rows=[['data_mode','opportunity_id','title','provider','coverage','region_basis','source_kind','source_page_last_changed','listed_figure','amount_kind','range_minimum','range_maximum','currency','unit','note'],...localRows().map(x=>[FundingModel.mode,x.id,x.title,x.provider,x.location,x.region_basis,x.source_kind,x.source_modified_at,x.amount,x.amount_details.kind,x.amount_details.minimum,x.amount_details.maximum,x.amount_details.currency,x.amount_details.unit,live?'Quote-checked; unknown is not zero':'Illustrative, unverified; unknown is not zero'])];
       const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(safe).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});
       const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`funding-statistics-${FundingModel.mode}.csv`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast(live?'Selected published records exported.':'Selected example records exported.');
     }
     function canonicalCards(answer){
       const live=FundingModel.mode==='live';
-      return (answer?.results||[]).map(({record,match})=>`<article class="assistant-record"><button data-detail="${e(record.id)}">${e(record.title)}</button><strong>${amountText(record)}</strong><small>${record.amount===null?'Amount to confirm':live?'Listed figure · confirm with the provider':'Illustrative figure · not guaranteed'}<br>${e(record.location)}<br>${e(match?.match_status==='potential_fit'?'Recorded conditions met; approval not guaranteed':match?.match_status==='needs_information'?'More information needed':'Confirm current requirements with the provider')}</small><a href="${e(record.url)}" target="_blank" rel="noopener noreferrer">Provider source ↗</a></article>`).join('');
+      return (answer?.results||[]).map(({record,match})=>`<article class="assistant-record"><button data-detail="${e(record.id)}">${e(record.title)}</button><strong>${amountText(record)}</strong><small>${!hasAmount(record)?'Amount to confirm':live?'Listed figure · confirm with the provider':'Illustrative figure · not guaranteed'}<br>${e(record.location)}<br>${e(match?.match_status==='potential_fit'?'Recorded conditions met; approval not guaranteed':match?.match_status==='needs_information'?'More information needed':'Confirm current requirements with the provider')}</small><a href="${e(record.url)}" target="_blank" rel="noopener noreferrer">Provider source ↗</a></article>`).join('');
     }
     function renderConversation(){
       const analysis=conversationMode==='analysis';
@@ -174,15 +173,18 @@
     }
     document.addEventListener('click',event=>{
       const assistant=event.target.closest('[data-assistant]');if(assistant){openAssistant(assistant.dataset.assistant);return;}
-      const region=event.target.closest('[data-region]');if(region){chooseFilter('location',regions[region.dataset.region]);$(`#canada-map [data-region="${region.dataset.region}"]`)?.focus({preventScroll:true});return;}
+      const region=event.target.closest('[data-region]');if(region){const code=region.dataset.region,scope=region.closest('#canada-map,#tile-map,#region-ranking,#region-table')?.id;chooseFilter('location',regions[code]);$(`#${scope||'canada-map'} [data-region="${code}"]`)?.focus({preventScroll:true});return;}
+      const exploreRegion=event.target.closest('[data-explore-region]');if(exploreRegion){const name=exploreRegion.dataset.exploreRegion;if(state.location!==name){state.location=name;manualKeys.add('location');state.aiIds=null;$('#ai-search-summary').hidden=true;}renderResults();location.hash='explore';route();return;}
+      const mapStyle=event.target.closest('[data-map-view]');if(mapStyle){mapView=mapStyle.dataset.mapView;repaintMap();return;}
+      const rowsToggle=event.target.closest('[data-rows-toggle]');if(rowsToggle){showAllRows=!showAllRows;if(latestStats)paintStatistics(latestStats);return;}
       const selection=event.target.closest('[data-stats-selection]');if(selection){chooseFilter(selection.dataset.statsSelection,selection.dataset.value);return;}
-      const mode=event.target.closest('[data-map-mode]');if(mode){mapMode=mode.dataset.mapMode;$$('[data-map-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===mode)));if(latestStats)renderMap(latestStats);return;}
+      const mode=event.target.closest('[data-map-mode]');if(mode){mapMode=mode.dataset.mapMode;$$('[data-map-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===mode)));repaintMap();return;}
       const suggestion=event.target.closest('[data-conversation-suggestion]');if(suggestion){$('#conversation-input').value=suggestion.dataset.conversationSuggestion;$('#conversation-input').focus();return;}
       const remove=event.target.closest('[data-remove-filter]');if(remove)manualKeys.delete(remove.dataset.removeFilter);
       if(event.target.closest('#privacy-clear-conversation')){clearConversation();renderResults();toast('Conversation cleared.');}
       if(event.target.closest('#clear-ai-search')){state.aiIds=null;$('#ai-search-summary').hidden=true;renderResults();}
     });
-    document.addEventListener('keydown',event=>{const region=event.target.closest('[data-region]');if(region&&region.tagName.toLowerCase()==='path'&&['Enter',' '].includes(event.key)){event.preventDefault();chooseFilter('location',regions[region.dataset.region]);}});
+    document.addEventListener('keydown',event=>{const region=event.target.closest('[data-region]');if(region&&['path','g'].includes(region.tagName.toLowerCase())&&['Enter',' '].includes(event.key)){event.preventDefault();chooseFilter('location',regions[region.dataset.region]);}});
     document.addEventListener('change',event=>{
       const filter=event.target.closest('[data-filter]');if(filter)manualKeys.add(filter.dataset.filter);
       const statsFilter=event.target.closest('[data-stats-filter]');if(statsFilter){state[statsFilter.dataset.statsFilter]=statsFilter.value;manualKeys.add(statsFilter.dataset.statsFilter);state.aiIds=null;renderResults();renderStatistics();}

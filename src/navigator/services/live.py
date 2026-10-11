@@ -7,6 +7,8 @@ as a failure or a pending item, the exit code says so, and demo records can neve
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -91,18 +93,40 @@ def snapshots_from_index(
     return out
 
 
-def prefer_provider_records(candidates: list[dict]) -> tuple[list[dict], list[tuple[dict, dict]]]:
-    """A curated record read from the provider's own page replaces the directory record with the same id.
+def _plain(text: str | None) -> str:
+    """Lower case, without accents or punctuation: how two titles or names are compared."""
+    decomposed = unicodedata.normalize("NFKD", text or "")
+    letters = "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", letters).split())
 
-    The directory entry stays in ``data/discovery``; only the opportunity record is replaced. Two curated records, or two
-    directory records, with the same id are left alone: the planner rejects a duplicate id.
+
+def _is_same_opportunity(directory: dict, curated: dict) -> bool:
+    """The same title, and one provider name contains the other ("Indigenous Services Canada" and "Indigenous Services
+    Canada - Education Branch"). Both must hold: a title alone is not enough to call two records one opportunity."""
+    if not _plain(directory.get("title")) or _plain(directory.get("title")) != _plain(curated.get("title")):
+        return False
+    old = _plain((directory.get("provider") or {}).get("name"))
+    new = _plain((curated.get("provider") or {}).get("name"))
+    return bool(old and new and (old in new or new in old))
+
+
+def prefer_provider_records(candidates: list[dict]) -> tuple[list[dict], list[tuple[dict, dict]]]:
+    """A curated record read from the provider's own page replaces the directory record for the same opportunity.
+
+    Same opportunity means the same id, or the same title with one provider name containing the other. The directory
+    entry stays in ``data/discovery``; only the opportunity record is replaced. Two curated records, or two directory
+    records, with the same id are left alone: the planner rejects a duplicate id.
     """
     curated = {r["id"]: r for r in candidates if r.get("extraction_method") == "curated"}
     kept: list[dict] = []
     replaced: list[tuple[dict, dict]] = []
     for record in candidates:
-        newer = curated.get(record["id"])
-        if newer is not None and record.get("extraction_method") == "deterministic_adapter":
+        newer = None
+        if record.get("extraction_method") == "deterministic_adapter":
+            newer = curated.get(record["id"]) or next(
+                (c for c in curated.values() if _is_same_opportunity(record, c)), None
+            )
+        if newer is not None:
             replaced.append((record, newer))
         else:
             kept.append(record)
