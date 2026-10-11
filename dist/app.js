@@ -1,7 +1,7 @@
 'use strict';
 
 FundingModel.ready.then(()=>{
-const {opportunities,getResults,amountText}=FundingModel;
+const {opportunities,getResults,amountText,amountNote,regionNote,copy,governmentAttribution,evidenceItems}=FundingModel;
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -58,10 +58,26 @@ function saveButton(item,extraClass=''){
   return `<button class="save-button ${saved?'is-saved':''} ${extraClass}" data-save="${item.id}" aria-label="${saved?'Remove':'Save'} ${escapeHTML(item.title)}${saved?' from':' to'} My saved" aria-pressed="${saved}">${icon('bookmark')}</button>`;
 }
 function previewCard(item){
-  return `<article class="preview-card"><div class="preview-card-top">${badge(item)}${saveButton(item)}</div><h3><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h3><p class="preview-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}</p><p class="preview-amount-note">${item.amount===null?'Ask the provider':'Up to · example amount'}</p><p class="preview-card-location">${escapeHTML(item.location)}</p><button class="preview-detail" data-detail="${item.id}">View details ${icon('arrow')}</button></article>`;
+  return `<article class="preview-card"><div class="preview-card-top">${badge(item)}${saveButton(item)}</div><h3><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h3><p class="preview-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}</p><p class="preview-amount-note">${item.amount===null?'Ask the provider':amountNote(item)}</p><p class="preview-card-location">${escapeHTML(item.location)}</p><button class="preview-detail" data-detail="${item.id}">View details ${icon('arrow')}</button></article>`;
 }
 function card(item){
-  return `<article class="opportunity-card"><div class="card-top">${badge(item)}<p class="card-provider">${escapeHTML(item.provider)}<span>${item.type==='Scholarship'?'Scholarship & award':'Funding program'}</span></p>${saveButton(item)}</div><div class="card-content"><h2 class="card-title"><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h2><div class="card-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}<small>${item.amount===null?'Confirm amount':'Up to · example'}</small></div></div><div class="card-meta"><span>${icon('pin')}${escapeHTML(item.location)}</span><span class="community-tag">${escapeHTML(item.community.join(' · '))}</span></div><div class="card-bottom"><span class="card-timing">${icon('compass')}${escapeHTML(item.timing)}</span><button class="card-link" data-detail="${item.id}">View details ${icon('arrow')}</button></div></article>`;
+  return `<article class="opportunity-card"><div class="card-top">${badge(item)}<p class="card-provider">${escapeHTML(item.provider)}<span>${item.type==='Scholarship'?'Scholarship & award':'Funding program'}</span></p>${saveButton(item)}</div><div class="card-content"><h2 class="card-title"><button data-detail="${item.id}">${escapeHTML(item.title)}</button></h2><div class="card-amount ${item.amount===null?'is-unknown':''}">${item.amount===null?'Varies':amountText(item)}<small>${item.amount===null?'Confirm amount':amountNote(item)}</small></div></div><div class="card-meta"><span>${icon('pin')}${escapeHTML(item.location)}</span><span class="community-tag">${escapeHTML(item.community.join(' · '))}</span></div><div class="card-bottom"><span class="card-timing">${icon('compass')}${escapeHTML(item.timing)}</span><button class="card-link" data-detail="${item.id}">View details ${icon('arrow')}</button></div></article>`;
+}
+/* The source's own sentences behind a record (inside the collapsed "Source & current details"). */
+function sourceDetails(item){
+  const evidence=evidenceItems(item);
+  const checked=item.last_verified_at?`Last checked ${escapeHTML(String(item.last_verified_at).slice(0,10))}.`:'';
+  return (evidence.length?`<h4 class="evidence-heading">What the source says</h4><ul class="evidence-list">${evidence.map(x=>`<li><span>${escapeHTML(x.label)}</span><q>${escapeHTML(x.quote)}</q>${x.url?`<a href="${escapeHTML(x.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}</li>`).join('')}</ul>`:'')+(checked?`<p class="evidence-checked">${checked}</p>`:'');
+}
+/* Shown outside the collapsed area: the Government of Canada's reproduction terms ask for it on every page that uses its material. */
+function attributionNote(item){
+  const text=governmentAttribution(item);
+  return text?`<p class="gov-attribution">${escapeHTML(text)}</p>`:'';
+}
+/* Static text in index.html is written for the demo; data-live-text holds what to say once the dataset is live. */
+function applyModeCopy(){
+  document.body.dataset.dataMode=FundingModel.mode;
+  if(FundingModel.mode==='live')$$('[data-live-text]').forEach(el=>{el.textContent=el.dataset.liveText;});
 }
 function renderHome(){ $('#home-cards').innerHTML=opportunities.slice(0,3).map(previewCard).join(''); }
 function renderSavedCount(){
@@ -193,11 +209,11 @@ function openDetail(id,navigate=false){
   $('#detail-content').innerHTML=`
     <header class="program-toolbar">
       <button class="program-back" data-close>${icon('arrow')}${detailOrigin.scope==='home-view'?'Back to preview':'Back to funding'}</button>
-      <div class="program-toolbar-right"><nav class="program-record-nav" aria-label="Browse current opportunities"><button class="icon-button record-previous" data-program-move="-1" aria-label="Previous program" ${recordIndex===0?'disabled':''}>${icon('arrow')}</button><span>${recordIndex+1} <span aria-hidden="true">/</span> ${detailRecordIds.length}</span><button class="icon-button" data-program-move="1" aria-label="Next program" ${recordIndex===detailRecordIds.length-1?'disabled':''}>${icon('arrow')}</button></nav><span class="demo-tag">Example data</span><button class="icon-button" data-close aria-label="Close program details">${icon('close')}</button></div>
+      <div class="program-toolbar-right"><nav class="program-record-nav" aria-label="Browse current opportunities"><button class="icon-button record-previous" data-program-move="-1" aria-label="Previous program" ${recordIndex===0?'disabled':''}>${icon('arrow')}</button><span>${recordIndex+1} <span aria-hidden="true">/</span> ${detailRecordIds.length}</span><button class="icon-button" data-program-move="1" aria-label="Next program" ${recordIndex===detailRecordIds.length-1?'disabled':''}>${icon('arrow')}</button></nav><span class="demo-tag">${copy().tag}</span><button class="icon-button" data-close aria-label="Close program details">${icon('close')}</button></div>
     </header>
     <div class="program-scroll">
       <div class="program-heading"><div class="program-provider">${badge(item)}<span>${escapeHTML(item.provider)}<small>${item.type==='Scholarship'?'Scholarship & award':'Education support program'}</small></span></div><h2 id="detail-title" tabindex="-1">${escapeHTML(item.title)}</h2></div>
-      <dl class="program-highlights"><div class="funding-highlight"><dt>Funding</dt><dd class="program-amount ${item.amount===null?'varies':''}">${item.amount===null?'Funding varies':amountText(item)}<small>${item.amount===null?'Confirm available support':'Up to · example amount'}</small></dd></div><div><dt>${icon('compass')}When to apply</dt><dd>${escapeHTML(item.timing)}<small>Confirm the current cycle</small></dd></div><div><dt>${icon('pin')}Study location</dt><dd>${escapeHTML(item.location)}</dd></div></dl>
+      <dl class="program-highlights"><div class="funding-highlight"><dt>Funding</dt><dd class="program-amount ${item.amount===null?'varies':''}">${item.amount===null?'Funding varies':amountText(item)}<small>${item.amount===null?'Confirm available support':amountNote(item)}</small></dd></div><div><dt>${icon('compass')}When to apply</dt><dd>${escapeHTML(item.timing)}<small>Confirm the current cycle</small></dd></div><div><dt>${icon('pin')}Study location</dt><dd>${escapeHTML(item.location)}${regionNote(item)?`<small>${escapeHTML(regionNote(item))}</small>`:''}</dd></div></dl>
       <div class="program-layout">
       <section class="program-main">
         <div class="program-tabs" role="tablist" aria-label="Program information">${tab('overview','Overview',true)}${tab('eligibility','Who it’s for',false)}${tab('steps','Next steps',false)}</div>
@@ -212,12 +228,12 @@ function openDetail(id,navigate=false){
             ['pin','Study location',item.location],
             ['book','Study plans',plans.join(' · ')]
           ].map(([symbol,label,value])=>`<div class="program-criterion"><span>${icon(symbol)}</span><div><small>${label}</small><p>${escapeHTML(value)}</p></div></div>`).join('')}</div>
-          <p class="program-criteria-note">Example criteria. Confirm all requirements with the provider.</p>
+          <p class="program-criteria-note">${escapeHTML(copy().criteriaNote)}</p>
         </section>
         <section class="program-panel" id="program-panel-steps" data-program-panel="steps" role="tabpanel" aria-labelledby="program-tab-steps" tabindex="0" hidden>
           <h3>Your next steps</h3><ol class="program-next-steps">${programNextSteps(item).map(([title,description],index)=>`<li><span aria-hidden="true">0${index+1}</span><div><h4>${escapeHTML(title)}</h4><p>${escapeHTML(description)}</p></div></li>`).join('')}</ol>
         </section>
-        <details class="detail-source"><summary>Source & current details ${icon('chevron')}</summary><p class="official-name"><strong>Official name</strong><br>${escapeHTML(item.fullTitle)}</p><p>${escapeHTML(item.note)}</p><p>Filters show a starting point. Confirm eligibility, available funding and dates with the provider.</p></details>
+        <details class="detail-source"><summary>Source & current details ${icon('chevron')}</summary><p class="official-name"><strong>Official name</strong><br>${escapeHTML(item.fullTitle)}</p><p>${escapeHTML(item.note)}</p><p>Filters show a starting point. Confirm eligibility, available funding and dates with the provider.</p>${sourceDetails(item)}</details>${attributionNote(item)}
       </section>
       <aside class="program-aside" aria-label="Application and program attributes">
         <div class="program-summary"><div class="program-action-heading"><p class="support-label">Your next step</p><figure class="program-illustration ${art.tone}"><img src="assets/illustrations/${art.asset}.png" width="1254" height="1254" alt="" decoding="async"></figure></div><h3>${escapeHTML(nextStep[0])}</h3><p class="program-action-note">${escapeHTML(nextStep[1])}</p>
@@ -244,12 +260,13 @@ function applyProfile(){
   state.query='';state.type='all';state.amount='all';$('#funding-search').value='';
   location.hash='explore';route();
 }
+const governmentTerms='Information from Indigenous Services Canada (the Indigenous Bursaries Search Tool and its program pages) is reproduced under the Government of Canada’s non-commercial reproduction terms. These copies are not official versions, and this site was not produced in affiliation with, or with the endorsement of, the Government of Canada.';
 const infoContent={
-  privacy:{title:'Only what helps you explore.',body:`<p><strong>No names, ID numbers or documents.</strong> Sharing community and study preferences is optional.</p><p>When AI is connected, messages and broad preferences are sent to the configured backend and LLM provider to answer your question. This demo does not save conversations or profiles to its database, and requests use store: false. Provider retention policies may still apply.</p><p>Conversation context stays in memory for this visit. My saved stores only opportunity IDs on this device. Apply directly with providers.</p><button class="text-link" id="privacy-clear-conversation">Clear this conversation ${icon('arrow')}</button><button class="text-link" data-clear-saved>Clear My saved on this device ${icon('arrow')}</button>`},
+  privacy:{title:'Only what helps you explore.',body:`<p><strong>No names, ID numbers or documents.</strong> Sharing community and study preferences is optional.</p><p>When AI is connected, messages and broad preferences are sent to the configured backend and LLM provider to answer your question. ${copy().product} does not save conversations or profiles to its database, and requests use store: false. Provider retention policies may still apply.</p><p>Conversation context stays in memory for this visit. My saved stores only opportunity IDs on this device. Apply directly with providers.</p><button class="text-link" id="privacy-clear-conversation">Clear this conversation ${icon('arrow')}</button><button class="text-link" data-clear-saved>Clear My saved on this device ${icon('arrow')}</button>`},
   sources:{title:'A clear starting point.',body:FundingModel.mode==='demo'
     ?'<p>This demo contains <strong>four example opportunities</strong> from the supplied pages. Each links to an official provider or program.</p><p>Amounts and award cycles are illustrative. Check the provider for current eligibility, available support and deadlines. Filters do not confirm eligibility.</p>'
-    :`<p>This app contains <strong>${opportunities.length} published opportunities</strong> for First Nations, Inuit and Métis students. Each fact was quote-checked against a saved snapshot of the provider or directory page.</p><p>Records last verified ${opportunities.filter(x=>x.last_verified_at).length} of ${opportunities.length}; the rest of each record is shown as unknown, never guessed. Confirm current eligibility, amounts and dates with the provider.</p>`},
-  about:{title:'A little support.<br>A world of possibility.',body:'<p>Funding Navigator helps First Nations, Inuit and Métis students in Canada explore scholarships and education support.</p><p>Explore larger filters and regional Statistics. Natural-language search and matching share one LLM backend when connected. This demo does not estimate approval chances.</p>'},
+    :`<p>This app contains <strong>${opportunities.length} published opportunities</strong> for First Nations, Inuit and Métis students. Each fact was quote-checked against a saved snapshot of the provider or directory page.</p><p>Records last verified ${opportunities.filter(x=>x.last_verified_at).length} of ${opportunities.length}; the rest of each record is shown as unknown, never guessed. Confirm current eligibility, amounts and dates with the provider.</p><p><strong>Government directory entries</strong> (${opportunities.filter(x=>x.source_kind==='directory_listing').length} of ${opportunities.length}) come from a federal directory of Indigenous bursaries. These entries can be many years old and have no deadline, so treat them as a lead and confirm with the provider. Their region is the one the directory lists.</p><p>“Checked” means a computer verified the quotes; a person has not reviewed them yet.</p><p>${governmentTerms}</p>`},
+  about:{title:'A little support.<br>A world of possibility.',body:`<p>Funding Navigator helps First Nations, Inuit and Métis students in Canada explore scholarships and education support.</p><p>Explore larger filters and regional Statistics. Natural-language search and matching share one LLM backend when connected. ${copy().product} does not estimate approval chances.</p>${FundingModel.mode==='live'?`<p>${governmentTerms}</p>`:''}`},
   help:{title:'A helping hand.',body:'<p>Bring an opportunity link to your <strong>school financial aid advisor, Indigenous student centre or community education office</strong>. Ask which documents and dates you need to confirm.</p><p>For PSSSP, contact your First Nation or designated organization. For Inuit support, contact your regional Inuit organization. For MNBC support, contact STEPS.</p>'}
 };
 function openInfo(key){
@@ -319,8 +336,8 @@ $('#detail-dialog').addEventListener('close',()=>{
 });
 window.addEventListener('hashchange',route);
 insights=FundingInsights.init({state,$,$$,icon,escapeHTML,toast,renderResults,renderProfile,clearFilters,route});
-renderHome();renderSavedCount();renderProfile();route();
+applyModeCopy();renderHome();renderSavedCount();renderProfile();route();
 }).catch(()=>{
   const toast=document.querySelector('#toast');
-  toast.textContent='The example dataset could not be loaded. Please reload this page.';toast.classList.add('visible');
+  toast.textContent='The dataset could not be loaded. Please reload this page.';toast.classList.add('visible');
 });

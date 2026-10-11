@@ -2,6 +2,8 @@
 
 版本：v5 · 2026-10-10。决策已落实：**自然语言 + LLM + 后端数据 tools**，不再以问卷作为匹配入口。
 
+> **实现状态（2026-10-10）：** 本文描述的应用层已实现为 `src/navigator/app/`（原 `backend/`），与抓取/校验管线共用一个包、一个 `.env`、一个服务器，站点在 `/`；见 [APP_LAYER.md](APP_LAYER.md)。下文出现的 `backend/` 即指该包。与初稿相比有三处变化：区域未说明的记录单独计数（既不算全国也不算区域）、`/data/opportunities.json` 由读模型按当前模式提供、AI 已用 DeepSeek 实测（[LLM_PROVIDERS.md](LLM_PROVIDERS.md)）。
+
 ## 1. 产品结构
 
 侧栏新增 **Statistics**。应用保留 Explore、Saved、Profile；Profile 改为对话中自愿提供的上下文，而不是三题问卷。

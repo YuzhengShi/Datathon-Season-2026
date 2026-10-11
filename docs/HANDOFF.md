@@ -2,6 +2,8 @@
 
 *Updated after the provider-page verification run (October 2026). Every statement says where it was run.*
 
+> **Since then (2026-10-10):** the former `backend/` is now the package `navigator.app` and the site in `dist/` is served at `/` by the same server (`docs/APP_LAYER.md`). This web app is at `/app/`; in section 8 below `frontend/assets/logic.js` is now `frontend/model.js` and `frontend/assets/config.js` is `frontend/config.js`. Current test count: 321.
+
 ## 0. Read this first
 
 * **Verified environment:** Windows, CPython 3.12.10, a fresh virtual environment installed from the exact `requirements.lock`.

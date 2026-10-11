@@ -3,7 +3,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from .schemas import Profile, SearchFilters
+from .schemas import AppProfile, SearchFilters
 
 REGIONS = {
     "BC": "British Columbia",
@@ -23,18 +23,13 @@ REGIONS = {
 
 
 def normalize(value) -> str:
-    return "".join(
-        c
-        for c in unicodedata.normalize("NFD", str(value)).casefold()
-        if not unicodedata.combining(c)
-    )
+    return "".join(c for c in unicodedata.normalize("NFD", str(value)).casefold() if not unicodedata.combining(c))
 
 
 def matches(item: dict, filters: SearchFilters) -> bool:
     f = filters.model_dump()
     searchable = " ".join(
-        str(item.get(key, ""))
-        for key in ("title", "fullTitle", "provider", "summary", "location", "type", "community")
+        str(item.get(key, "")) for key in ("title", "fullTitle", "provider", "summary", "location", "type", "community")
     )
     if f["q"] and normalize(f["q"]).strip() not in normalize(searchable):
         return False
@@ -56,6 +51,8 @@ def matches(item: dict, filters: SearchFilters) -> bool:
         return False
     if f["scope"] == "regional" and (not province or province == "all"):
         return False
+    if f["scope"] == "unspecified" and province:
+        return False
     amount = Decimal(str(item["amount"])) if item.get("amount") is not None else None
     band = f["amount_band"]
     if band == "listed" and amount is None:
@@ -71,12 +68,7 @@ def matches(item: dict, filters: SearchFilters) -> bool:
         return False
     for key in ("education_levels", "fields_of_study", "study_modes", "expenses"):
         actual = item.get(key)
-        if f[key] and (
-            not actual
-            and not f["include_unknown"]
-            or actual
-            and not set(f[key]).intersection(actual)
-        ):
+        if f[key] and (not actual and not f["include_unknown"] or actual and not set(f[key]).intersection(actual)):
             return False
     if f["renewable"] != "all":
         actual = details.get("renewable")
@@ -122,29 +114,15 @@ def evaluate_rule(node: dict, profile: dict) -> dict:
         results = [evaluate_rule(child, profile) for child in children]
         values = [x["result"] for x in results]
         if kind == "all":
-            value = (
-                "fail"
-                if "fail" in values
-                else "pass"
-                if all(x == "pass" for x in values)
-                else "unknown"
-            )
+            value = "fail" if "fail" in values else "pass" if all(x == "pass" for x in values) else "unknown"
         else:
-            value = (
-                "pass"
-                if "pass" in values
-                else "fail"
-                if all(x == "fail" for x in values)
-                else "unknown"
-            )
+            value = "pass" if "pass" in values else "fail" if all(x == "fail" for x in values) else "unknown"
         return {
             "result": value,
-            "missing": sorted({f for r in results for f in r["missing"]})
-            if value == "unknown"
-            else [],
+            "missing": sorted({f for r in results for f in r["missing"]}) if value == "unknown" else [],
             "source_unknown": value == "unknown" and any(r["source_unknown"] for r in results),
         }
-    if kind != "predicate" or node.get("field") not in Profile.model_fields:
+    if kind != "predicate" or node.get("field") not in AppProfile.model_fields:
         raise ValueError("Unsupported rule")
     actual = profile.get(node["field"])
     if actual is None or actual == []:
@@ -179,7 +157,7 @@ class DataService:
     def detail(self, opportunity_id: str):
         return next((x for x in self.repository.all() if x["id"] == opportunity_id), None)
 
-    def match(self, filters: SearchFilters, profile: Profile, limit=12):
+    def match(self, filters: SearchFilters, profile: AppProfile, limit=12):
         results = self.search(filters, limit)
         matches_out = []
         for item in results["records"]:
@@ -223,6 +201,8 @@ class DataService:
     def statistics(self, filters: SearchFilters):
         rows = filtered(self.repository.all(), filters)
         national = [x for x in rows if x.get("province") == "all"]
+        regional = [x for x in rows if x.get("province") not in (None, "", "all")]
+        unspecified = [x for x in rows if not x.get("province")]
         regions = [
             {
                 "code": code,
@@ -238,19 +218,15 @@ class DataService:
         return {
             "data_mode": self.repository.mode,
             "generated_at": datetime.now(UTC).isoformat(),
-            "dataset_version": "frontend-examples-v5"
-            if self.repository.mode == "demo"
-            else "live-read-model",
+            "dataset_version": "frontend-examples-v5" if self.repository.mode == "demo" else "live-read-model",
             "filters": filters.model_dump(),
             "total": len(rows),
             "national_count": len(national),
-            "regional_count": len(rows) - len(national),
+            "regional_count": len(regional),
+            "unspecified_region_count": len(unspecified),
             "regions": regions,
             "by_type": dict(Counter(x["type"] for x in rows)),
-            "by_community": {
-                c: sum(c in x["community"] for x in rows)
-                for c in ["First Nations", "Inuit", "Métis"]
-            },
+            "by_community": {c: sum(c in x["community"] for x in rows) for c in ["First Nations", "Inuit", "Métis"]},
             "amounts": {
                 "listed": len(amounts),
                 "unknown": len(rows) - len(amounts),
@@ -285,6 +261,7 @@ class DataService:
                 if self.repository.mode == "demo"
                 else "Coverage depends on the imported, published dataset",
                 "Region counts describe program coverage, not provider headquarters",
+                "A record whose source states no region is counted as 'not stated', never as national",
                 "National reach and overlapping communities are not additive unique totals",
                 "Unknown amounts are not zero; caps are not guaranteed awards",
             ],

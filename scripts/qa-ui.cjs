@@ -6,12 +6,14 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');
-const dataset=JSON.parse(fs.readFileSync(path.join(root,'dist/data/opportunities.json'),'utf8'));
+const dataset=JSON.parse(fs.readFileSync(path.join(root,'dist/data/demo-opportunities.json'),'utf8'));/* the four illustrative records the demo checks below are written for */
+const liveDataset=JSON.parse(fs.readFileSync(path.join(root,'dist/data/opportunities.json'),'utf8'));/* what static hosting serves */
 const geometry=JSON.parse(fs.readFileSync(path.join(root,'dist/data/canada-map.json'),'utf8'));
 const clone=x=>JSON.parse(JSON.stringify(x)),tick=()=>new Promise(resolve=>setTimeout(resolve,5));
 let passed=0;
 async function check(name,fn){await fn();passed++;}
-async function setup({ai=false,multiple=false}={}){
+async function setup({ai=false,multiple=false,live=false,healthMode}={}){
+  const data=live?liveDataset:dataset;
   const errors=[],requests=[],downloads=[];
   const vc=new VirtualConsole();vc.on('jsdomError',error=>errors.push(error.message));
   const dom=new JSDOM(html,{url:'https://funding.test/',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});
@@ -22,11 +24,11 @@ async function setup({ai=false,multiple=false}={}){
   w.HTMLAnchorElement.prototype.click=function(){downloads.push({name:this.download,url:this.href});};
   w.Blob=class{constructor(parts){this.text=parts.join('');}};
   w.URL.createObjectURL=blob=>{downloads.push({text:blob.text});return 'blob:qa';};w.URL.revokeObjectURL=()=>{};
-  w.localStorage.setItem('funding-navigator-saved','["nutrien","nutrien","not-real"]');
+  w.localStorage.setItem('funding-navigator-saved',JSON.stringify([data.records[0].id,data.records[0].id,'not-real']));
   w.fetch=async(url,options={})=>{
-    if(url==='data/opportunities.json')return {ok:true,json:async()=>clone(dataset)};
+    if(url==='data/opportunities.json')return {ok:true,json:async()=>clone(data)};
     if(url==='data/canada-map.json')return {ok:true,json:async()=>clone(geometry)};
-    if(url==='/api/health')return {ok:true,json:async()=>({data_mode:'demo',migration_ready:true,llm_ready:ai})};
+    if(url==='/api/health')return {ok:true,json:async()=>({data_mode:healthMode||(live?'live':'demo'),migration_ready:true,llm_ready:ai})};
     const body=JSON.parse(options.body);requests.push({url,body});
     if(url==='/api/statistics')return {ok:true,json:async()=>w.FundingModel.statistics(w.FundingModel.fromFilters(body.filters))};
     if(url==='/api/conversation'){
@@ -75,6 +77,72 @@ async function main(){
   await check('Natural conversation uses the same endpoint and source cards',async()=>{b.click('#explore-view [data-assistant="match"]');b.q('#conversation-input').value='I am looking for training support';b.q('#conversation-form').dispatchEvent(new b.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(b.requests.some(x=>x.url==='/api/conversation'&&x.body.mode==='match'));assert.equal(b.d.querySelectorAll('#assistant-evidence-content .assistant-record').length,2);assert.ok(b.q('#conversation-thread').textContent.includes('Confirm provider'));});
   await check('Profile derives from conversation and resets without persistence',()=>{assert.equal(b.qa.state.profile.community,'Métis');b.click('#conversation-reset');assert.equal(b.qa.state.profile,null);assert.equal(b.q('#conversation-input').value,'');assert.equal(b.w.localStorage.length,1);});
   assert.deepEqual(b.errors,[],'Unexpected DOM exceptions');b.dom.window.close();
-  console.log(JSON.stringify({passed,verification:'DOM emulation, mocked transport; not browser layout or a real LLM call'}));
+  const c=await setup({live:true});
+  const nationwide=liveDataset.records.filter(x=>x.province==='all').length,regional=liveDataset.records.filter(x=>x.province&&x.province!=='all').length,unstated=liveDataset.records.filter(x=>!x.province).length;
+  await check('Live data drops the demo wording',()=>{
+    assert.equal(c.d.body.dataset.dataMode,'live');
+    assert.equal(c.q('.site-header .button').textContent.trim(),'Open the app');
+    assert.ok(!c.q('.hero-reassurance').textContent.toLowerCase().includes('demo'));
+    assert.equal(c.q('.footer-demo').textContent,'Published records');
+    assert.equal(c.q('.sidebar-demo').textContent,'Funding Navigator');
+    assert.ok(!/Example data|Demo/.test(c.q('main').textContent+c.q('.site-footer').textContent),'demo wording left on the page');
+  });
+  await check('Cards say what a figure is, and never call a fixed amount "up to"',()=>{
+    c.w.location.hash='#explore';c.qa.route();
+    const cards=[...c.d.querySelectorAll('#results-grid .opportunity-card')];
+    const noteOf=id=>cards.find(x=>x.querySelector(`[data-detail="${id}"]`)).querySelector('.card-amount small').textContent;
+    assert.equal(cards.length,liveDataset.records.length);
+    assert.equal(noteOf(liveDataset.records.find(x=>x.amount_details.kind==='fixed').id),'Listed amount');
+    assert.equal(noteOf(liveDataset.records.find(x=>x.amount_details.kind==='maximum').id),'Up to');
+    assert.ok(cards.every(x=>!/example/i.test(x.textContent)));
+  });
+  await check('Statistics counts three region buckets that add up',async()=>{
+    c.w.location.hash='#statistics';c.qa.route();await tick();
+    assert.deepEqual([...c.d.querySelectorAll('.kpi-value')].slice(0,3).map(x=>x.textContent),[String(liveDataset.records.length),String(nationwide),String(regional)]);
+    const buckets=[...c.d.querySelectorAll('#national-summary button')].map(x=>[x.querySelector('span').textContent,Number(x.querySelector('strong').textContent)]);
+    assert.deepEqual(buckets,[['Across Canada',nationwide],['Region-specific',regional],['Region not stated',unstated]]);
+    assert.equal(nationwide+regional+unstated,liveDataset.records.length);
+    assert.ok(c.q('#statistics-methods-content').textContent.includes('never as national'));
+    assert.equal(c.q('#amount-chart-note').textContent,'Listed figures, including caps. Not allocated funding.');
+  });
+  await check('"Region not stated" is a selectable bucket',async()=>{
+    c.click('#national-summary [data-value="unspecified"]');await tick();
+    assert.equal(c.qa.state.scope,'unspecified');
+    assert.equal(c.q('.kpi-value').textContent,String(unstated));
+    assert.equal(c.q('#amount-table-body').children.length,unstated);
+    c.click('#stats-clear-filters');await tick();
+    assert.equal(c.q('.kpi-value').textContent,String(liveDataset.records.length));
+  });
+  await check('The timing chart covers every record',()=>{
+    const total=[...c.d.querySelectorAll('#deadline-chart .chart-bar-label b')].reduce((sum,x)=>sum+Number(x.textContent),0);
+    assert.equal(total,liveDataset.records.length);
+  });
+  await check('A federal directory entry carries the Government of Canada statement, the source sentences and its region basis',()=>{
+    const entry=liveDataset.records.find(x=>x.source_kind==='directory_listing'&&x.province==='British Columbia');
+    c.qa.openDetail(entry.id);
+    const text=c.q('#detail-content').textContent;
+    assert.ok(text.includes('published by Indigenous Services Canada'));
+    assert.ok(text.includes('not produced in affiliation with, or with the endorsement of, the Government of Canada'));
+    assert.ok(text.includes('What the source says'));
+    assert.ok(text.includes('As listed in the federal directory'));
+    assert.ok(text.includes('Published data')&&!/Example (data|criteria)/.test(text));
+    c.q('#detail-dialog').close();
+    c.qa.openDetail(liveDataset.records.find(x=>x.provider==='Simon Fraser University').id);
+    assert.ok(!c.q('#detail-content').textContent.includes('Government of Canada'));
+    c.q('#detail-dialog').close();
+  });
+  await check('The live CSV says it is published data',async()=>{
+    c.w.location.hash='#statistics';c.qa.route();await tick();c.click('#export-statistics');
+    const csv=c.downloads.find(x=>x.text).text;
+    assert.ok(csv.includes('live')&&csv.includes('Quote-checked; unknown is not zero'));assert.ok(!csv.includes('Illustrative'));
+  });
+  assert.deepEqual(c.errors,[],'Unexpected DOM exceptions');c.dom.window.close();
+  const m=await setup({live:true,healthMode:'demo'});
+  await check('A backend running in another mode is named, not silently ignored',async()=>{
+    m.w.location.hash='#statistics';m.qa.route();await tick();
+    assert.ok(m.q('#ai-connection-status').textContent.includes('restart with --mode live'));
+    assert.equal(m.q('#stats-backend-status').textContent,'HTML preview · mode mismatch');
+  });
+  assert.deepEqual(m.errors,[],'Unexpected DOM exceptions');m.dom.window.close();  console.log(JSON.stringify({passed,verification:'DOM emulation, mocked transport; not browser layout or a real LLM call'}));
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -48,6 +48,10 @@ app = typer.Typer(
 )
 db_app = typer.Typer(help="Database commands.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
+app_group = typer.Typer(
+    help="Application layer: the read model behind the site, Statistics and AI search.", no_args_is_help=True
+)
+app.add_typer(app_group, name="app")
 
 
 class Mode(str, Enum):
@@ -75,6 +79,19 @@ def _runtime(mode: Optional[Mode]) -> Runtime:
         return load_runtime(mode.value if mode else None)
     except ConfigError as exc:
         _fail(f"configuration error: {exc}")
+
+
+def _app_settings(mode: Optional[Mode]):
+    """The application layer's settings, resolved with the SAME mode and data folder as the core."""
+    from navigator.app.config import Settings
+
+    rt = _runtime(mode)
+    try:
+        return Settings().model_copy(update={"data_mode": rt.mode, "data_dir": str(rt.data_dir)})
+    except (
+        ValueError
+    ) as exc:  # pydantic.ValidationError is a ValueError; its text could echo a value, so name the type only
+        _fail(f"invalid application settings ({type(exc).__name__}); check the LLM_* values in .env")
 
 
 def _clock(as_of: Optional[str]):
@@ -380,13 +397,66 @@ def serve(
     host: str = typer.Option("127.0.0.1", "--host"),
     port: int = typer.Option(8000, "--port", min=1, max=65535),
 ) -> None:
-    """Start the read-only API (OpenAPI docs at /docs)."""
+    """Start the app: the site at /, the questionnaire app at /app/, the read-only API (OpenAPI docs at /docs)."""
     import uvicorn
 
     from navigator.api.app import create_app
+    from navigator.app.publish import ensure_read_model
 
     rt = _runtime(mode)
-    uvicorn.run(create_app(rt), host=host, port=port, log_level=rt.log_level.lower())
+    app_settings = _app_settings(mode)
+    try:  # the site and its /api routes read the read model: bring it up to date with the canonical export
+        typer.echo("read model: " + json.dumps(ensure_read_model(app_settings), ensure_ascii=False), err=True)
+    except (OSError, ValueError, RuntimeError) as exc:
+        typer.echo(
+            f"warning: the read model could not be prepared ({_safe(exc)}); the site will show no records", err=True
+        )
+    uvicorn.run(create_app(rt, app_settings=app_settings), host=host, port=port, log_level=rt.log_level.lower())
+
+
+@app_group.command("upgrade")
+def app_upgrade(mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP)) -> None:
+    """Create or update the read model's database for the selected mode."""
+    from navigator.app import cli as app_cli
+
+    _emit(app_cli.upgrade_read_model(_app_settings(mode)))
+
+
+@app_group.command("init-demo")
+def app_init_demo(
+    dataset: Optional[Path] = typer.Option(None, "--dataset", help="Demo records JSON (default: the bundled one)."),
+) -> None:
+    """Load the four illustrative demo records into the DEMO read model (idempotent)."""
+    from navigator.app import cli as app_cli
+
+    try:
+        _emit(app_cli.init_demo(_app_settings(Mode.demo), dataset))
+    except (OSError, ValueError) as exc:
+        _fail(_safe(exc), EXIT_DATA)
+
+
+@app_group.command("publish")
+def app_publish(
+    dataset: Optional[Path] = typer.Option(None, "--dataset", help="Canonical export (default: data/awards.jsonl)."),
+    no_frontend: bool = typer.Option(
+        False, "--no-frontend", help="Do not rewrite the static file dist/data/opportunities.json."
+    ),
+) -> None:
+    """Publish the canonical export (data/awards.jsonl) into the LIVE read model and the static site file (idempotent)."""
+    from navigator.app import cli as app_cli
+
+    try:
+        _emit(app_cli.publish_dataset(_app_settings(Mode.live), dataset, write_frontend=not no_frontend))
+    except (OSError, ValueError) as exc:
+        _fail(_safe(exc), EXIT_DATA)
+
+
+@app_group.command("status")
+def app_status(mode: Optional[Mode] = typer.Option(None, "--mode", help=MODE_HELP)) -> None:
+    """Show the read model, the AI settings (never the key) and whether dist/data/opportunities.json agrees with the mode."""
+    from navigator.app import cli as app_cli
+
+    _emit(app_cli.status(_app_settings(mode)))
 
 
 @app.command()

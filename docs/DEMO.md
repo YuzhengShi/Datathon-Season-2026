@@ -1,7 +1,7 @@
 # Demo guide
 
 Everything runs on one laptop, with no internet: `.\scripts\start_app.ps1` (or `python -m navigator.cli serve --mode live`, then open
-<http://127.0.0.1:8000/>). If the screen is small, zoom the browser to 110-125%. `-Port 8080` if Windows refuses the port.
+<http://127.0.0.1:8000/app/>). If the screen is small, zoom the browser to 110-125%. `-Port 8080` if Windows refuses the port.
 
 ## Three minutes
 

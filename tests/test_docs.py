@@ -24,7 +24,7 @@ def cli_commands() -> list[str]:
             for dec in node.decorator_list:
                 if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute) and dec.func.attr == "command":
                     explicit = ast.literal_eval(dec.args[0]) if dec.args else node.name.replace("_", "-")
-                    prefix = "db " if getattr(dec.func.value, "id", "") == "db_app" else ""
+                    prefix = {"db_app": "db ", "app_group": "app "}.get(getattr(dec.func.value, "id", ""), "")
                     names.append(prefix + explicit)
     return names
 

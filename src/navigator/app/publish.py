@@ -1,29 +1,35 @@
-"""Publish the canonical v3 dataset (data/awards.jsonl) into the v5 read model.
+"""Publish the canonical dataset (data/awards.jsonl) into the application read model.
 
 Transform rules are honest by design: a fact the source does not state stays null or
 "unspecified", never zero or inferred. Community scope falls back to all three
 Indigenous communities only because every record in this dataset serves Indigenous
 students; when the source names a narrower scope, the narrower scope wins.
+
+Region follows the same rule. A record is regional when its eligibility rules name a school or a
+province, regional or national when the federal directory lists it that way, and otherwise its region
+is NOT STATED (``province`` is null): never "national" just because nothing restricts it.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 
 import yaml
 
-from .config import ROOT, Settings
-from .db import Opportunity, engine_for
+from .config import REPO_ROOT, Settings
+from .db import Opportunity, engine_for, import_demo, upgrade
+from .services import REGIONS
 
-REPO_ROOT = ROOT.parent
 DEFAULT_DATASET = REPO_ROOT / "data" / "awards.jsonl"
+DEMO_DATASET = REPO_ROOT / "dist" / "data" / "demo-opportunities.json"
 INSTITUTIONS = REPO_ROOT / "data" / "reference" / "institutions.yaml"
 FRONTEND_DATASET = REPO_ROOT / "dist" / "data" / "opportunities.json"
 
-PROVINCE_NAMES = {"BC": "British Columbia"}
+NATIONAL = "all"  # the province value of a record that applies across Canada
 COMMUNITY_NAMES = {"first_nations": "First Nations", "inuit": "Inuit", "metis": "Métis"}
 EDUCATION_MAP = {"masters": "graduate", "doctoral": "graduate", "phd": "graduate"}
 MONTHS = {
@@ -40,6 +46,8 @@ MONTHS = {
     "November": "Nov",
     "December": "Dec",
 }
+_DIRECTORY_REGION = re.compile(r"Province/territory:\s*([^.]+)\.")
+_TRAINING_TITLE = re.compile(r"\b(skills?|training|trades?|apprentice\w*)\b", re.IGNORECASE)
 
 
 def stable_id(raw: str, limit: int = 100) -> str:
@@ -63,9 +71,7 @@ def _eligibility_nodes(record: dict) -> list[dict]:
 
 
 def _find_predicate(nodes: list[dict], field: str) -> dict | None:
-    return next(
-        (n for n in nodes if n.get("type") == "predicate" and n.get("field") == field), None
-    )
+    return next((n for n in nodes if n.get("type") == "predicate" and n.get("field") == field), None)
 
 
 def _community(nodes: list[dict]) -> list[str]:
@@ -81,17 +87,62 @@ def _community(nodes: list[dict]) -> list[str]:
     return list(COMMUNITY_NAMES.values())
 
 
-def _province(nodes: list[dict], institutions: dict) -> str:
+def _directory_region(record: dict) -> str | None:
+    """The region the federal directory lists for its own entries ("Province/territory: British Columbia.").
+
+    Only entries built by the deterministic directory adapter carry this line. It is the directory's
+    statement, not an eligibility rule, so it feeds coverage and statistics but never the eligibility check.
+    Anything other than "National" or one province or territory is left unstated rather than guessed.
+    """
+    if record.get("extraction_method") != "deterministic_adapter":
+        return None
+    match = _DIRECTORY_REGION.search(record.get("summary") or "")
+    if not match:
+        return None
+    listed = match.group(1).strip()
+    if listed.casefold() == "national":
+        return NATIONAL
+    return listed if listed in REGIONS.values() else None
+
+
+def _region(record: dict, nodes: list[dict], institutions: dict) -> tuple[str | None, str]:
+    """(province, basis): a province name, "all" (stated nationwide) or None (the source does not say)."""
     institution = _find_predicate(nodes, "institution_id")
     if institution and institution.get("value") in institutions:
         code = institutions[institution["value"]].get("province")
         if code:
-            return PROVINCE_NAMES.get(code, code)
+            return REGIONS.get(code, code), "rule"
     for field in ("residence_province", "institution_province"):
         predicate = _find_predicate(nodes, field)
-        if predicate and predicate.get("value"):
-            return PROVINCE_NAMES.get(predicate["value"], predicate["value"])
-    return "all"
+        value = predicate.get("value") if predicate else None
+        if isinstance(value, str) and value:
+            return REGIONS.get(value, value), "rule"
+    listed = _directory_region(record)
+    if listed:
+        return listed, "directory"
+    return None, "not_stated"
+
+
+def _location_label(province: str | None) -> str:
+    if province is None:
+        return "Region not stated"
+    return "Across Canada" if province == NATIONAL else province
+
+
+def _goals(record: dict) -> list[str]:
+    """Every record funds post-secondary study (that is what this dataset is); "training" is added only when the
+    record's own title names skills, training or trades. Nothing is guessed from the body text."""
+    return ["postsecondary", "training"] if _TRAINING_TITLE.search(record.get("title") or "") else ["postsecondary"]
+
+
+def _source_kind(record: dict) -> str:
+    """``directory_listing`` when every source of the record is the federal directory, else ``official_page``.
+
+    The same rule as the core's ``services.query.source_kind``: a directory entry is never presented as the
+    provider's own page.
+    """
+    roles = {ref.get("role") for ref in record.get("source_refs", [])}
+    return "directory_listing" if roles and roles <= {"discovery_index"} else "official_page"
 
 
 def _rule_node(node: dict, institutions: dict) -> dict:
@@ -112,7 +163,7 @@ def _rule_node(node: dict, institutions: dict) -> dict:
             "type": "predicate",
             "field": field,
             "op": op,
-            "value": PROVINCE_NAMES.get(value, value),
+            "value": REGIONS.get(value, value) if isinstance(value, str) else value,
         }
     if field == "study_status":
         return {"type": "predicate", "field": "study_mode", "op": op, "value": value}
@@ -197,9 +248,7 @@ def _note(record: dict, rule: dict) -> str:
     children = rule.get("children", []) if isinstance(rule, dict) else []
     has_unknown = rule.get("type") == "unknown" or any(c.get("type") == "unknown" for c in children)
     if has_unknown:
-        base += (
-            " The source does not state full eligibility rules in text — confirm with the provider."
-        )
+        base += " The source does not state full eligibility rules in text — confirm with the provider."
     return base
 
 
@@ -207,6 +256,7 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
     today = today or date.today()
     nodes = _eligibility_nodes(record)
     rule = _eligibility_rule(nodes, institutions)
+    province, region_basis = _region(record, nodes, institutions)
     cycle = (record.get("cycles") or [{}])[0]
     amount = cycle.get("amount") or {}
     amount_value = None
@@ -232,8 +282,10 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
         "summary": record.get("summary") or "",
         "type": "Program" if record.get("opportunity_type") == "funding_channel" else "Scholarship",
         "community": _community(nodes),
-        "province": _province(nodes, institutions),
-        "location": "",
+        "province": province,
+        "region_basis": region_basis,
+        "location": _location_label(province),
+        "source_kind": _source_kind(record),
         "amount": amount_value,
         "amount_details": {
             "kind": amount.get("kind", "unspecified"),
@@ -244,12 +296,10 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
         },
         "deadline_kind": kind,
         "timing": _timing(cycle),
-        "goals": ["postsecondary"],
+        "goals": _goals(record),
         "education_levels": [EDUCATION_MAP.get(v, v) for v in (levels or [])],
         "fields_of_study": [],
-        "study_modes": [study.get("value")]
-        if study and study.get("op") == "eq" and study.get("value")
-        else [],
+        "study_modes": [study.get("value")] if study and study.get("op") == "eq" and study.get("value") else [],
         "expenses": [],
         "url": record.get("official_url"),
         "application_route": (record.get("application") or {}).get("route_type", "unknown"),
@@ -273,14 +323,10 @@ def transform(record: dict, institutions: dict, order: int, today: date | None =
 
 
 def load_records(path: Path = DEFAULT_DATASET) -> list[dict]:
-    return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def build_payload(
-    records: list[dict], institutions: dict | None = None, today: date | None = None
-) -> dict:
+def build_payload(records: list[dict], institutions: dict | None = None, today: date | None = None) -> dict:
     institutions = institutions if institutions is not None else load_institutions()
     today = today or date.today()
     tier = {"funding_channel": 0, "curated": 1, "deterministic_adapter": 2}
@@ -293,22 +339,15 @@ def build_payload(
             pair[1]["title"],
         ),
     )
-    out = []
-    for order, (_, record) in enumerate(ordered):
-        item = transform(record, institutions, order * 10, today)
-        item["location"] = item["province"] if item["province"] != "all" else "Across Canada"
-        out.append(item)
+    out = [transform(record, institutions, order * 10, today) for order, (_, record) in enumerate(ordered)]
     return {"data_mode": "live", "records": out}
 
 
-def import_live(settings: Settings, dataset_path: Path) -> dict:
-    """Publish the canonical dataset into the live read model. Idempotent; never touches demo."""
+def import_live(settings: Settings, payload: dict) -> dict:
+    """Publish a built payload into the live read model. Idempotent; never touches demo."""
     if settings.data_mode != "live":
         raise ValueError("publishing the canonical dataset requires live mode")
-    payload = json.loads(Path(dataset_path).read_text(encoding="utf-8"))
-    if payload.get("data_mode") != "live" or not all(
-        not x.get("is_demo") for x in payload["records"]
-    ):
+    if payload.get("data_mode") != "live" or not all(not x.get("is_demo") for x in payload["records"]):
         raise ValueError("Live publish requires the live dataset with is_demo:false records")
     ids = [x["id"] for x in payload["records"]]
     if len(set(ids)) != len(ids):
@@ -342,22 +381,28 @@ def import_live(settings: Settings, dataset_path: Path) -> dict:
     return counts
 
 
-def publish(
-    settings: Settings, dataset_path: Path = DEFAULT_DATASET, write_frontend: bool = True
-) -> dict:
-    """Canonical dataset -> dist/data/opportunities.json + live database. Idempotent."""
+def publish(settings: Settings, dataset_path: Path = DEFAULT_DATASET, write_frontend: bool = True) -> dict:
+    """Canonical dataset -> live read model (+ dist/data/opportunities.json for static hosting). Idempotent."""
     if settings.data_mode != "live":
         raise ValueError("publishing the canonical dataset requires live mode")
     payload = build_payload(load_records(Path(dataset_path)))
     if write_frontend:
         FRONTEND_DATASET.parent.mkdir(parents=True, exist_ok=True)
-        FRONTEND_DATASET.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-        )
-    staged = REPO_ROOT / "dist" / "data" / ".live-staged.json"
-    staged.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    try:
-        counts = import_live(settings, staged)
-    finally:
-        staged.unlink(missing_ok=True)
+        FRONTEND_DATASET.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    counts = import_live(settings, payload)
     return {"data_mode": "live", "records": len(payload["records"]), **counts}
+
+
+def ensure_read_model(settings: Settings, dataset_path: Path | None = None) -> dict:
+    """Make the read model of the selected mode current: migrate, then an idempotent import.
+
+    Run when the app starts, so the page and the API are always built from the same records and the same mode.
+    It never rewrites the static file in dist/ (that is ``navigator app publish``).
+    """
+    upgrade(settings)
+    if settings.data_mode == "demo":
+        return {"data_mode": "demo", **import_demo(settings, DEMO_DATASET)}
+    path = Path(dataset_path or DEFAULT_DATASET)
+    if not path.is_file():
+        return {"data_mode": "live", "records": 0, "note": f"{path.name} not found; nothing was published"}
+    return publish(settings, path, write_frontend=False)

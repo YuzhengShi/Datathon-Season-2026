@@ -1,7 +1,9 @@
+"""Alembic environment of the read model (separate from the core's ``migrations/``)."""
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from navigator.db import Base
+from navigator.app.db import Base
 
 config = context.config
 

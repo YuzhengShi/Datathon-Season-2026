@@ -55,10 +55,7 @@ def try_chat_tools(client, model):
         max_tokens=200,
     )
     choice = response.choices[0]
-    calls = [
-        {"name": c.function.name, "arguments": c.function.arguments}
-        for c in (choice.message.tool_calls or [])
-    ]
+    calls = [{"name": c.function.name, "arguments": c.function.arguments} for c in (choice.message.tool_calls or [])]
     return choice.finish_reason, calls, choice.message.content
 
 

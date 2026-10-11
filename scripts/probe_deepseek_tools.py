@@ -66,9 +66,7 @@ def round_one(api, structured=True):
     kwargs = {
         "model": MODEL,
         "instructions": "You are a funding assistant. Always call a data tool before recommending anything.",
-        "input": [
-            {"role": "user", "content": "I am a Métis student in BC looking for training support"}
-        ],
+        "input": [{"role": "user", "content": "I am a Métis student in BC looking for training support"}],
         "tools": [SEARCH_TOOL],
         "parallel_tool_calls": False,
         "max_output_tokens": 1800,

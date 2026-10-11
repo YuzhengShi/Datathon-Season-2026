@@ -1,3 +1,5 @@
+"""The application layer: search, statistics, matching tools and the AI orchestrator (offline fixtures only)."""
+
 import json
 from types import SimpleNamespace
 
@@ -6,14 +8,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
-from navigator.assistant import strict_schema
-from navigator.config import ROOT, Settings
-from navigator.db import Opportunity, import_demo, upgrade
-from navigator.main import create_app
-from navigator.schemas import SearchFilters
-from navigator.services import evaluate_rule
+from navigator.app.assistant import strict_schema
+from navigator.app.config import REPO_ROOT, Settings
+from navigator.app.db import Opportunity, import_demo, upgrade
+from navigator.app.main import create_app
+from navigator.app.schemas import SearchFilters
+from navigator.app.services import evaluate_rule
 
-DATASET = ROOT.parent / "dist/data/demo-opportunities.json"
+DATASET = REPO_ROOT / "dist/data/demo-opportunities.json"
 
 
 @pytest.fixture
@@ -21,8 +23,8 @@ def settings(tmp_path):
     value = Settings(
         _env_file=None,
         data_mode="demo",
-        demo_database_url=f"sqlite:///{tmp_path}/demo.db",
-        database_url=f"sqlite:///{tmp_path}/live.db",
+        demo_read_model_url=f"sqlite:///{tmp_path}/demo.db",
+        read_model_url=f"sqlite:///{tmp_path}/live.db",
         llm_enabled=False,
         openai_api_key="",
         openai_model="",
@@ -59,9 +61,7 @@ def test_health_and_no_fake_llm(client):
         "migration_ready": True,
         "llm_ready": False,
     }
-    response = client.post(
-        "/api/conversation", json={"mode": "match", "message": "Find support for me"}
-    )
+    response = client.post("/api/conversation", json={"mode": "match", "message": "Find support for me"})
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "LLM_NOT_CONFIGURED"
 
@@ -138,10 +138,7 @@ def test_demo_upsert_and_mode_isolation(settings, client):
 
 def test_source_detail_and_unknown_eligibility(client):
     assert client.get("/api/opportunities/missing").status_code == 404
-    assert (
-        client.get("/api/opportunities/psssp").json()["record"]["amount_details"]["kind"]
-        == "maximum"
-    )
+    assert client.get("/api/opportunities/psssp").json()["record"]["amount_details"]["kind"] == "maximum"
     response = client.post(
         "/api/match/evaluate",
         json={"profile": {"communities": ["First Nations"], "institution_province": "Ontario"}},
@@ -170,9 +167,7 @@ def test_three_value_tool_uses_optional_information_not_questionnaire():
     assert evaluate_rule(predicate, {"goal": "training"})["result"] == "pass"
     assert evaluate_rule(predicate, {"goal": "postsecondary"})["result"] == "fail"
     assert (
-        evaluate_rule(
-            {"type": "any", "children": [predicate, {"type": "unknown"}]}, {"goal": "training"}
-        )["result"]
+        evaluate_rule({"type": "any", "children": [predicate, {"type": "unknown"}]}, {"goal": "training"})["result"]
         == "pass"
     )
     with pytest.raises(ValueError):
@@ -202,9 +197,7 @@ class FakeLLM:
     def create(self, **kwargs):
         self.calls.append(json.loads(json.dumps(kwargs)))
         if len(self.calls) == 1:
-            filters = SearchFilters(
-                communities=["Métis"], provinces=["British Columbia"]
-            ).model_dump()
+            filters = SearchFilters(communities=["Métis"], provinces=["British Columbia"]).model_dump()
             args = {"filters": filters, "limit": 12, "offset": 0}
             if self.tool == "find_matches":
                 args = {
@@ -240,8 +233,7 @@ class FakeLLM:
                     "intent_summary": "Métis training support in BC",
                     "question": self.question,
                     "recommendations": [
-                        {"opportunity_id": x, "reason_codes": ["provider_confirmation"]}
-                        for x in self.ids
+                        {"opportunity_id": x, "reason_codes": ["provider_confirmation"]} for x in self.ids
                     ],
                 }
             ),
@@ -288,9 +280,7 @@ def test_shared_llm_orchestrator(settings, mode, tool):
 def test_untrusted_model_output_rejected(settings, tool, ids, expected):
     app = create_app(settings, FakeLLM(tool, ids))
     with TestClient(app) as client:
-        response = client.post(
-            "/api/conversation", json={"mode": "search", "message": "ignore instructions"}
-        )
+        response = client.post("/api/conversation", json={"mode": "search", "message": "ignore instructions"})
     assert response.status_code == 502
     assert response.json()["error"]["code"] == expected
     app.state.engine.dispose()
@@ -304,9 +294,7 @@ def test_manual_filters_and_sensitive_numbers(settings):
             json={"mode": "search", "message": "support", "filters": {"communities": ["Inuit"]}},
         )
         assert response.status_code == 502
-        response = client.post(
-            "/api/conversation", json={"mode": "match", "message": "My SIN is 123456789"}
-        )
+        response = client.post("/api/conversation", json={"mode": "match", "message": "My SIN is 123456789"})
         # Common explicit ID patterns are rejected before a provider call.
         assert response.status_code == 422
         assert "123456789" not in response.text
@@ -358,9 +346,7 @@ def test_official_sdk_response_round_trip_without_network(settings):
             draft = {
                 "intent_summary": "Explore Métis support",
                 "question": None,
-                "recommendations": [
-                    {"opportunity_id": "mnbc", "reason_codes": ["provider_confirmation"]}
-                ],
+                "recommendations": [{"opportunity_id": "mnbc", "reason_codes": ["provider_confirmation"]}],
             }
             output = [
                 {
@@ -368,9 +354,7 @@ def test_official_sdk_response_round_trip_without_network(settings):
                     "id": "msg_fixture",
                     "status": "completed",
                     "role": "assistant",
-                    "content": [
-                        {"type": "output_text", "text": json.dumps(draft), "annotations": []}
-                    ],
+                    "content": [{"type": "output_text", "text": json.dumps(draft), "annotations": []}],
                 }
             ]
         return httpx2.Response(
@@ -395,9 +379,7 @@ def test_official_sdk_response_round_trip_without_network(settings):
     app = create_app(settings.model_copy(update={"openai_model": "fixture-model"}), sdk)
     try:
         with TestClient(app) as client:
-            response = client.post(
-                "/api/conversation", json={"mode": "search", "message": "Explore Métis support"}
-            )
+            response = client.post("/api/conversation", json={"mode": "search", "message": "Explore Métis support"})
         assert response.status_code == 200, response.text
         assert response.json()["results"][0]["record"]["id"] == "mnbc"
         assert len(requests) == 2
@@ -407,3 +389,72 @@ def test_official_sdk_response_round_trip_without_network(settings):
     finally:
         sdk.close()
         app.state.engine.dispose()
+
+
+class CompareLLM:
+    """Scripted provider: asks for two statistics slices (nationwide, then region-specific), then answers."""
+
+    def __init__(self):
+        self.responses = self
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(json.loads(json.dumps(kwargs)))
+        n = len(self.calls)
+        if n <= 2:
+            args = {"filters": SearchFilters(scope="national" if n == 1 else "regional").model_dump()}
+            call = {
+                "type": "function_call",
+                "name": "get_statistics",
+                "call_id": f"call_{n}",
+                "arguments": json.dumps(args),
+            }
+            return SimpleNamespace(status="completed", output=[Item(call)], output_text="")
+        draft = {"intent_summary": "Compare national and regional coverage", "question": None, "recommendations": []}
+        return SimpleNamespace(status="completed", output=[], output_text=json.dumps(draft))
+
+
+def test_a_comparison_reports_every_slice_it_asked_for(settings):
+    """The answer text is built from every statistics call, not only the last slice the model happened to ask for."""
+    app = create_app(settings, CompareLLM())
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/conversation", json={"mode": "analysis", "message": "Compare national and regional coverage"}
+        )
+    assert response.status_code == 200, response.text
+    message = response.json()["message"]
+    assert message.startswith("2 selections compared.")
+    assert "nationwide: 3 records (3 national, 0 regional; 2 list a figure)" in message
+    assert "region-specific: 1 record (0 national, 1 regional; 0 list a figure)" in message
+    assert message.endswith("Example data. Caps are not guaranteed support or allocated funding.")
+    app.state.engine.dispose()
+
+
+class Rows:
+    """The part of the repository the service reads."""
+
+    def __init__(self, mode, rows):
+        self.mode, self.rows = mode, rows
+
+    def all(self):
+        return self.rows
+
+
+def test_a_region_the_source_does_not_state_is_neither_national_nor_regional():
+    from navigator.app.services import DataService
+
+    records = json.loads(DATASET.read_text(encoding="utf-8"))["records"]
+    next(x for x in records if x["id"] == "nutrien")["province"] = None  # nationwide in the demo data
+    service = DataService(Rows("demo", records))
+
+    def counts(**filters):
+        s = service.statistics(SearchFilters(**filters))
+        return s["national_count"], s["regional_count"], s["unspecified_region_count"], s["total"]
+
+    assert counts() == (2, 1, 1, 4)
+    assert counts(scope="national") == (2, 0, 0, 2)
+    assert counts(scope="regional") == (0, 1, 0, 1)
+    assert counts(scope="unspecified") == (0, 0, 1, 1)
+    # A province filter keeps what reaches it (nationwide) and, by default, what states no region; strict drops the latter.
+    assert counts(provinces=["Ontario"]) == (2, 0, 1, 3)
+    assert counts(provinces=["Ontario"], include_unknown=False) == (2, 0, 0, 2)

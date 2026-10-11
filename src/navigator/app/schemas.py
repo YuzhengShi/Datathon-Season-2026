@@ -31,25 +31,19 @@ class SearchFilters(Contract):
     provinces: list[Province] = Field(default_factory=list, max_length=13)
     types: list[Literal["Scholarship", "Program"]] = Field(default_factory=list, max_length=2)
     goals: list[Goal] = Field(default_factory=list, max_length=2)
-    scope: Literal["all", "national", "regional"] = "all"
+    scope: Literal["all", "national", "regional", "unspecified"] = "all"
     amount_band: Literal["all", "listed", "high", "unknown", "under5000"] = "all"
-    amount_kind: Literal[
-        "all", "fixed", "range", "maximum", "variable", "pooled_total", "unspecified"
-    ] = "all"
-    education_levels: list[
-        Literal["high_school", "college", "undergraduate", "graduate", "vocational"]
-    ] = Field(default_factory=list, max_length=5)
+    amount_kind: Literal["all", "fixed", "range", "maximum", "variable", "pooled_total", "unspecified"] = "all"
+    education_levels: list[Literal["high_school", "college", "undergraduate", "graduate", "vocational"]] = Field(
+        default_factory=list, max_length=5
+    )
     fields_of_study: list[Literal["business", "stem", "health", "arts", "trades"]] = Field(
         default_factory=list, max_length=5
     )
     study_modes: list[Literal["full_time", "part_time"]] = Field(default_factory=list, max_length=2)
-    expenses: list[Literal["tuition", "living", "travel", "books"]] = Field(
-        default_factory=list, max_length=4
-    )
+    expenses: list[Literal["tuition", "living", "travel", "books"]] = Field(default_factory=list, max_length=4)
     renewable: Literal["all", "yes", "no", "unknown"] = "all"
-    deadline_kind: Literal[
-        "all", "date", "annual_rule", "rolling", "local_administrator", "unspecified"
-    ] = "all"
+    deadline_kind: Literal["all", "date", "annual_rule", "rolling", "local_administrator", "unspecified"] = "all"
     providers: list[str] = Field(default_factory=list, max_length=20)
     include_unknown: bool = True
     sort: Literal["recommended", "amount", "alphabetical"] = "recommended"
@@ -62,14 +56,12 @@ class SearchFilters(Contract):
         return list(dict.fromkeys(values))
 
 
-class Profile(Contract):
+class AppProfile(Contract):
     communities: list[Community] = Field(default_factory=list, max_length=3)
     residence_province: Province | None = None
     institution_province: Province | None = None
     goal: Goal | None = None
-    education_level: (
-        Literal["high_school", "college", "undergraduate", "graduate", "vocational"] | None
-    ) = None
+    education_level: Literal["high_school", "college", "undergraduate", "graduate", "vocational"] | None = None
     study_mode: Literal["full_time", "part_time"] | None = None
     institution_id: str | None = Field(default=None, max_length=60)
     first_nations_registered: bool | None = None
@@ -83,9 +75,9 @@ class SearchRequest(Contract):
     offset: int = Field(default=0, ge=0, le=10000)
 
 
-class MatchRequest(Contract):
+class AppMatchRequest(Contract):
     filters: SearchFilters = Field(default_factory=SearchFilters)
-    profile: Profile = Field(default_factory=Profile)
+    profile: AppProfile = Field(default_factory=AppProfile)
     limit: int = Field(default=12, ge=1, le=24)
 
 
@@ -99,7 +91,7 @@ class ConversationRequest(Contract):
     message: str = Field(min_length=1, max_length=1800)
     history: list[HistoryMessage] = Field(default_factory=list, max_length=10)
     filters: SearchFilters = Field(default_factory=SearchFilters)
-    profile: Profile = Field(default_factory=Profile)
+    profile: AppProfile = Field(default_factory=AppProfile)
 
 
 class DetailArgs(Contract):
@@ -116,9 +108,7 @@ class EmptyArgs(Contract):
 
 class Recommendation(Contract):
     opportunity_id: str
-    reason_codes: list[
-        Literal["community", "location", "study_plans", "amount", "provider_confirmation"]
-    ]
+    reason_codes: list[Literal["community", "location", "study_plans", "amount", "provider_confirmation"]]
 
 
 class AssistantDraft(Contract):

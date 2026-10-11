@@ -49,7 +49,7 @@ cd Datathon-Season-2026
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.lock
 .\.venv\Scripts\python -m pip install --no-deps -e .
-.\scripts\start_app.ps1        # builds the database from data/awards.jsonl, then opens http://127.0.0.1:8000/
+.\scripts\start_app.ps1        # builds the database from data/awards.jsonl, then opens http://127.0.0.1:8000/ (the site; the questionnaire app of section 4 is at /app/)
 ```
 
 On macOS or Linux use `source .venv/bin/activate` and `scripts/start_app.sh` (the Windows script is the one that has been run). If Windows refuses port 8000, add `-Port 8080`. The first start can take a few minutes (Python prepares its packages and the database is built); later starts take a couple of seconds.
@@ -59,15 +59,15 @@ On macOS or Linux use `source .venv/bin/activate` and `scripts/start_app.sh` (th
 **Checks.**
 
 ```powershell
-.\.venv\Scripts\python -m pytest -q                       # 267 tests (includes the JavaScript logic tests when Node is installed)
-node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000    # 30 checks in a real browser; the server must be running
+.\.venv\Scripts\python -m pytest -q                       # 321 tests (includes the JavaScript tests when Node is installed)
+node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000    # written for 30 checks in a real browser; stale since the frontend redesign (see docs/RUNBOOK.md). The site has its own: node tests/e2e/site.mjs
 ```
 
 ## 4. Demo path
 
 **Situation.** A First Nations undergraduate at Simon Fraser University in British Columbia wants to know which funding she can apply for this fall, and by when.
 
-**Action.** Start the app, choose *Start*, and answer: First Nations, registered under the Indian Act: yes, British Columbia, university bachelor's degree, full-time, Simon Fraser University. Choose *Show my scholarships*.
+**Action.** Start the app and open <http://127.0.0.1:8000/app/> (the questionnaire app; the site at `/` has Statistics and AI search), choose *Start*, and answer: First Nations, registered under the Indian Act: yes, British Columbia, university bachelor's degree, full-time, Simon Fraser University. Choose *Show my scholarships*.
 
 **Result.**
 - 30 of the 58 options are shown; 28 are hidden because she cannot apply: the 25 Vancouver Island University awards are for that university's students, and the Inuit and Métis programs and MNBC STEPS are for Inuit beneficiaries and Métis citizens.

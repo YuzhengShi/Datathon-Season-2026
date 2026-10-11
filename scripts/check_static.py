@@ -20,6 +20,7 @@ ALL_FILES = sorted(
     [
         *PACKAGE_FILES,
         *ROOT.joinpath("migrations").rglob("*.py"),
+        *ROOT.joinpath("migrations_app").rglob("*.py"),
         *ROOT.joinpath("scripts").glob("*.py"),
         *ROOT.joinpath("tests").rglob("*.py"),
     ]
