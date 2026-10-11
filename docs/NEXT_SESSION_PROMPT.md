@@ -1,5 +1,7 @@
 # 下一轮任务（交给联网机器上的 coding agent）
 
+> **2026-10-10 更新：** 原 `backend/` 已并入 `src/navigator/app/`（包 `navigator.app`），站点 `dist/` 由同一个服务器在 `/` 提供，本文提到的问卷应用在 `/app/`。先读 `docs/APP_LAYER.md` 和 `docs/RUNBOOK.md` 的 “The site, Statistics and AI search”。测试现为 321 通过（下文的 258 是当时的数字）。
+
 你接手的是 Indigenous Student Funding Navigator 后端。**它已在 Windows 上从零复现并跑通，做过真实抓取，并且对其中一部分记录做过提供方官网核验**：
 258 个测试通过、live 流水线 59 条真实记录（36 条已发布、1 条 `archived`）、真实服务 + smoke test、真实 `/match`。先读 `docs/HANDOFF.md`
 （第 3 节"提供方页面改变了什么"、第 4 节 UBC 的决定、第 5 节已修复和未修复的问题）、`README.md`、`docs/RUNBOOK.md`、`docs/DATA_SOURCES.md`。**不要重写项目。**

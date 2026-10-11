@@ -144,17 +144,56 @@ The snapshot is stored like a fetched one; the fetch index records `acquisition:
 `manual_import` row, the source's allowlist still applies, and every evidence check runs unchanged. Ask the site for permission before
 relying on it for more than a handful of pages.
 
-## The web app
+## The site, Statistics and AI search (application layer)
 
-* One command for a demo: `.\scripts\start_app.ps1` (builds the database from the stored snapshots if needed, opens the browser). See `docs/DEMO.md`.
+One server runs everything: `python -m navigator.cli serve --mode live` (or `.\scripts\start_app.ps1`), then open `http://127.0.0.1:8000/`.
 
-* Start it with `python -m navigator.cli serve --mode live` and open `http://127.0.0.1:8000/` (it redirects to `/app/`). If Windows refuses the
-  port (`WinError 10013`), pass `--port 8080`.
-* The app is the folder `frontend/`: edit a file and reload, there is no build. `assets/logic.js` holds every rule that turns API data into words
-  (amounts, deadlines, fit, sorting); change it together with `tests/js/logic.test.mjs`.
+| URL | What |
+| --- | --- |
+| `/` | the site in `dist/`: Explore, Statistics, My saved, AI search ("Find a match", "Ask about the data") |
+| `/app/` | the questionnaire app in `frontend/` (talks to `/opportunities` and `/match`) |
+| `/api/*`, `/data/opportunities.json` | the application layer: typed search, statistics, evidence check, AI conversation, and the records the site loads |
+| `/docs` | OpenAPI for all of it |
+
+* **One mode, one `.env`.** `DATA_MODE`, `DATA_DIR` and `CORS_ALLOW_ORIGINS` are read once for both layers and `--mode` beats `DATA_MODE`. The site
+  loads its records from `/data/opportunities.json`, which the server answers from the read model of the same mode as `/api/*`: a page can never show
+  one mode's records and call another mode's API.
+* **The read model** is a second SQLite file per mode (`data/read_model.db`, `data/demo/read_model.db`) with its own migrations in `migrations_app/`.
+  `serve` brings it up to date when it starts (migrate, then an idempotent import: `data/awards.jsonl` in live mode, the four demo records in demo mode).
+* Commands:
+
+```powershell
+python -m navigator.cli app status --mode live     # read model, record count, AI settings (never the key), and whether dist/data/opportunities.json agrees with the mode
+python -m navigator.cli app upgrade --mode live    # create or upgrade the read model's database
+python -m navigator.cli app publish                # data/awards.jsonl -> live read model AND dist/data/opportunities.json (static hosting)
+python -m navigator.cli app init-demo              # the four illustrative demo records -> demo read model
+```
+
+  `app publish` is the only command that rewrites `dist/data/opportunities.json`; a test fails when the committed file lags behind
+  `data/awards.jsonl`. Add `--no-frontend` to skip that file, `--dataset <file>` to publish another export.
+* **Region.** A record is regional when its rules name a school or a province, and regional or national when the federal directory lists it so
+  (`Province/territory:` in the entry). Otherwise its region is *not stated*: Statistics counts it separately and never as national.
+* **AI search** needs `LLM_ENABLED=true`, `OPENAI_MODEL` and `OPENAI_API_KEY` in `.env` (`OPENAI_BASE_URL` for an OpenAI-compatible provider such as
+  `https://api.deepseek.com/v1`). The assistant uses the Responses API; `docs/LLM_PROVIDERS.md` records what was verified. Without these settings the
+  page says AI is not connected and the filters and Statistics keep working. Probe a provider with `scripts/probe_deepseek.py` and `scripts/probe_deepseek_tools.py`.
+* **Static hosting** serves only `dist/` (no Python): run `app publish` first. Statistics then computes in the browser and AI search is off.
+* Checks: `python -m pytest -q`; `node scripts/qa-ui.cjs` (jsdom; `npm install --no-save --package-lock=false jsdom@30.1.2` first);
+  `python scripts/app_verify_runtime.py` starts a demo server (on a free port) and smoke-tests its HTTP routes;
+  `node tests/e2e/site.mjs --base=http://127.0.0.1:8000 --out=shots` drives the site in a real Chrome or Edge against a running `serve --mode live`
+  (numbers on the Statistics page checked against the published dataset, a directory entry, a 390 px phone; add `--ai` for one natural-language search,
+  which makes a few real model calls on the configured key).
+* The site is plain HTML, CSS and JavaScript with no build: edit a file in `dist/` and reload. Python (`navigator/app/services.py`) and JavaScript
+  (`dist/model.js`) filter the same way; `tests/test_filter_parity.py` fails when they drift apart.
+
+## The questionnaire app (`/app/`)
+
+* The app is the folder `frontend/`: edit a file and reload, there is no build. `model.js` holds every rule that turns API data into words
+  (amounts, deadlines, fit, sorting); change it together with `tests/js/model.test.mjs`.
 * Checks: `python -m pytest -q` (includes the JavaScript logic tests), and the real-browser run
   `node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000 --out=shots` (use `--chrome="<path to chrome.exe or msedge.exe>"` if the default path is wrong;
   it writes screenshots to `shots/`). It fails on any JavaScript error, sideways scrolling on a 390 px phone, stored data or an unnamed control.
-* The page is served with a strict Content-Security-Policy (no inline scripts or styles, no third-party hosts). Keep it that way: add files under
-  `frontend/assets/`, do not add CDN links.
-* A contact address for corrections goes in `frontend/assets/config.js` (`CONTACT_EMAIL`); the crawler's contact goes in `USER_AGENT` in `.env`.
+  **Stale since the frontend redesign:** it was written for the earlier routes (its second step looks for `#/start/1`, which no longer exists), so it stops after
+  the first check. It needs updating to the redesigned app before it can be relied on again.
+* `/app/` is served with a strict Content-Security-Policy (no inline scripts or styles, no third-party hosts). Keep it that way: do not add CDN links.
+  The site at `/` is not under that policy because its charts use inline styles.
+* A contact address for corrections goes in `frontend/config.js` (`contactEmail`); the crawler's contact goes in `USER_AGENT` in `.env`.

@@ -52,7 +52,7 @@ class ApiTests(unittest.TestCase):
         schema = self.client.get("/openapi.json").json()
         methods = {(path, m.upper()) for path, item in schema["paths"].items() for m in item}
         self.assertEqual(
-            methods,
+            {(p, m) for p, m in methods if not p.startswith("/api/")},
             {
                 ("/health", "GET"),
                 ("/opportunities", "GET"),
@@ -62,7 +62,25 @@ class ApiTests(unittest.TestCase):
                 ("/reports/freshness", "GET"),
             },
         )
+        # The application layer (the site's /api/*) shares this server: search, statistics, the evidence check and the
+        # AI conversation. They only read the published records; nothing in the API writes.
+        self.assertEqual(
+            {(p, m) for p, m in methods if p.startswith("/api/")},
+            {
+                ("/api/health", "GET"),
+                ("/api/opportunities/search", "POST"),
+                ("/api/opportunities/{opportunity_id}", "GET"),
+                ("/api/match/evaluate", "POST"),
+                ("/api/statistics", "POST"),
+                ("/api/facets", "GET"),
+                ("/api/conversation", "POST"),
+            },
+        )
+        self.assertFalse({m for _, m in methods} & {"PUT", "PATCH", "DELETE"})
         self.assertIn("MatchRequest", schema["components"]["schemas"])
+        # Two layers share this schema: a model name used by both would be renamed by FastAPI (navigator__x__Name) and
+        # break clients generated from it. The application layer's models are therefore named apart (AppProfile, ...).
+        self.assertEqual([name for name in schema["components"]["schemas"] if "__" in name], [])
 
     # ----------------------------------------------------------- opportunities
     def test_listing_defaults_filters_and_pagination(self):

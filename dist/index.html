@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7f2">
+  <meta name="description" content="Explore scholarships and education support for First Nations, Inuit and Métis students in Canada.">
+  <title>Funding Navigator — Find your next chapter</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/geist-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/instrument-serif-latin-italic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="workspace.css?v=4">
+  <link rel="stylesheet" href="program.css?v=4">
+  <link rel="stylesheet" href="insights.css?v=6">
+  <script src="model.js?v=6" defer></script>
+  <script src="insights.js?v=6" defer></script>
+  <script src="app.js?v=6" defer></script>
+</head>
+<body>
+<svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.25"/><path d="m16 8-2.3 5.7L8 16l2.3-5.7L16 8Z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16M8 15v-4m5 4V7m5 8v-6"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6.5 4.5h11v16L12 17l-5.5 3.5v-16Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 4.5 3.5 7.5 7.5 10 4-2.5 7.5-5.5 7.5-10V6L12 3Z"/><path d="m8.5 11.5 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6v14M3 4.5C7 4 9 4.5 12 6c3-1.5 5-2 9-1.5v14c-4-.5-6 0-9 1.5-3-1.5-5-2-9-1.5v-14Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C10 3 4 7 4 13a7 7 0 0 0 14 0l2-9ZM4 21 15 10"/></symbol>
+</svg>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="header-inner page-width">
+    <a class="brand" href="#home" aria-label="Funding Navigator home"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg></span><span>Funding Navigator</span></a>
+    <nav class="main-nav" aria-label="Main navigation"><a href="#explore">Explore funding</a><a href="#how-it-works">How it works</a><a href="#saved">My saved <span class="save-count" hidden>0</span></a></nav>
+    <a class="button button-small" href="#explore"><span data-live-text="Open the app">Open demo</span> <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <div id="home-view">
+    <section class="hero page-width" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="tiny-sun" aria-hidden="true"></span>YOUR NEXT CHAPTER</p>
+        <h1 id="hero-title" tabindex="-1">Find scholarships.<br><em>See what fits you.</em></h1>
+        <p class="hero-subtitle">Education support for First Nations, Inuit and Métis students in Canada.</p>
+        <div class="hero-actions"><a class="button" href="#explore">Explore funding <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><button class="button button-outline" data-assistant="match"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>Find a match</button></div>
+        <p class="hero-reassurance"><span data-live-text="Free">Free demo</span> <span aria-hidden="true">·</span> No account needed</p>
+      </div>
+      <div class="scenic-stage">
+        <img class="hero-landscape" src="assets/next-chapter.png" width="1448" height="1086" alt="A winding path through forest and mountains towards a warm sunrise." fetchpriority="high">
+        <span class="scene-label"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>A little support. A world of possibility.</span>
+        <div class="product-preview" aria-label="Interactive preview of the funding explorer">
+          <div class="preview-side">
+            <span class="preview-brand"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>Funding<br>Navigator</span>
+            <a class="selected" href="#explore"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Explore funding</a>
+            <a href="#saved"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg>My saved</a>
+            <a href="#profile"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>My profile</a>
+            <span class="preview-side-note"><span class="live-dot" aria-hidden="true"></span><span data-live-text="Workspace">Demo workspace</span></span>
+          </div>
+          <div class="preview-main">
+            <div class="preview-heading"><h2>Explore funding</h2><span class="demo-tag" data-live-text="Published data">Demo · Example data</span></div>
+            <a class="preview-search" href="#explore"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>What’s your next step?</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <div class="preview-filter-row"><button data-preview-filter="community">Community <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></button><button data-preview-filter="location">Location <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></button><button data-preview-filter="type">Funding type <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></button></div>
+            <div class="preview-cards" id="home-cards"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="how-section page-width" id="how-it-works" aria-labelledby="how-title">
+      <div class="section-heading"><p class="eyebrow">A CLEARER PATH</p><h2 id="how-title">Less searching.<br><em>More possibility.</em></h2></div>
+      <div class="steps-grid">
+        <article class="step"><div class="step-graphic graphic-discover" aria-hidden="true"><span class="step-number">01</span><span class="graphic-orbit"></span><div class="illustrated-search"><svg class="icon"><use href="#i-search"/></svg>Education support<span class="graphic-arrow"><svg class="icon"><use href="#i-arrow"/></svg></span></div><div class="illustrated-result"><span class="mini-brand peach"><svg class="icon"><use href="#i-book"/></svg></span><span class="graphic-lines"><i></i><i></i></span><span class="mini-amount">$5,000</span></div><div class="illustrated-result second"><span class="mini-brand sage"><svg class="icon"><use href="#i-leaf"/></svg></span><span class="graphic-lines"><i></i><i></i></span><span class="mini-amount">Varies</span></div></div><h3>Find a starting point.</h3><p>Search scholarships and education support.</p></article>
+        <article class="step"><div class="step-graphic graphic-fit" aria-hidden="true"><span class="step-number">02</span><span class="graphic-orbit"></span><div class="fit-sheet"><span class="fit-heading"><svg class="icon"><use href="#i-spark"/></svg>Your preferences</span><span>Community <i><svg class="icon"><use href="#i-check"/></svg></i></span><span>Study location <i><svg class="icon"><use href="#i-check"/></svg></i></span><span>Your plans <i><svg class="icon"><use href="#i-check"/></svg></i></span></div><span class="floating-pin"><svg class="icon"><use href="#i-pin"/></svg></span></div><h3>See what fits.</h3><p>Filter by your community, location and plans.</p></article>
+        <article class="step"><div class="step-graphic graphic-save" aria-hidden="true"><span class="step-number">03</span><span class="graphic-orbit"></span><div class="saved-sheet"><span class="saved-heading"><svg class="icon"><use href="#i-bookmark"/></svg>My saved</span><div><span class="mini-brand peach"><svg class="icon"><use href="#i-book"/></svg></span><span class="graphic-lines"><i></i><i></i></span><svg class="icon"><use href="#i-check"/></svg></div><div><span class="mini-brand blue"><svg class="icon"><use href="#i-compass"/></svg></span><span class="graphic-lines"><i></i><i></i></span><svg class="icon"><use href="#i-check"/></svg></div></div><span class="floating-arrow"><svg class="icon"><use href="#i-arrow-up"/></svg></span></div><h3>Keep your next steps.</h3><p>Save favourites. Check details with the provider.</p></article>
+      </div>
+    </section>
+    <section class="closing-section page-width" aria-labelledby="closing-title"><div class="closing-art"><img src="assets/next-chapter.png" width="1448" height="1086" alt="" loading="lazy"></div><div><p class="eyebrow">ONE SMALL STEP</p><h2 id="closing-title">Make room for your future.</h2></div><a class="button button-light" href="#explore">Explore funding <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></section>
+  </div>
+  <div id="workspace-view" class="workspace-shell" hidden>
+    <aside class="workspace-sidebar" aria-label="Workspace sidebar">
+      <a class="brand sidebar-brand" href="#home"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg></span><span>Funding<br>Navigator</span></a>
+      <p class="sidebar-label">DISCOVER</p>
+      <nav class="workspace-nav" aria-label="Workspace navigation"><a href="#explore" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Explore funding</a><a href="#statistics" data-nav="statistics"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Statistics</a><a href="#saved" data-nav="saved"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg>My saved <span class="save-count" hidden>0</span></a><a href="#profile" data-nav="profile"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>My profile</a></nav>
+      <button class="sidebar-guide" data-info="help"><span class="guide-symbol"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span><span>A little guidance<small>Find a helping hand</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
+      <div class="sidebar-bottom"><button data-info="privacy"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>Privacy & your data</button><a href="#home"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>Back to home <svg class="icon sidebar-home-arrow" aria-hidden="true"><use href="#i-arrow-up"/></svg></a><span class="sidebar-demo" data-live-text="Funding Navigator">Funding Navigator · Demo</span></div>
+    </aside>
+    <div class="workspace-main">
+      <div class="workspace-topbar"><a class="mobile-brand" href="#home"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>Funding Navigator</a><div class="workspace-breadcrumb"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><span>Workspace</span><span class="breadcrumb-divider" aria-hidden="true">/</span><strong id="workspace-location">Explore funding</strong></div><div class="workspace-topbar-right"><span class="demo-tag" data-live-text="Live">Demo</span><button class="text-link" data-info="sources"><span data-live-text="Sources">Example data</span> <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></button></div></div>
+      <nav class="workspace-mobile-nav" aria-label="Mobile workspace navigation"><a href="#explore" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Explore</a><a href="#statistics" data-nav="statistics"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Statistics</a><a href="#saved" data-nav="saved"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg>Saved <span class="save-count" hidden>0</span></a><a href="#profile" data-nav="profile"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+      <section id="explore-view" class="explorer" aria-labelledby="explorer-title">
+        <div class="explorer-intro"><div class="explorer-heading"><span class="explorer-kicker">YOUR NEXT CHAPTER</span><h1 id="explorer-title" tabindex="-1">Explore funding</h1><p id="explorer-description">Find support for your next chapter.</p><button class="button button-small" data-assistant="match">Find a match <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></button></div><figure class="explorer-art" aria-hidden="true"><img src="assets/illustrations/skills-path.png" width="1254" height="1254" alt=""></figure></div>
+        <div class="discovery-controls">
+        <form class="search-form" id="search-form" role="search"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg><label class="sr-only" for="funding-search">Describe the funding you need</label><input id="funding-search" type="search" autocomplete="off" maxlength="1800" placeholder="I’m a Métis student in BC looking for training support…"><button class="button button-small" type="submit" id="search-submit">Search</button></form>
+        <div class="search-meta"><span id="ai-connection-status" role="status">Checking AI connection…</span><label for="search-mode">Search mode <select id="search-mode"><option value="ai">Natural language · AI</option><option value="keyword">Keyword</option></select></label></div>
+        <div class="quick-filters" role="group" aria-label="Funding filters">
+          <div class="select-field"><label for="quick-community">Community</label><select id="quick-community" data-filter="community"><option value="all">All communities</option><option>First Nations</option><option>Inuit</option><option>Métis</option></select><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></div>
+          <div class="select-field"><label for="quick-location">Study region</label><select id="quick-location" data-filter="location"><option value="all">All of Canada</option></select><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></div>
+          <div class="select-field"><label for="quick-type">Funding type</label><select id="quick-type" data-filter="type"><option value="all">All funding</option><option value="Scholarship">Scholarships & awards</option><option value="Program">Funding programs</option></select><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></div>
+          <div class="select-field"><label for="quick-amount">Listed figure</label><select id="quick-amount" data-filter="amount"><option value="all">Any amount</option><option value="under5000">Up to $5,000</option><option value="high">Above $5,000</option><option value="listed">Amount listed</option><option value="unknown">Not listed</option></select><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></div>
+        </div>
+        <details class="advanced-filters" id="advanced-filters"><summary>More filters <span id="more-filter-count"></span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="advanced-filter-grid" id="advanced-filter-grid"></div><label class="unknown-filter"><input type="checkbox" id="include-unknown" checked> Keep records when the source hasn’t specified this detail</label><p>Unknown source details are labelled, not assumed to meet your requirements.</p></details>
+        <div class="ai-search-summary" id="ai-search-summary" role="status" hidden></div>
+        </div>
+        <div class="active-filters" id="active-filters" hidden></div>
+        <div class="results-toolbar"><p id="results-count" aria-live="polite"></p><div class="results-controls"><button class="text-link clear-filters" data-clear-filters hidden>Clear filters</button><label class="sr-only" for="funding-sort">Sort opportunities</label><select id="funding-sort"><option value="recommended">Featured</option><option value="amount">Amount: high to low</option><option value="alphabetical">Name: A to Z</option></select><div class="view-toggle" role="group" aria-label="Display style"><button class="active" data-layout="grid" aria-label="Card grid" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button><button data-layout="list" aria-label="Compact list" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button></div></div></div>
+        <div class="opportunity-grid" id="results-grid"></div>
+        <div class="empty-state" id="empty-state" hidden><span class="empty-symbol"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg></span><h2 id="empty-title">No opportunities found.</h2><p id="empty-description">Try another search or adjust your filters.</p><button class="button" id="reset-results">Reset filters <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+        <p class="explorer-footnote"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>Confirm eligibility, amounts and dates with the provider.</p>
+      </section>
+      <section id="profile-view" class="profile-view" aria-labelledby="profile-title" hidden><div class="explorer-intro"><div><h1 id="profile-title" tabindex="-1">My profile</h1><p>Your preferences, for this visit.</p></div></div><div class="profile-grid"><div class="profile-card" id="profile-content"></div><div class="profile-visual"><img src="assets/illustrations/paper-portfolio.png" width="1024" height="1024" alt="" loading="lazy"><div><span class="privacy-symbol"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span><h2>No name.<br>No documents.</h2><p>Your answers stay in this visit.<br>Your saved list stays on this device.</p><button class="text-link" data-info="privacy">Privacy details <svg class="icon" aria-hidden="true"><use href="#i-arrow-up"/></svg></button></div></div></div></section>
+      <section id="statistics-view" class="statistics-view" aria-labelledby="statistics-title" hidden>
+        <header class="insights-heading"><div><span class="explorer-kicker">THE BIGGER PICTURE</span><h1 id="statistics-title" tabindex="-1">Statistics</h1><p>Explore where support meets possibility.</p></div><div class="insights-actions"><button class="button button-outline" id="export-statistics">Export CSV <svg class="icon" aria-hidden="true"><use href="#i-arrow-up"/></svg></button><button class="button" data-assistant="analysis">Ask about the data <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></button></div></header>
+        <div class="dataset-banner"><span class="data-indicator"></span><strong>Live dataset</strong><span id="stats-dataset-note">Published records · quote-checked against provider pages</span><span class="stats-backend-status" id="stats-backend-status">HTML preview</span></div>
+        <div class="stats-filters"><div class="select-field"><label for="stats-community">Community</label><select id="stats-community" data-stats-filter="community"><option value="all">All communities</option><option>First Nations</option><option>Inuit</option><option>Métis</option></select></div><div class="select-field"><label for="stats-location">Region</label><select id="stats-location" data-stats-filter="location"><option value="all">All of Canada</option></select></div><div class="select-field"><label for="stats-type">Funding type</label><select id="stats-type" data-stats-filter="type"><option value="all">All funding</option><option value="Scholarship">Scholarships & awards</option><option value="Program">Funding programs</option></select></div><button class="text-link" id="stats-more-filters">All filters <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button><button class="text-link" id="stats-clear-filters">Reset</button></div>
+        <div class="stats-context" id="stats-context" role="status"></div>
+        <div class="kpi-grid" id="statistics-kpis"></div>
+        <div class="insights-grid">
+          <article class="insight-panel map-panel"><div class="panel-heading"><div><span class="panel-kicker">GEOGRAPHY</span><h2>Support across Canada</h2></div><div class="segmented-control" role="group" aria-label="Map counting mode"><button data-map-mode="regional" aria-pressed="true">Regional</button><button data-map-mode="reach" aria-pressed="false">Incl. national</button></div></div><div class="map-body"><div class="canada-map" id="canada-map"></div><div class="map-region-summary" id="map-region-summary"></div></div><div class="map-footer"><span class="map-scale"><i></i>Fewer <i></i>More records</span><span>Natural Earth · provincial coverage</span></div><details class="map-accessible"><summary>View all 13 regions as a table</summary><div id="region-table"></div></details></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">COMPOSITION</span><h2>Ways to fund a future</h2></div></div><div id="type-chart"></div><div class="national-summary" id="national-summary"></div></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">COMMUNITY</span><h2>Who support reaches</h2></div></div><div id="community-chart"></div><p class="chart-note">Communities overlap. Counts aren’t additive.</p></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">LISTED FIGURES</span><h2>A sense of the amounts</h2></div></div><div id="amount-chart"></div><p class="chart-note" id="amount-chart-note">Example figures, including caps. Not allocated funding.</p></article>
+          <article class="insight-panel"><div class="panel-heading"><div><span class="panel-kicker">APPLICATION TIMING</span><h2>When to take a next step</h2></div></div><div id="deadline-chart"></div><p class="chart-note">Contact routes aren’t confirmed open windows.</p></article>
+        </div>
+        <article class="insight-panel amount-panel"><div class="panel-heading"><div><span class="panel-kicker">RECORD EXPLORER</span><h2>Every amount, in context</h2></div><a class="text-link" href="#explore">Explore this selection <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div><div class="table-scroll"><table class="amount-table"><thead><tr><th scope="col">Opportunity</th><th scope="col">Coverage</th><th scope="col">Listed figure</th><th scope="col">What it means</th></tr></thead><tbody id="amount-table-body"></tbody></table></div><p class="chart-note" id="stats-empty-note" hidden>No records in this selection. Reset or keep unknown source details.</p></article>
+        <details class="statistics-methods"><summary>Data quality & counting rules <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></summary><div id="statistics-methods-content"></div></details>
+      </section>
+    </div>
+  </div>
+</main>
+<footer class="site-footer page-width"><a class="brand" href="#home"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg></span><span>Funding Navigator</span></a><span class="footer-demo" data-live-text="Published records">Demo · Example data</span><div><button data-info="privacy">Privacy</button><button data-info="sources">Sources</button><button data-info="about">About</button></div></footer>
+<dialog id="assistant-dialog" class="assistant-dialog" aria-labelledby="assistant-title"><header class="assistant-header"><span class="assistant-mark"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></span><div><h2 id="assistant-title">Find a match</h2><p id="assistant-status">Natural language · shared data tools</p></div><button class="icon-button" data-close aria-label="Close assistant"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></header><div class="assistant-layout"><div class="conversation-column"><div class="conversation-thread" id="conversation-thread" role="log" aria-label="Funding conversation" aria-live="polite"></div><div class="conversation-suggestions" id="conversation-suggestions"></div><form id="conversation-form" class="conversation-form"><label class="sr-only" for="conversation-input">Describe your plans or ask a funding question</label><textarea id="conversation-input" rows="2" maxlength="1800" placeholder="Tell me what you’re planning…" required></textarea><button class="button" id="conversation-submit" type="submit" aria-label="Send message"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></form><p class="conversation-privacy">Optional study preferences only. No names, IDs or documents. <button data-info="privacy">Privacy</button></p></div><aside class="assistant-evidence"><span class="panel-kicker">CONNECTED TO THE DATA</span><h3>Sources, not guesswork.</h3><div class="tool-path"><span>Understand your request</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg><span>Query backend tools</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg><span>Return source-linked records</span></div><div id="assistant-evidence-content"><p>Matches and amounts will appear here, with provider links and what still needs confirmation.</p></div><button class="text-link" id="conversation-reset">Start a new conversation</button></aside></div></dialog>
+<dialog id="detail-dialog" class="detail-dialog program-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+<dialog id="info-dialog" class="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><span class="dialog-kicker"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>GOOD TO KNOW</span><button class="icon-button" data-close aria-label="Close information"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><div id="info-content"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

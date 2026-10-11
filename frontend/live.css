@@ -1,0 +1,121 @@
+/* Live data: the states and pieces the first design did not need while it showed four fixed examples.
+   Everything here is added on top of styles.css, workspace.css and program.css; none of those files was changed.
+   (No inline styles anywhere in the app: the service sends a Content-Security-Policy that forbids them.) */
+
+.noscript{margin:0;padding:14px 20px;background:#fbf3e4;font-size:13px;line-height:1.6}
+.noscript a{text-decoration:underline}
+
+/* ---- loading: pulsing placeholders instead of a blank page */
+@keyframes sk-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.sk{display:block;border-radius:8px;background:#e7ebdf;animation:sk-pulse 1.4s ease-in-out infinite}
+.sk-badge{width:40px;height:40px;border-radius:10px}
+.sk-line{height:12px;margin-top:14px;width:86%}
+.sk-line.short{width:54%}
+.sk-amount{height:30px;width:44%;margin-top:22px}
+.sk-title{height:34px;width:70%;margin-top:18px}
+.sk-block{height:150px;margin-top:26px;border-radius:14px}
+.opportunity-card.is-skeleton{min-height:236px;padding-bottom:21px}
+.preview-card.is-skeleton{min-height:150px}
+.program-loading{min-height:100%}
+.opportunity-grid.is-busy{opacity:.55;pointer-events:none;transition:opacity .15s}
+.preview-note{grid-column:1/-1;padding:18px 4px;font-size:11px;line-height:1.6;color:#6b7667}
+
+/* ---- notices (demo data, hidden closed programs, directory entries) */
+.notice{display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;border:1px solid #dfe5d7;border-radius:10px;background:#f4f7ee}
+.notice .icon{width:18px;height:18px;margin-top:2px;color:#6f8861}
+.notice p{margin:0;font-size:12px;line-height:1.65;color:#4f6445}
+.notice strong{font-weight:600;color:#3a5530}
+.notice-warn{background:#fbf3e4;border-color:#efdcbc}
+.notice-warn .icon{color:#b07a2a}
+.notice-warn p{color:#6d5426}
+.notice-warn strong{color:#5a4217}
+.program-main>.notice{margin:0 0 22px}
+
+/* ---- results */
+.results-toolbar{flex-wrap:wrap}
+.results-controls{flex-wrap:wrap;justify-content:flex-end}
+.results-controls [data-toggle-no]{font-size:11px;font-weight:400;color:#77836c;text-align:left}
+.results-controls [data-toggle-no]:hover{color:#b75c38}
+.results-shown{font-weight:400;color:#7c8a72}
+.show-more{display:flex;justify-content:center;margin-top:26px}
+.workspace-mode .opportunity-card.is-muted{background:#fbfbf8;border-style:dashed}
+.opportunity-card.is-muted .card-title,.opportunity-card.is-muted .card-amount{color:#7d8776}
+.workspace-mode .card-amount{overflow-wrap:anywhere}
+.card-timing.is-soon{color:#b4552f;font-weight:600}
+.workspace-mode .card-meta>.card-tags{flex-wrap:wrap;gap:6px}
+.source-tag,.status-tag,.fit-tag{display:inline-flex;align-items:center;gap:5px;width:fit-content;padding:4px 7px;border-radius:5px;font-size:10px;font-weight:500;line-height:1.3}
+.source-tag .icon,.fit-tag .icon{width:12px;height:12px}
+.source-tag{background:#f8ecd9;color:#80561a;border:1px solid #efdcbc}
+.status-tag{background:#f0f3e8;color:#587049}
+.status-good{background:#e1ecd4;color:#3d6334}
+.status-info{background:#e2ecef;color:#3f6670}
+.status-muted{background:#eeeeea;color:#7a7a72}
+.fit-good{background:#e3edd8;color:#3f6a35}
+.fit-info{background:#e5edf0;color:#42656f}
+.fit-neutral{background:#f1efe7;color:#6a6753}
+.fit-muted{background:#f0ece8;color:#85665a}
+.list-layout .card-meta>span{min-width:0}
+
+/* ---- one program */
+.program-highlights .program-amount{overflow-wrap:anywhere}
+.program-subhead{margin:26px 0 10px;font-size:13px;font-weight:600;letter-spacing:-.01em;color:#3f5a35}
+.program-list{display:grid;gap:8px;max-width:560px;margin:0;padding-left:19px;font-size:12px;line-height:1.75;color:#5f7453}
+.program-panel>.program-note{max-width:570px;margin-top:14px;font-size:12px;line-height:1.75}
+.program-note strong{font-weight:600;color:#3f5a35}
+.program-cta{margin-top:22px}
+.program-shared{margin-top:26px;padding:18px;border:1px solid #e1e8d6;border-radius:12px;background:#f8faf2}
+.program-shared .program-subhead{margin-top:0}
+.program-shared>p{max-width:520px;font-size:12px;line-height:1.7;color:#5f7453}
+.program-shared .program-list{margin-top:12px}
+.program-shared .text-link{font-size:12px;font-weight:500;text-align:left}
+.program-criterion{align-items:flex-start}
+.program-criterion.is-pass>span{color:#3d6a35}
+.program-criterion.is-fail{background:#fdf7f3}
+.program-criterion.is-fail>span{color:#a4482b}
+.program-criterion.is-unknown>span,.program-criterion.is-ask>span{color:#7d9465}
+.program-criterion .criterion-why{margin-top:5px;font-size:11px;color:#7a886e}
+.step-link{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:11px;font-weight:600;color:#40613b}
+.step-link .icon{width:13px;height:13px}
+.step-link:hover{color:#a45533}
+.program-main .detail-source .source-note{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding:12px 14px;border:1px solid #e0e8d4;border-radius:10px;background:#f2f6ea}
+.source-note .icon{width:17px;height:17px;margin-top:2px;flex-shrink:0;color:#6f8861}
+.source-note.source-warn{background:#fbf3e4;border-color:#efdcbc}
+.source-note.source-warn .icon{color:#b07a2a}
+.program-main .detail-source .source-note p{margin:0}
+.program-main .detail-source .program-quote{margin:12px 0 0;padding:11px 14px;border-left:3px solid #cdd9bc;border-radius:0 8px 8px 0;background:#f8faf3}
+.program-main .detail-source .program-quote p{margin:0;font-size:12px;line-height:1.7;color:#4f6445}
+.program-quote footer{margin-top:7px;font-size:10px;line-height:1.5;color:#74836a}
+.program-quote footer a{text-decoration:underline;text-underline-offset:2px}
+.program-main>.attribution{margin-top:22px;padding-top:16px;border-top:1px solid #e5ebdd;font-size:10px;line-height:1.75;color:#6b7a60}
+.program-problem{max-width:520px;padding:10px 0}
+.program-problem h2{font-family:var(--font-editorial);font-size:34px;font-weight:400;line-height:1.1}
+.program-problem p{margin:14px 0 24px;font-size:13px;line-height:1.7;color:#5f7453}
+
+/* ---- the questions */
+.quiz-options.is-compact{grid-template-columns:1fr 1fr;margin-top:10px}
+.quiz-options.is-compact .quiz-option{padding:12px 13px;font-size:12px}
+.quiz-subtitle{margin:22px 0 0;font-size:12px;font-weight:600}
+.quiz-subtitle span,.quiz-field label span{margin-left:4px;font-weight:400;color:#8a987b}
+.quiz-field{margin:-6px 0 24px}
+.quiz-field label{display:block;margin-bottom:8px;font-size:12px;font-weight:600}
+.quiz-select{display:block;width:100%;min-height:46px;padding:11px 14px;border:1px solid #dbe3cf;border-radius:10px;background:#fff;color:var(--ink);font-size:13px}
+.quiz-select:focus{border-color:#8a9f78}
+.quiz-content-description+.quiz-group{margin-top:24px}
+.quiz-group{margin:0 0 22px}
+.quiz-group-title{display:block;margin-bottom:9px;font-size:12px;font-weight:600}
+.quiz-pills{display:flex;flex-wrap:wrap;gap:8px}
+.quiz-pill{min-height:40px;padding:9px 16px;border:1px solid #e1e8d7;border-radius:999px;background:#fff;font-size:12px}
+.quiz-pill:hover{background:#f6f8ee;border-color:#adbe97}
+.quiz-pill.selected{background:#eef3e5;border-color:#91a676;font-weight:600}
+
+/* ---- information dialogs */
+#info-content a{color:#435f36;text-decoration:underline;text-underline-offset:3px}
+#info-content a:hover{color:#a45533}
+
+@media(max-width:760px){
+  .notice{padding:12px 13px}
+}
+@media(max-width:520px){
+  .quiz-options.is-compact{grid-template-columns:1fr}
+  .results-controls{justify-content:flex-start}
+}

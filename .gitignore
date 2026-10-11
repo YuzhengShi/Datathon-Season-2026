@@ -3,10 +3,13 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 build/
-dist/
 .pytest_cache/
 .ruff_cache/
 .env
+node_modules/
+backend/data/
+*.db-shm
+*.db-wal
 # local databases and downloaded/derived artefacts (the canonical public export data/awards.jsonl IS tracked)
 *.db
 *.sqlite

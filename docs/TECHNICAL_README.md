@@ -82,7 +82,7 @@ API docs: http://127.0.0.1:8000/docs. Full commands, live runs, resume/refresh a
 
 ### Web app (for students)
 
-`.\scripts\start_app.ps1` (or `python -m navigator.cli serve --mode live`), then open <http://127.0.0.1:8000/>. A demo script is in `docs/DEMO.md`. The API serves the app from the same origin: no build step, no CORS.
+`.\scripts\start_app.ps1` (or `python -m navigator.cli serve --mode live`), then open <http://127.0.0.1:8000/app/> (the site with Statistics and AI search is at `/`; see `docs/APP_LAYER.md`). A demo script is in `docs/DEMO.md`. The API serves the app from the same origin: no build step, no CORS.
 
 * **Flow:** welcome, five optional questions, a store-like results page (search, filters with live counts, sort, one card per scholarship with
   its amount and deadline), a detail page that shows the evidence, and "My list".
@@ -90,14 +90,14 @@ API docs: http://127.0.0.1:8000/docs. Full commands, live runs, resume/refresh a
   date; amounts read "listed value" or "up to"; a requirement only the provider can judge is shown as "to confirm", never as a pass or a fail.
 * **Private by design:** answers live in memory only (no cookies, no browser storage, nothing in the address bar); the service neither stores nor
   logs the profile.
-* **Code and tests:** `frontend/` is plain HTML, CSS and ES modules; `frontend/assets/logic.js` is pure and tested (`pytest` runs those tests when
+* **Code and tests:** `frontend/` is plain HTML, CSS and ES modules; `frontend/model.js` is pure and tested (`pytest` runs those tests when
   Node 20+ is installed). A real-browser end-to-end check clicks through everything on a desktop and on a 390 px phone:
   `node tests/e2e/smoke.mjs --base=http://127.0.0.1:8000` (Node 22+, Chrome or Edge, a running server).
-* **Settings:** `frontend/assets/config.js` (contact address shown in the footer and on the About page).
+* **Settings:** `frontend/config.js` (contact address shown in the footer and on the About page).
 
 ### Honest status (details and the acceptance table: [docs/HANDOFF.md](HANDOFF.md))
 
-* **Verified (Windows, CPython 3.12.10, fresh venv from the exact `requirements.lock`):** 267 tests pass, including the database, API and
+* **Verified (Windows, CPython 3.12.10, fresh venv from the exact `requirements.lock`):** 321 tests pass (2026-10-10, with the application layer; 267 before it joined), including the database, API and
   command-line suites; ruff is clean; the demo flow, the real FastAPI server and `scripts/smoke_test.py` work in demo and live mode; the real
   HTTP transport was exercised against a local server and the real network.
 * **Real data: 59 records** (58 published): 8 SFU awards (curated from a real table), 4 funding channels (ISC PSSSP, Inuit and Métis Nation

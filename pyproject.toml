@@ -25,6 +25,8 @@ dependencies = [
     # the offline demo generates its synthetic HTML/PDF fixtures at run time
     "reportlab>=4.0",
     "pillow>=10",
+    # the application layer's AI search talks to an OpenAI-compatible Responses API (imported only when a request needs it)
+    "openai>=3,<4",
 ]
 
 [project.optional-dependencies]

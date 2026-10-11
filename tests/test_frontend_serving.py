@@ -37,17 +37,19 @@ class FrontendServingTests(unittest.TestCase):
         self.addCleanup(app.state.engine.dispose)
         return TestClient(app, follow_redirects=False)
 
-    def test_the_root_leads_to_the_app_and_the_app_is_served(self):
+    def test_the_root_serves_the_site_and_the_questionnaire_app_is_served_at_app(self):
         client = self.client("demo")
-        self.assertIn(client.get("/").status_code, (302, 307))
-        self.assertEqual(client.get("/").headers["location"], "/app/")
+        site = client.get("/")
+        self.assertEqual(site.status_code, 200)
+        self.assertIn("insights.js", site.text)  # the site: Explore, Statistics, AI search
         page = client.get("/app/")
         self.assertEqual(page.status_code, 200)
-        self.assertIn('id="root"', page.text)
+        self.assertIn("api.js", page.text)  # the questionnaire app talks to the core API
+        self.assertIn('id="main"', page.text)
 
     def test_scripts_have_a_module_safe_content_type_and_the_page_is_locked_down(self):
         client = self.client("demo")
-        script = client.get("/app/assets/main.js")
+        script = client.get("/app/app.js")
         self.assertEqual(script.status_code, 200)
         self.assertIn(
             "javascript", script.headers["content-type"]
@@ -57,14 +59,23 @@ class FrontendServingTests(unittest.TestCase):
             self.assertIn("default-src 'self'", response.headers["content-security-policy"])
             self.assertIn("frame-ancestors 'none'", response.headers["content-security-policy"])
         self.assertNotIn("content-security-policy", client.get("/health").headers)  # the API docs are left alone
+        # the site is not under the questionnaire app's CSP (its charts use inline styles), but is never sniffed
+        site_script = client.get("/insights.js")
+        self.assertEqual(site_script.status_code, 200)
+        self.assertIn("javascript", site_script.headers["content-type"])
+        self.assertEqual(site_script.headers["x-content-type-options"], "nosniff")
+        self.assertNotIn("content-security-policy", site_script.headers)
 
-    def test_nothing_outside_the_frontend_folder_is_served(self):
+    def test_nothing_outside_the_frontend_folders_is_served(self):
         client = self.client("demo")
         for path in (
             "/app/../pyproject.toml",
             "/app/%2e%2e/pyproject.toml",
             "/app/assets/../../sources.yaml",
             "/app/nope.js",
+            "/%2e%2e/pyproject.toml",
+            "/data/%2e%2e/%2e%2e/sources.yaml",
+            "/nope.js",
         ):
             self.assertEqual(client.get(path).status_code, 404, path)
 
@@ -79,6 +90,43 @@ class FrontendServingTests(unittest.TestCase):
         self.assertEqual(
             ids, sorted(ids, key=lambda i: next(x["name"].lower() for x in live["institutions"] if x["id"] == i))
         )
+
+    def test_the_site_dataset_and_the_api_always_agree_about_the_mode(self):
+        """The site loads its records from the same read model as /api/*: it cannot show another mode's data."""
+        import json
+
+        from fastapi.testclient import TestClient
+
+        from navigator.api.app import create_app
+        from navigator.app.config import Settings
+        from navigator.app.publish import DEFAULT_DATASET, DEMO_DATASET, ensure_read_model, load_records
+
+        expected = {
+            "demo": len(json.loads(DEMO_DATASET.read_text(encoding="utf-8"))["records"]),
+            "live": len(load_records(DEFAULT_DATASET)),
+        }
+        for mode in ("demo", "live"):
+            with self.subTest(mode=mode):
+                tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+                self.addCleanup(tmp.cleanup)
+                (Path(tmp.name) / "reference").mkdir()
+                shutil.copy(ROOT / "data" / "reference" / "institutions.yaml", Path(tmp.name) / "reference")
+                settings = Settings(_env_file=None, data_mode=mode, data_dir=tmp.name, llm_enabled=False)
+                ensure_read_model(settings)
+                app = create_app(isolated_runtime(tmp.name, mode), app_settings=settings)
+                self.addCleanup(app.state.engine.dispose)
+                self.addCleanup(app.state.app_engine.dispose)
+                client = TestClient(app, follow_redirects=False)
+                dataset = client.get("/data/opportunities.json").json()
+                health = client.get("/api/health").json()
+                self.assertEqual((dataset["data_mode"], health["data_mode"]), (mode, mode))
+                self.assertTrue(health["migration_ready"])
+                self.assertEqual(len(dataset["records"]), expected[mode])
+                self.assertTrue(all(bool(r["is_demo"]) == (mode == "demo") for r in dataset["records"]))
+                orders = [r["display_order"] for r in dataset["records"]]
+                self.assertEqual(orders, sorted(orders))  # the order the site shows is the published order
+                total = client.post("/api/opportunities/search", json={"filters": {}}).json()["total"]
+                self.assertEqual(total, expected[mode])
 
 
 if __name__ == "__main__":
