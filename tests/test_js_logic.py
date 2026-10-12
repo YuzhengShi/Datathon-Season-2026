@@ -24,7 +24,15 @@ class JavaScriptLogicTests(unittest.TestCase):
     def test_the_web_app_logic_passes_its_own_tests(self):
         files = sorted(glob.glob(str(ROOT / "tests" / "js" / "*.test.mjs")))
         self.assertTrue(files, "no JavaScript tests found")
-        done = subprocess.run(["node", "--test", *files], cwd=ROOT, capture_output=True, text=True, timeout=180)
+        done = subprocess.run(
+            ["node", "--test", *files],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=180,
+        )
         self.assertEqual(done.returncode, 0, (done.stdout + done.stderr)[-3000:])
 
 
