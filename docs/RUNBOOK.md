@@ -177,7 +177,7 @@ python -m navigator.cli app init-demo              # the four illustrative demo 
   `https://api.deepseek.com/v1`). The assistant uses the Responses API; `docs/LLM_PROVIDERS.md` records what was verified. Without these settings the
   page says AI is not connected and the filters and Statistics keep working. Probe a provider with `scripts/probe_deepseek.py` and `scripts/probe_deepseek_tools.py`.
 * **Static hosting** serves only `dist/` (no Python): run `app publish` first. Statistics then computes in the browser and AI search is off.
-* Checks: `python -m pytest -q`; `node scripts/qa-ui.cjs` (jsdom; `npm install --no-save --package-lock=false jsdom@30.1.2` first);
+* Checks: `python -m pytest -q`; `node scripts/qa-ui.cjs` (jsdom; `npm install --no-save --package-lock=false jsdom@30.1.2` first); `node scripts/qa-charts.cjs` (the chart maths of the Statistics report, no dependencies; `pytest` runs it through `tests/js/charts.test.mjs`);
   `python scripts/app_verify_runtime.py` starts a demo server (on a free port) and smoke-tests its HTTP routes;
   `node tests/e2e/site.mjs --base=http://127.0.0.1:8000 --out=shots` drives the site in a real Chrome or Edge against a running `serve --mode live`
   (numbers on the Statistics page checked against the published dataset, a directory entry, a 390 px phone; add `--ai` for one natural-language search,
@@ -228,6 +228,7 @@ failure, not a data failure: the import reports `rejected: 0`.
 `tests/test_app_publish.py::test_the_committed_static_dataset_matches_what_publish_writes` fails when that happens; `python -m navigator.cli app publish` restores
 the file. Delete the folder if it is there.
 
-**Checks of the site.** `node scripts/qa-ui.cjs` (simulated DOM, 44 checks, including the map, the tiles, the ranking and the amounts);
-`node tests/e2e/site.mjs --base=http://127.0.0.1:8000 --out=shots` (real Chrome with screenshots; `--ai` adds one real model search); `node --test tests/js/`
-(the numbers behind the map are in `tests/js/regions.test.mjs`, the wording of amounts in `tests/js/amounts.test.mjs`).
+**Checks of the site.** `node scripts/qa-ui.cjs` (simulated DOM, 63 checks, including the map, the tiles, the ranking, the amounts, the report charts and the chat);
+`node tests/e2e/site.mjs --base=http://127.0.0.1:8000 --out=shots` (real Chrome, 51 checks in a desktop and a phone window, with screenshots; the chat answer is mocked there; `--ai` adds one real model search); `node --test "tests/js/*.test.mjs"`
+(the numbers behind the map are in `tests/js/regions.test.mjs`, the wording of amounts in `tests/js/amounts.test.mjs`, the chart maths in `tests/js/charts.test.mjs`).
+The layout of the Statistics report and its counting rules are in [STATISTICS-DESIGN.md](STATISTICS-DESIGN.md); the chat dialog is described in [CHAT-DESIGN.md](CHAT-DESIGN.md).

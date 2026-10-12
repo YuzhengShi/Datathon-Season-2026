@@ -16,7 +16,8 @@ sources -> pipeline (snapshots, quotes checked) -> data/awards.jsonl      the ca
 One server runs it all: `python -m navigator.cli serve --mode live`. `/` is the site, `/app/` the questionnaire app, `/docs` the
 OpenAPI of both layers. Commands, settings and checks are in [RUNBOOK.md](RUNBOOK.md) ("The site, Statistics and AI search").
 The design behind it (tool registry, counting rules, privacy) is [BACKEND-REDESIGN.md](BACKEND-REDESIGN.md); what was verified
-against which AI provider is [LLM_PROVIDERS.md](LLM_PROVIDERS.md).
+against which AI provider is [LLM_PROVIDERS.md](LLM_PROVIDERS.md). The charts of the Statistics page (`dist/charts.js`) and their counting rules are in
+[STATISTICS-DESIGN.md](STATISTICS-DESIGN.md); the chat dialog (Find a match) is in [CHAT-DESIGN.md](CHAT-DESIGN.md).
 
 ## Modules (`src/navigator/app/`)
 

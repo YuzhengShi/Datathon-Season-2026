@@ -13,7 +13,7 @@ from navigator.app.config import REPO_ROOT, Settings
 from navigator.app.db import Opportunity, import_demo, upgrade
 from navigator.app.main import create_app
 from navigator.app.schemas import SearchFilters
-from navigator.app.services import evaluate_rule
+from navigator.app.services import DataService, evaluate_rule
 
 DATASET = REPO_ROOT / "dist/data/demo-opportunities.json"
 
@@ -110,6 +110,40 @@ def test_statistics_counts_money_and_geography(client):
     assert data["amounts"]["listed"] == data["amounts"]["unknown"] == 2
     assert data["amounts"]["sum"] is None
     assert data["quality"]["verified_records"] == 0
+
+
+def test_statistics_rows_include_chart_dimensions(client):
+    rows = {row["id"]: row for row in stats(client)["amount_rows"]}
+    assert rows["mnbc"]["province"] == "British Columbia"
+    assert rows["mnbc"]["community"] == ["Métis"]
+    assert rows["mnbc"]["type"] == "Program"
+    assert rows["nutrien"]["province"] == "all"
+    assert rows["nutrien"]["amount"] == "5000"
+    assert rows["mnbc"]["amount"] is None
+
+
+def test_statistics_rows_keep_an_unstated_region_as_null():
+    """Chart rows carry province, community and type; a record that states no region has province null."""
+
+    class Records:
+        mode = "live"
+
+        @staticmethod
+        def all():
+            return [
+                {
+                    "id": "no-region",
+                    "title": "Award",
+                    "provider": "Provider",
+                    "location": "Region not stated",
+                    "type": "Scholarship",
+                    "community": ["Inuit"],
+                    "amount": None,
+                }
+            ]
+
+    row = DataService(Records()).statistics(SearchFilters())["amount_rows"][0]
+    assert row["province"] is None and row["community"] == ["Inuit"] and row["type"] == "Scholarship"
 
 
 def test_cross_filters_share_search_denominator(client):
