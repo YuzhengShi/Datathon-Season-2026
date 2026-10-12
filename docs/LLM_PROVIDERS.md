@@ -25,7 +25,7 @@ Base URL `https://api.deepseek.com/v1`, model `deepseek-chat`, with the project'
 One result of the first probe is not a limitation: the chat-completions request with tools and `json_object` answered HTTP 400 only
 because the probe's prompt did not contain the word "json".
 
-**Through the real assistant** (`serve --mode live`, the 58 published records, five conversations in all):
+**Through the real assistant** (`serve --mode live`, the 58 records published at the time, five conversations in all; on 2026-10-11 one natural-language search was re-checked through the real model on the 529 records by `node tests/e2e/site.mjs --ai`):
 
 * *search* "a Métis student in BC looking for training support", *analysis* "compare national and regional coverage" and *match*
   "a First Nations student at SFU, full-time undergraduate" all came back as valid structured answers with grounded IDs. No request

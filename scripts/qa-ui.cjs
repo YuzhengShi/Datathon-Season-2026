@@ -12,7 +12,7 @@ const geometry=JSON.parse(fs.readFileSync(path.join(root,'dist/data/canada-map.j
 const clone=x=>JSON.parse(JSON.stringify(x)),tick=()=>new Promise(resolve=>setTimeout(resolve,5));
 let passed=0;
 async function check(name,fn){await fn();passed++;}
-async function setup({ai=false,multiple=false,live=false,healthMode}={}){
+async function setup({ai=false,multiple=false,live=false,healthMode,legacyStats=false,hostile=false}={}){
   const data=live?liveDataset:dataset;
   const errors=[],requests=[],downloads=[];
   const vc=new VirtualConsole();vc.on('jsdomError',error=>errors.push(error.message));
@@ -30,15 +30,22 @@ async function setup({ai=false,multiple=false,live=false,healthMode}={}){
     if(url==='data/canada-map.json')return {ok:true,json:async()=>clone(geometry)};
     if(url==='/api/health')return {ok:true,json:async()=>({data_mode:healthMode||(live?'live':'demo'),migration_ready:true,llm_ready:ai})};
     const body=JSON.parse(options.body);requests.push({url,body});
-    if(url==='/api/statistics')return {ok:true,json:async()=>w.FundingModel.statistics(w.FundingModel.fromFilters(body.filters))};
+    if(url==='/api/statistics')return {ok:true,json:async()=>{
+      const stats=w.FundingModel.statistics(w.FundingModel.fromFilters(body.filters));
+      // Match the actual backend's compact amount rows and decimal strings.
+      stats.amount_rows=stats.amount_rows.map(row=>({id:row.id,title:row.title,provider:row.provider,location:row.location,...(legacyStats?{}:{province:row.province,community:row.community,type:row.type}),amount:row.amount===null?null:String(row.amount),amount_details:row.amount_details,last_verified_at:row.last_verified_at}));
+      return stats;
+    }};
     if(url==='/api/conversation'){
       const filters=w.FundingModel.toFilters({community:'Métis',location:multiple?['British Columbia','Ontario']:'British Columbia',goal:'training',includeUnknown:true});
-      return {ok:true,json:async()=>({data_mode:'demo',mode:body.mode,intent:'Métis training support in BC',message:'2 records to explore. Confirm provider requirements.',question:null,filters,profile:{communities:['Métis'],institution_province:'British Columbia',goal:'training'},results:dataset.records.filter(x=>['nutrien','mnbc'].includes(x.id)).map(record=>({record:clone(record),match:{match_status:'needs_provider_confirmation'},reasons:['Provider confirmation needed']})),statistics:null,tools_used:[{name:body.mode==='search'?'search_opportunities':'find_matches',returned_records:2}]})};
+      return {ok:true,json:async()=>({data_mode:'demo',mode:body.mode,intent:'Métis training support in BC',message:'2 records to explore. Confirm provider requirements.',question:null,filters,profile:{communities:['Métis'],institution_province:'British Columbia',goal:'training'},results:dataset.records.filter(x=>['nutrien','mnbc'].includes(x.id)).map(record=>({record:clone(hostile?{...record,title:'<img src=x onerror=alert(1)>',provider:'<b>x</b>'}:record),match:{match_status:'needs_provider_confirmation'},reasons:['Provider confirmation needed']})),statistics:body.mode==='analysis'?{total:4,national_count:3,regional_count:1}:null,tools_used:[{name:body.mode==='search'?'search_opportunities':'find_matches',returned_records:2}]})};
     }
     throw new Error('Unexpected QA request: '+url);
   };
   for(const filename of ['fonts.css','styles.css','workspace.css','program.css','insights.css']){const style=d.createElement('style');style.textContent=fs.readFileSync(path.join(root,'dist',filename),'utf8');d.head.append(style);}
   w.eval(fs.readFileSync(path.join(root,'dist/model.js'),'utf8'));
+  w.eval(fs.readFileSync(path.join(root,'dist/charts.js'),'utf8'));
+  w.eval(fs.readFileSync(path.join(root,'dist/regions.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'dist/regionview.js'),'utf8'));
   w.eval(fs.readFileSync(path.join(root,'dist/insights.js'),'utf8'));
   const source=fs.readFileSync(path.join(root,'dist/app.js'),'utf8').replace('renderHome();renderSavedCount();renderProfile();route();','globalThis.__qa={state,route,renderResults,clearFilters,resetResults,openDetail,moveProgram,toggleSave,insights};renderHome();renderSavedCount();renderProfile();route();');
   w.eval(source);await w.FundingModel.ready;await tick();
@@ -50,8 +57,8 @@ async function main(){
   await check('Home remains intact and saved IDs validated',()=>{assert.equal(a.q('#home-view').hidden,false);assert.equal(a.q('#home-cards').children.length,3);assert.deepEqual(clone(a.qa.state.saved),['nutrien']);});
   await check('No questionnaire remains',()=>{assert.equal(a.q('#quiz-dialog'),null);assert.equal(a.q('[data-quiz]'),null);assert.ok(!a.q('#profile-content').textContent.includes('Three optional questions'));});
   await check('New Statistics route and sidebar',async()=>{a.w.location.hash='#statistics';a.qa.route();await tick();assert.equal(a.q('#statistics-view').hidden,false);assert.equal(a.q('#explore-view').hidden,true);assert.equal(a.q('[data-nav="statistics"]').getAttribute('aria-current'),'page');assert.equal(a.q('#statistics-title').textContent,'Statistics');});
-  await check('All 13 provinces/territories present and labelled',()=>{assert.equal(a.d.querySelectorAll('#canada-map path').length,13);assert.equal(a.q('#region-table tbody').children.length,13);assert.ok(a.q('#canada-map [data-region="BC"]').getAttribute('aria-label').includes('1 regional, 3 national'));});
-  await check('KPI counts use unique examples and amount coverage',()=>{assert.deepEqual([...a.d.querySelectorAll('.kpi-value')].map(x=>x.textContent),['4','3','1','2 / 4']);assert.ok(a.q('#amount-table-body').textContent.includes('Not listed'));});
+  await check('All 13 provinces/territories present and labelled',()=>{assert.equal(a.d.querySelectorAll('#canada-map path').length,13);assert.equal(a.q('#region-table tbody').children.length,13);assert.ok(a.q('#canada-map [data-region="BC"]').getAttribute('aria-label').includes('1 regional, 3 nationwide'));});
+  await check('KPI counts use unique examples and amount coverage',()=>{assert.deepEqual([...a.d.querySelectorAll('.kpi-value')].map(x=>x.textContent),['4','1 / 13','3','1','2 / 4']);assert.ok(a.q('#amount-table-body').textContent.includes('Not listed'));});
   await check('Map click cross-filters every chart and record table',async()=>{a.q('#canada-map [data-region="ON"]').dispatchEvent(new a.w.MouseEvent('click',{bubbles:true}));await tick();assert.equal(a.qa.state.location,'Ontario');assert.equal(a.q('.kpi-value').textContent,'3');assert.equal(a.q('#amount-table-body').children.length,3);});
   await check('Explore retains dashboard selection',()=>{a.w.location.hash='#explore';a.qa.route();assert.equal(a.count(),3);assert.equal(a.q('#quick-location').value,'Ontario');});
   await check('Map keyboard activation',async()=>{a.w.location.hash='#statistics';a.qa.route();a.q('#canada-map [data-region="BC"]').dispatchEvent(new a.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await tick();assert.equal(a.qa.state.location,'British Columbia');});
@@ -64,19 +71,65 @@ async function main(){
   await check('Zero statistics stay finite',async()=>{a.w.location.hash='#statistics';a.qa.route();await tick();assert.equal(a.q('.kpi-value').textContent,'0');assert.ok(!a.q('#type-chart').innerHTML.includes('NaN'));assert.equal(a.q('#stats-empty-note').hidden,false);a.click('#stats-clear-filters');await tick();});
   await check('Explicit keyword mode is accent insensitive',()=>{a.w.location.hash='#explore';a.qa.route();a.q('#funding-search').value='metis';a.change('#search-mode','keyword');assert.equal(a.count(),2);a.qa.resetResults();});
   await check('Missing AI is explicit, not fabricated matching',async()=>{a.change('#search-mode','ai');a.q('#funding-search').value='I need support for training';a.q('#search-form').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(a.q('#ai-search-summary').textContent.includes('not connected'));assert.equal(a.requests.filter(x=>x.url==='/api/conversation').length,0);});
-  await check('Matching opens natural conversation, not a form',()=>{a.click('#explore-view [data-assistant="match"]');assert.equal(a.q('#assistant-dialog').open,true);assert.ok(a.q('#conversation-thread').textContent.includes('own words'));assert.equal(a.d.querySelectorAll('#assistant-dialog [data-filter]').length,0);});
+  await check('Matching opens natural conversation, not a form',()=>{a.click('#explore-view [data-assistant="match"]');assert.equal(a.q('#assistant-dialog').open,true);assert.ok(a.q('#conversation-thread').textContent.includes('own words'));assert.equal(a.d.querySelectorAll('#assistant-dialog [data-filter]').length,0);assert.equal(a.d.querySelectorAll('#assistant-evidence-content .ev-steps li').length,3);assert.equal(a.d.querySelectorAll('#assistant-evidence-content .ev-fact.is-empty').length,4);assert.ok(a.q('.assistant-header #conversation-reset'));});
   await check('Assistant error releases controls',async()=>{a.q('#conversation-input').value='I am starting university';a.q('#conversation-form').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(a.q('#conversation-thread').textContent.includes('not connected'));assert.equal(a.q('#conversation-submit').disabled,false);a.q('#assistant-dialog').close();});
+  await check('The connection pill says what is connected in one short phrase',()=>{assert.equal(a.q('#assistant-status').textContent,'AI not configured');assert.equal(a.q('#assistant-status').dataset.state,'warn');assert.ok(a.q('#assistant-status').title.includes('Backend connected'));});
   await check('Program sheet and navigation still work',()=>{a.qa.resetResults();a.qa.openDetail('nutrien');assert.ok(a.q('#detail-content').textContent.includes('Check the current award cycle'));a.qa.moveProgram(1);assert.ok(a.q('#detail-content').textContent.includes('Talk to the STEPS team'));a.q('#detail-dialog').close();});
   await check('Save controls remain synchronized',()=>{a.qa.openDetail('psssp');a.qa.toggleSave('psssp');assert.ok([...a.d.querySelectorAll('#detail-dialog [data-save]')].every(x=>x.getAttribute('aria-pressed')==='true'));a.q('#detail-dialog').close();});
   await check('CSV exports demo/unknown metadata and blocks formula injection',async()=>{a.qa.clearFilters();a.w.location.hash='#statistics';a.qa.route();await tick();a.w.FundingModel.opportunities[0].title=' =UNTRUSTED()';a.click('#export-statistics');const csv=a.downloads.find(x=>x.text).text;assert.ok(csv.includes('data_mode'));assert.ok(csv.includes('demo'));assert.ok(csv.includes("' =UNTRUSTED()"));assert.ok(!csv.includes('undefined'));a.w.FundingModel.opportunities[0].title=dataset.records[0].title;});
+  await check('Report uses multiple chart families instead of repeated bars',async()=>{a.qa.clearFilters();a.w.location.hash='#statistics';a.qa.route();await tick();assert.equal(a.d.querySelectorAll('.report-grid .insight-panel').length,8);assert.equal(a.q('.report-grid .chart-bars'),null);assert.equal(a.q('#provider-chart'),null);assert.equal(a.d.querySelectorAll('.coverage-matrix tbody button').length,39);assert.equal(a.d.querySelectorAll('.treemap-cell').length,3);assert.equal(a.d.querySelectorAll('.radial-card').length,3);});
+  await check('Smooth amount curve plots the actual known records only',()=>{assert.ok(a.q('#distribution-chart').textContent.includes('ESTIMATED CONCENTRATION'));assert.equal(a.d.querySelectorAll('#distribution-chart [data-detail]').length,2);assert.ok(a.q('#distribution-note').textContent.includes('estimate'));assert.ok(!/NaN|Infinity/.test(a.q('#distribution-chart').innerHTML));});
+  await check('Cumulative view retains exact empirical thresholds',()=>{a.click('[data-amount-view="share"]');assert.equal(a.q('[data-amount-view="share"]').getAttribute('aria-pressed'),'true');const marks=[...a.d.querySelectorAll('.curve-observation')];assert.equal(marks.length,2);assert.ok(marks[0].getAttribute('aria-label').includes('1 of 2'));assert.ok(marks[1].getAttribute('aria-label').includes('100%'));});
+  await check('Dot marks open individual program records by keyboard',()=>{a.click('[data-amount-view="dots"]');const mark=a.q('#distribution-chart [data-detail="psssp"]');assert.ok(mark.querySelector('path'));mark.dispatchEvent(new a.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(a.q('#detail-dialog').open,true);assert.ok(a.q('#detail-content').textContent.includes('Post-Secondary'));a.q('#detail-dialog').close();});
+  await check('Heatmap applies and clears its two dimensions together',async()=>{a.click('[data-heat-region="BC"][data-heat-community="Métis"]');await tick();assert.equal(a.qa.state.location,'British Columbia');assert.equal(a.qa.state.community,'Métis');assert.equal(a.q('.kpi-value').textContent,'2');assert.equal(a.q('[data-heat-region="BC"][data-heat-community="Métis"]').getAttribute('aria-pressed'),'true');a.click('[data-heat-region="BC"][data-heat-community="Métis"]');await tick();assert.equal(a.q('.kpi-value').textContent,'4');assert.equal(a.qa.state.location,'all');assert.equal(a.qa.state.community,'all');});
+  await check('Treemap supports keyboard filtering and retains focus',async()=>{const mark=a.q('.treemap-cell[data-value="Indigenous Services Canada"]');mark.focus();mark.dispatchEvent(new a.w.KeyboardEvent('keydown',{key:' ',bubbles:true}));await tick();assert.equal(a.qa.state.provider,'Indigenous Services Canada');assert.equal(a.q('.kpi-value').textContent,'2');assert.equal(a.d.activeElement.dataset.value,'Indigenous Services Canada');a.click('#stats-clear-filters');await tick();});
+  await check('Waffle tiles preserve exact small-selection counts',()=>{assert.equal(a.d.querySelectorAll('.waffle-tile').length,4);assert.equal(a.d.querySelectorAll('.waffle-tile[data-value="local_administrator"]').length,3);assert.ok(a.q('.waffle-unit').textContent.includes('1 tile = 1 record'));});
+  await check('Chart tooltip works on focus and closes with Escape',()=>{const button=a.q('[data-heat-region="BC"][data-heat-community="First Nations"]');button.focus();assert.equal(a.q('#chart-tooltip').hidden,false);assert.ok(a.q('#chart-tooltip').textContent.includes('British Columbia'));button.dispatchEvent(new a.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(a.q('#chart-tooltip').hidden,true);});
+  await check('Single-figure selection falls back without an artificial density',async()=>{a.click('#amount-chart [data-value="high"]');await tick();a.click('[data-amount-view="curve"]');assert.equal(a.q('.kpi-value').textContent,'1');assert.equal(a.q('#distribution-chart .curve-observation')!==null,true);assert.equal(a.q('#distribution-chart').textContent.includes('ESTIMATED CONCENTRATION'),false);a.click('#stats-clear-filters');await tick();});
+  await check('Report handles a 529-record fixture without fabricated totals',async()=>{
+    // Synthetic QA fixture only. This is not added to the product dataset.
+    const original=[...a.w.FundingModel.opportunities],regions=Object.values(a.w.FundingModel.regions);
+    const fixture=Array.from({length:529},(_,i)=>({...clone(dataset.records[0]),id:'qa-'+i,title:'QA record '+i,provider:'QA provider '+i%19,province:i%11===0?'all':regions[i%13],community:[['First Nations','Inuit','Métis'][i%3]],type:i%2?'Program':'Scholarship',amount:i%3===0?null:(i+1)*100,deadline_kind:['date','annual_rule','rolling','local_administrator','unspecified'][i%5]}));
+    a.w.FundingModel.opportunities.splice(0,original.length,...fixture);await a.qa.insights.renderStatistics();
+    assert.equal(a.q('.kpi-value').textContent,'529');assert.equal(a.d.querySelectorAll('.waffle-tile').length,100);assert.equal(a.d.querySelectorAll('.treemap-cell').length,12);assert.equal(a.d.querySelectorAll('#amount-table-body tr').length,40);assert.ok(a.q('#stats-rows-note').textContent.includes('of 529'));assert.ok(!/NaN|Infinity|Other timing/.test(a.q('.report-grid').innerHTML));
+    a.w.FundingModel.opportunities.splice(0,fixture.length,...original);await a.qa.insights.renderStatistics();
+  });
   await check('Model contracts retain multiple provinces and community OR',()=>{const f=a.w.FundingModel.toFilters({location:['British Columbia','Ontario'],community:['Métis','Inuit']});assert.deepEqual(clone(f.provinces),['British Columbia','Ontario']);assert.deepEqual(clone(a.w.FundingModel.fromFilters(f).location),f.provinces);assert.equal(a.w.FundingModel.getResults(a.w.FundingModel.fromFilters(f)).length,3);});
   await check('Markup has unique IDs and local assets exist',()=>{const ids=[...a.d.querySelectorAll('[id]')].map(x=>x.id);assert.equal(new Set(ids).size,ids.length);for(const el of a.d.querySelectorAll('[src],link[href]')){const value=el.getAttribute('src')||el.getAttribute('href');if(value&&!/^(https?:|#)/.test(value))assert.ok(fs.existsSync(path.join(root,'dist',value.split('?')[0])),value);}});
   assert.deepEqual(a.errors,[],'Unexpected DOM exceptions');a.dom.window.close();
+  const legacy=await setup({legacyStats:true});
+  await check('Legacy backend rows recover chart dimensions from matching source IDs',async()=>{legacy.w.location.hash='#statistics';legacy.qa.route();await tick();assert.equal(legacy.q('[data-heat-region="BC"][data-heat-community="Métis"]').textContent,'2');assert.equal(legacy.d.querySelectorAll('.treemap-cell').length,3);assert.equal(legacy.q('.kpi-value').textContent,'4');});
+  assert.deepEqual(legacy.errors,[],'Unexpected legacy transport exceptions');legacy.dom.window.close();
   const b=await setup({ai:true,multiple:true});
   await check('Shared LLM endpoint powers natural search',async()=>{b.w.location.hash='#explore';b.qa.route();b.q('#funding-search').value='Métis training support in BC or Ontario';await b.qa.insights.search();assert.equal(b.count(),2);assert.equal(b.requests.find(x=>x.url==='/api/conversation').body.mode,'search');assert.equal(b.q('#quick-location').value,'multiple');assert.ok(b.q('#active-filters').textContent.includes('Ontario'));});
-  await check('Natural conversation uses the same endpoint and source cards',async()=>{b.click('#explore-view [data-assistant="match"]');b.q('#conversation-input').value='I am looking for training support';b.q('#conversation-form').dispatchEvent(new b.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(b.requests.some(x=>x.url==='/api/conversation'&&x.body.mode==='match'));assert.equal(b.d.querySelectorAll('#assistant-evidence-content .assistant-record').length,2);assert.ok(b.q('#conversation-thread').textContent.includes('Confirm provider'));});
+  await check('Natural conversation uses the same endpoint and source cards',async()=>{b.click('#explore-view [data-assistant="match"]');b.q('#conversation-input').value='I am looking for training support';b.q('#conversation-form').dispatchEvent(new b.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(b.requests.some(x=>x.url==='/api/conversation'&&x.body.mode==='match'));assert.equal(b.d.querySelectorAll('#conversation-thread .assistant-record').length,2);assert.equal(b.d.querySelectorAll('#assistant-evidence-content .assistant-record').length,0);assert.ok(b.q('#conversation-thread').textContent.includes('Confirm provider'));});
+  await check('Result cards are compact: avatar, title, provider, amount, region and a source link',()=>{
+    const cards=[...b.d.querySelectorAll('#conversation-thread .assistant-record')],mnbc=cards.find(card=>card.querySelector('[data-detail="mnbc"]'));
+    assert.equal(cards.length,2);
+    assert.equal(mnbc.querySelector('.ar-avatar').textContent,'MN');
+    assert.ok(mnbc.querySelector('.ar-provider').textContent.length>0);
+    assert.equal(mnbc.querySelectorAll('.ar-chip').length,2);
+    assert.ok(cards.some(card=>card.textContent.includes('$5,000')));
+    for(const card of cards){const link=card.querySelector('a.ar-source');assert.equal(link.target,'_blank');assert.ok(link.rel.includes('noopener'));assert.ok(link.getAttribute('aria-label').startsWith('Provider source'));}
+    assert.ok(!b.q('#conversation-thread').innerHTML.includes('Provider source ↗'),'the repeated text lines are gone');
+    assert.ok(b.q('#conversation-thread').textContent.includes('Example data'));
+  });
+  await check('The side panel summarises the answer instead of repeating the cards',()=>{
+    const panel=b.q('#assistant-evidence-content'),facts=[...panel.querySelectorAll('.ev-fact')].map(li=>[li.querySelector('.ev-fact-label').textContent,li.classList.contains('is-empty')?'':li.querySelector('.ev-fact-value').textContent]);
+    assert.deepEqual(facts,[['Community','Métis'],['Level',''],['Region','British Columbia'],['Goal','Skills & training']]);
+    assert.equal(panel.querySelectorAll('.ev-sources li').length,2);
+    assert.equal(panel.querySelectorAll('.ev-bar i').length,2);
+    assert.equal([...panel.querySelectorAll('.ev-legend b')].reduce((sum,x)=>sum+Number(x.textContent),0),2);
+    assert.ok(panel.querySelector('.ev-trust'));assert.ok(panel.textContent.includes('find matches'));
+    assert.equal(panel.querySelectorAll('article,[data-detail]').length,0);
+  });
+  await check('The connection pill turns green when the AI is connected',()=>{assert.equal(b.q('#assistant-status').textContent,'AI connected');assert.equal(b.q('#assistant-status').dataset.state,'on');assert.ok(b.q('#assistant-status').title.includes('source-linked'));});
   await check('Profile derives from conversation and resets without persistence',()=>{assert.equal(b.qa.state.profile.community,'Métis');b.click('#conversation-reset');assert.equal(b.qa.state.profile,null);assert.equal(b.q('#conversation-input').value,'');assert.equal(b.w.localStorage.length,1);});
+  await check('Ask about the data shows the three counts instead of a profile',async()=>{b.click('[data-assistant="analysis"]');b.q('#conversation-input').value='Compare national and regional coverage';b.q('#conversation-form').dispatchEvent(new b.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.equal(b.q('#assistant-title').textContent,'Ask about the data');assert.deepEqual([...b.d.querySelectorAll('#assistant-evidence-content .ev-numbers strong')].map(x=>x.textContent),['4','3','1']);assert.equal(b.d.querySelectorAll('#assistant-evidence-content .ev-fact').length,0);assert.ok(b.q('#assistant-evidence-content').textContent.includes('not a market total'));});
   assert.deepEqual(b.errors,[],'Unexpected DOM exceptions');b.dom.window.close();
+  const hostile=await setup({ai:true,hostile:true});
+  await check('Chat cards and the side panel escape record text',async()=>{hostile.click('#explore-view [data-assistant="match"]');hostile.q('#conversation-input').value='training support';hostile.q('#conversation-form').dispatchEvent(new hostile.w.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.equal(hostile.d.querySelectorAll('#assistant-dialog img').length,0);assert.equal(hostile.d.querySelectorAll('#conversation-thread b').length,0);assert.ok(hostile.q('#conversation-thread').textContent.includes('<img src=x onerror=alert(1)>'));assert.ok(hostile.q('#assistant-evidence-content .ev-sources').innerHTML.includes('&lt;b&gt;x&lt;/b&gt;'));});
+  assert.deepEqual(hostile.errors,[],'Unexpected hostile-text exceptions');hostile.dom.window.close();
   const c=await setup({live:true});
   const nationwide=liveDataset.records.filter(x=>x.province==='all').length,regional=liveDataset.records.filter(x=>x.province&&x.province!=='all').length,unstated=liveDataset.records.filter(x=>!x.province).length;
   await check('Live data drops the demo wording',()=>{
@@ -96,28 +149,138 @@ async function main(){
     assert.equal(noteOf(liveDataset.records.find(x=>x.amount_details.kind==='maximum').id),'Up to');
     assert.ok(cards.every(x=>!/example/i.test(x.textContent)));
   });
+  await check('A stated range is shown as a range, never as one figure and never as "varies"',()=>{
+    c.w.location.hash='#explore';c.qa.route();
+    const rec=liveDataset.records.find(x=>x.amount_details.kind==='range');
+    const card=[...c.d.querySelectorAll('#results-grid .opportunity-card')].find(x=>x.querySelector(`[data-detail="${rec.id}"]`));
+    const money=v=>new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:0}).format(v);
+    assert.equal(rec.amount,null);
+    assert.equal(card.querySelector('.card-amount').firstChild.textContent.trim(),`${money(rec.amount_details.minimum)}\u2013${money(rec.amount_details.maximum)}`);
+    assert.equal(card.querySelector('.card-amount small').textContent,'Listed range');
+    assert.ok(!card.querySelector('.card-amount').classList.contains('is-unknown'));
+  });
   await check('Statistics counts three region buckets that add up',async()=>{
     c.w.location.hash='#statistics';c.qa.route();await tick();
-    assert.deepEqual([...c.d.querySelectorAll('.kpi-value')].slice(0,3).map(x=>x.textContent),[String(liveDataset.records.length),String(nationwide),String(regional)]);
+    const kpi=label=>[...c.d.querySelectorAll('.kpi')].find(x=>x.querySelector('p').textContent===label).querySelector('.kpi-value').textContent;
+    assert.deepEqual(['Opportunities','Regions covered','National coverage','Regional support'].map(kpi),[String(liveDataset.records.length),'13 / 13',String(nationwide),String(regional)]);
     const buckets=[...c.d.querySelectorAll('#national-summary button')].map(x=>[x.querySelector('span').textContent,Number(x.querySelector('strong').textContent)]);
     assert.deepEqual(buckets,[['Across Canada',nationwide],['Region-specific',regional],['Region not stated',unstated]]);
     assert.equal(nationwide+regional+unstated,liveDataset.records.length);
     assert.ok(c.q('#statistics-methods-content').textContent.includes('never as national'));
-    assert.equal(c.q('#amount-chart-note').textContent,'Listed figures, including caps. Not allocated funding.');
+    const ranges=liveDataset.records.filter(x=>x.amount_details.kind==='range').length;
+    assert.ok(ranges>0,'the dataset has stated ranges');
+    assert.ok(c.q('#distribution-note').textContent.endsWith(`${ranges} state a range instead (shown on their cards, counted here as not listed).`));
   });
   await check('"Region not stated" is a selectable bucket',async()=>{
     c.click('#national-summary [data-value="unspecified"]');await tick();
     assert.equal(c.qa.state.scope,'unspecified');
     assert.equal(c.q('.kpi-value').textContent,String(unstated));
-    assert.equal(c.q('#amount-table-body').children.length,unstated);
+    assert.equal(c.q('#amount-table-body').children.length,Math.min(40,unstated));
     c.click('#stats-clear-filters');await tick();
     assert.equal(c.q('.kpi-value').textContent,String(liveDataset.records.length));
   });
   await check('The timing chart covers every record',()=>{
-    const total=[...c.d.querySelectorAll('#deadline-chart .chart-bar-label b')].reduce((sum,x)=>sum+Number(x.textContent),0);
+    const total=[...c.d.querySelectorAll('#deadline-chart .waffle-legend b')].reduce((sum,x)=>sum+Number(x.textContent),0);
+    assert.equal(c.d.querySelectorAll('#deadline-chart .waffle-tile').length,100);
+    assert.ok(c.q('#deadline-chart').textContent.includes('Every year'),'a deadline due every year has its own label');
+    assert.ok(!c.q('#deadline-chart').textContent.includes('Other timing'),'every deadline kind has a label');
     assert.equal(total,liveDataset.records.length);
   });
-  await check('A federal directory entry carries the Government of Canada statement, the source sentences and its region basis',()=>{
+  await check('The amount curve uses the listed CAD figures and says how many',()=>{
+    const figures=liveDataset.records.filter(x=>typeof x.amount==='number'&&x.amount>=0&&x.amount_details.kind!=='pooled_total'&&(!x.amount_details.currency||x.amount_details.currency==='CAD')).map(x=>x.amount).sort((p,q)=>p-q);
+    const at=(figures.length-1)*.5,low=Math.floor(at),median=figures[low]+(figures[Math.min(low+1,figures.length-1)]-figures[low])*(at-low);
+    const money=v=>new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:0}).format(v);
+    assert.equal(c.q('#distribution-metric strong').textContent,money(median));
+    assert.ok(c.q('#distribution-metric').textContent.includes(`${figures.length} of ${liveDataset.records.length} records`));
+    assert.equal(c.d.querySelectorAll('#distribution-chart [data-detail]').length,figures.length);
+    assert.ok(!/NaN|Infinity/.test(c.q('#distribution-chart').innerHTML));
+  });
+  await check('The heatmap counts regional and nationwide records per community and filters both together',async()=>{
+    const cell=(name,community)=>liveDataset.records.filter(x=>(x.province==='all'||x.province===name)&&x.community.includes(community)).length;
+    for(const [code,name] of [['MB','Manitoba'],['BC','British Columbia'],['NU','Nunavut']])for(const community of ['First Nations','Inuit','Métis'])assert.equal(c.q(`[data-heat-region="${code}"][data-heat-community="${community}"]`).textContent,String(cell(name,community)),`${code} ${community}`);
+    c.click('[data-heat-region="MB"][data-heat-community="Inuit"]');await tick();
+    assert.equal(c.qa.state.location,'Manitoba');assert.equal(c.qa.state.community,'Inuit');
+    const expected=liveDataset.records.filter(x=>x.community.includes('Inuit')&&(x.province==='Manitoba'||x.province==='all'||!x.province)).length; // a record that states no region stays, as for the map
+    assert.equal(c.q('.kpi-value').textContent,String(expected));
+    c.click('#stats-clear-filters');await tick();
+    assert.equal(c.q('.kpi-value').textContent,String(liveDataset.records.length));
+  });
+  const regionsByCode=c.w.FundingModel.regions;
+  const countOf=name=>liveDataset.records.filter(x=>x.province===name).length;
+  await check('Every province and territory has records: the map, its labels and the ranking all say so',async()=>{
+    c.w.location.hash='#statistics';c.qa.route();await tick();
+    assert.equal(Object.keys(regionsByCode).length,13);
+    assert.equal(c.d.querySelectorAll('#canada-map path[data-region]').length,13);
+    for(const [code,name] of Object.entries(regionsByCode)){
+      assert.ok(countOf(name)>0,`${name} has no record`);
+      const label=c.q(`#canada-map path[data-region="${code}"]`).getAttribute('aria-label');
+      assert.ok(label.startsWith(`${name}: ${countOf(name)} regional, ${nationwide} nationwide`),label);
+    }
+    const labels=Object.fromEntries([...c.d.querySelectorAll('#canada-map .map-label')].map(x=>[x.querySelector('tspan').textContent,Number(x.querySelector('.map-count').textContent)]));
+    for(const [code,name] of Object.entries(regionsByCode)){
+      if(['NB','NS','PE'].includes(code))assert.equal(c.q(`#canada-map .map-chip[data-region="${code}"] text`).textContent,`${code} ${countOf(name)}`,code);
+      else assert.equal(labels[code],countOf(name),code);
+    }
+    assert.ok(c.q('#map-coverage').textContent.includes('13 of 13'));
+    assert.equal(c.d.querySelectorAll('#region-ranking .ranking-list li').length,13);
+    assert.equal(c.d.querySelectorAll('#region-ranking button.is-empty').length,0);
+    const ranked=[...c.d.querySelectorAll('#region-ranking button')].map(x=>[x.querySelector('.rank-name').textContent,Number(x.querySelector('b').textContent)]);
+    assert.deepEqual(ranked,Object.values(regionsByCode).map(name=>[name,countOf(name)]).sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1)));
+  });
+  await check('The colour scale starts at 0 and its top class is open-ended',()=>{
+    const items=[...c.d.querySelectorAll('#map-legend li')].map(x=>x.textContent);
+    assert.equal(items[0],'0');assert.ok(items.length>=3&&items.length<=6,items.join(' | '));assert.ok(/\+$/.test(items.at(-1)));
+  });
+  await check('The tile view shows the same numbers and hides the map while it is on',async()=>{
+    c.click('[data-map-view="tiles"]');await tick();
+    assert.equal(c.q('#tile-map').hidden,false);assert.equal(c.q('#canada-map').hidden,true);
+    assert.equal(c.q('[data-map-view="tiles"]').getAttribute('aria-pressed'),'true');
+    for(const [code,name] of Object.entries(regionsByCode))assert.equal(c.q(`#tile-map [data-region="${code}"] span`).textContent,String(countOf(name)),code);
+    c.click('[data-map-view="map"]');await tick();assert.equal(c.q('#tile-map').hidden,true);assert.equal(c.q('#canada-map').hidden,false);
+  });
+  await check('Hovering a region shows its numbers and leaving hides them',()=>{
+    c.q('#canada-map path[data-region="MB"]').dispatchEvent(new c.w.Event('pointerover',{bubbles:true}));
+    const tip=c.q('#map-tooltip');assert.equal(tip.hidden,false);
+    assert.ok(tip.textContent.includes('Manitoba')&&tip.textContent.includes(`${countOf('Manitoba')} region-specific`),tip.textContent);
+    c.q('#canada-map').dispatchEvent(new c.w.Event('pointerleave'));assert.equal(tip.hidden,true);
+  });
+  await check('Choosing a region from the ranking filters every chart and shows that region\u2019s card',async()=>{
+    c.click('#region-ranking [data-region="MB"]');await tick();
+    assert.equal(c.qa.state.location,'Manitoba');
+    assert.equal(c.q('.kpi-value').textContent,String(countOf('Manitoba')+nationwide+unstated)); // its own, the nationwide ones, and the ones that state no region
+    assert.equal(c.q('#map-region-summary .region-insight-label').textContent,'Selected region');
+    assert.equal(c.q('#map-region-summary .region-insight-name').textContent,'Manitoba');
+    assert.equal(c.q('#map-region-summary .region-insight-value').textContent,String(countOf('Manitoba')));
+    assert.ok(c.q('#map-coverage').textContent.includes('1 of 13'));
+    c.click('#stats-clear-filters');await tick();
+    assert.equal(c.q('.kpi-value').textContent,String(liveDataset.records.length));
+  });
+  await check('The source and currency panels add up to every record',()=>{
+    const sum=sel=>[...c.d.querySelectorAll(`${sel} .chart-bar-label b`)].reduce((s,x)=>s+Number(x.textContent.split(' ')[0]),0);
+    assert.equal(sum('#source-chart'),liveDataset.records.length);
+    assert.equal(sum('#currency-chart'),liveDataset.records.length);
+    const directory=liveDataset.records.filter(x=>x.source_kind==='directory_listing').length;
+    assert.equal(Number(c.q('#source-chart .chart-bar-label b').textContent.split(' ')[0]),liveDataset.records.length-directory);
+  });
+  await check('The provider treemap shows the biggest providers, adds up to every record and choosing one filters',async()=>{
+    const cells=[...c.d.querySelectorAll('#provider-treemap .treemap-cell')],tip=cell=>cell.dataset.chartTip.match(/ · (\d+) of (\d+) records/);
+    const byProvider=Object.entries(liveDataset.records.reduce((out,x)=>{out[x.provider]=(out[x.provider]||0)+1;return out;},{})).sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1));
+    assert.equal(cells.length,12);
+    assert.equal(cells.reduce((sum,cell)=>sum+Number(tip(cell)[1]),0),liveDataset.records.length);
+    const first=cells[0],[name,expected]=byProvider[0];
+    assert.equal(first.dataset.value,name);assert.equal(Number(tip(first)[1]),expected);
+    assert.equal(c.d.querySelectorAll('#provider-treemap .provider-directory button').length,byProvider.length);
+    assert.deepEqual([...c.d.querySelectorAll('#provider-treemap .provider-top button')].map(x=>Number(x.querySelector('b').textContent)),byProvider.slice(0,5).map(x=>x[1]));
+    first.dispatchEvent(new c.w.MouseEvent('click',{bubbles:true}));await tick();
+    assert.equal(c.qa.state.provider,name);assert.equal(c.q('.kpi-value').textContent,String(expected));
+    c.click('#stats-clear-filters');await tick();
+  });
+  await check('The record table shows 40 rows and can show all of them',async()=>{
+    assert.equal(c.q('#amount-table-body').children.length,40);
+    assert.ok(c.q('#stats-rows-note').textContent.includes(`of ${liveDataset.records.length}`));
+    c.click('[data-rows-toggle]');await tick();assert.equal(c.q('#amount-table-body').children.length,liveDataset.records.length);
+    c.click('[data-rows-toggle]');await tick();assert.equal(c.q('#amount-table-body').children.length,40);
+  });  await check('A federal directory entry carries the Government of Canada statement, the source sentences and its region basis',()=>{
     const entry=liveDataset.records.find(x=>x.source_kind==='directory_listing'&&x.province==='British Columbia');
     c.qa.openDetail(entry.id);
     const text=c.q('#detail-content').textContent;
@@ -134,7 +297,9 @@ async function main(){
   await check('The live CSV says it is published data',async()=>{
     c.w.location.hash='#statistics';c.qa.route();await tick();c.click('#export-statistics');
     const csv=c.downloads.find(x=>x.text).text;
-    assert.ok(csv.includes('live')&&csv.includes('Quote-checked; unknown is not zero'));assert.ok(!csv.includes('Illustrative'));
+    assert.ok(csv.includes('live')&&csv.includes('Quote-checked; unknown is not zero'));assert.ok(!csv.includes('Illustrative'));assert.ok(csv.includes('region_basis')&&csv.includes('source_page_last_changed')&&csv.includes('range_minimum'));
+    const ranged=liveDataset.records.find(x=>x.amount_details.kind==='range'),row=csv.split('\r\n').find(l=>l.includes(`"${ranged.id}"`));
+    assert.ok(row.includes(`"${ranged.amount_details.minimum}"`)&&row.includes(`"${ranged.amount_details.maximum}"`),'the CSV carries both ends of a range');assert.equal(csv.split('\r\n').length,liveDataset.records.length+1,'one CSV row per record');
   });
   assert.deepEqual(c.errors,[],'Unexpected DOM exceptions');c.dom.window.close();
   const m=await setup({live:true,healthMode:'demo'});

@@ -6,9 +6,24 @@ import contextlib
 import json
 import os
 import tempfile
+import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
+
+
+def replace_with_retry(source: str, target: Path, attempts: int = 25, delay: float = 0.04) -> None:
+    """``os.replace`` that waits out a short lock. On Windows the target can be open in another process for a moment
+    (a virus scanner, the indexer, an editor, a progress check): the replace then fails with PermissionError, and a long
+    fetch run died on it. The wait is bounded (about 10 seconds in all); a lock that stays is still an error."""
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(delay * (attempt + 1))
 
 
 def atomic_write_bytes(path: Path, data: bytes) -> None:
@@ -20,7 +35,7 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(tmp_name, path)
+        replace_with_retry(tmp_name, path)
     except BaseException:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp_name)

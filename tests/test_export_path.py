@@ -14,7 +14,20 @@ from tests.support import isolated_runtime, requires_web_stack
 
 ROOT = Path(__file__).resolve().parent.parent
 EXPORT = ROOT / "data" / "awards.jsonl"
-AS_OF = "2026-10-08T12:00:00Z"
+
+
+def dataset_moment(path: Path) -> str:
+    """The latest time the dataset itself states (fetched or verified). The tests run "as of" that moment, so a dataset that
+    was refreshed later never looks like it comes from the future (validation rejects timestamps after as-of)."""
+    stamps = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            record = json.loads(line)
+            stamps += [record.get("last_fetched_at"), record.get("last_verified_at")]
+    return max(s for s in stamps if s)
+
+
+AS_OF = dataset_moment(EXPORT) if EXPORT.is_file() else "2026-10-08T12:00:00Z"
 PROFILE = {
     "indigenous_identity": ["first_nations"],
     "first_nations_registered": True,
@@ -63,7 +76,7 @@ class ExportPathTests(unittest.TestCase):
                 "live",
                 "--trust-export",
                 "--as-of",
-                "2026-10-08",
+                AS_OF,
             ],
             env=env,
         )
@@ -76,9 +89,28 @@ class ExportPathTests(unittest.TestCase):
         cls.app.state.engine.dispose()
         cls.tmp.cleanup()
 
+    def pages(self, fetch):
+        """Every result of a paged endpoint (at most 100 per page)."""
+        out, offset = [], 0
+        while True:
+            batch = fetch(offset)
+            out += batch
+            if len(batch) < 100:
+                return out
+            offset += 100
+
     def listing(self):
-        body = self.client.get(f"/opportunities?limit=100&as_of={AS_OF}").json()
-        return {item["id"]: item for item in body["results"]}
+        rows = self.pages(
+            lambda offset: self.client.get(f"/opportunities?limit=100&offset={offset}&as_of={AS_OF}").json()["results"]
+        )
+        return {item["id"]: item for item in rows}
+
+    def matches(self, profile):
+        return self.pages(
+            lambda offset: self.client.post(
+                "/match", json={"profile": profile, "limit": 100, "offset": offset, "as_of": AS_OF}
+            ).json()["results"]
+        )
 
     def test_the_dataset_loads_without_the_saved_pages(self):
         self.assertEqual(self.load.exit_code, 0, self.load.output[-1500:])
@@ -126,13 +158,13 @@ class ExportPathTests(unittest.TestCase):
         self.assertGreater(checked, 60, "the check must have looked at real amounts and dates")
 
     def test_the_demo_student_sees_what_the_data_supports(self):
-        results = {
-            r["title"]: r
-            for r in self.client.post("/match", json={"profile": PROFILE, "limit": 100, "as_of": AS_OF}).json()[
-                "results"
-            ]
-        }
-        self.assertEqual(len(results), len(self.export))
+        rows = self.matches(PROFILE)
+        self.assertEqual(len(rows), len(self.export))
+        results = {}
+        for r in rows:
+            results.setdefault(
+                r["title"], r
+            )  # a few directory titles are used by two providers; the ones checked below are not
         self.assertEqual(
             results["Phyllis Webstad Award for Indigenous Students"]["match_status"], "needs_provider_confirmation"
         )
@@ -154,7 +186,7 @@ class ExportPathTests(unittest.TestCase):
 
     def test_a_skipped_question_becomes_a_clarification_question(self):
         skipped = {k: v for k, v in PROFILE.items() if k != "first_nations_registered"}
-        rows = self.client.post("/match", json={"profile": skipped, "limit": 100, "as_of": AS_OF}).json()["results"]
+        rows = self.matches(skipped)
         asking = [r for r in rows if "first_nations_registered" in r["missing_profile_fields"]]
         self.assertEqual([r["title"] for r in asking], ["Post-Secondary Student Support Program (PSSSP)"])
         self.assertIn("Indian Act", asking[0]["clarification_questions"][0])

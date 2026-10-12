@@ -22,6 +22,7 @@ LABELS = (
     "Value",
     "Field of Study",
     "Province/Territory",
+    "Contact Organisation",
     "Awards Available",
     "Other Eligibility Criteria",
     "Web Link",
@@ -50,6 +51,16 @@ def parse_detail_fields(text: str) -> dict[str, str]:
             found.setdefault(label, value)
         i += 1
     return found
+
+
+def provider_of(fields: dict[str, str]) -> tuple[str | None, bool]:
+    """(provider, named). The page's "Provider Name"; about one page in five has none, and then its "Contact Organisation" is
+    the only organisation the page names (named is False). It is used as stated, never swapped for the directory's
+    "institution" column, which says where an award is held and agrees with the provider on fewer than half of the pages."""
+    listed = fields.get("Provider Name")
+    if listed:
+        return listed, True
+    return fields.get("Contact Organisation") or None, False
 
 
 def amount_from_value(value: str | None) -> dict:
@@ -86,22 +97,27 @@ def quote_prefix(text: str, limit: int = 300) -> str:
     return cut[: cut.rfind(" ")].strip() if " " in cut else cut
 
 
-def isc_detail_record(snap: SnapshotView, source: SourceConfig, now_iso: str) -> dict:
+def isc_detail_record(snap: SnapshotView, source: SourceConfig, now_iso: str, group: str | None = None) -> dict:
     fields = parse_detail_fields(snap.text)
-    name, provider = fields.get("Name"), fields.get("Provider Name")
+    name = fields.get("Name")
+    provider, named = provider_of(fields)
     if not name or not provider:
-        raise ValueError("the page has no 'Name' and 'Provider Name' fields")
+        raise ValueError("the page has no 'Name', or names neither a 'Provider Name' nor a 'Contact Organisation'")
     web = fields.get("Web Link", "")
     web = web if web.startswith(("http://", "https://")) else ""
     criteria = fields.get("Other Eligibility Criteria", "")
     modified = fields.get("Date modified", "")
-    facts = [f"Provider: {provider}."]
+    facts = [f"Provider: {provider}." if named else f"Contact organisation: {provider} (the page names no provider)."]
     if fields.get("Field of Study"):
         facts.append(f"Field of study: {fields['Field of Study']}.")
     if fields.get("Province/Territory"):
         facts.append(f"Province/territory: {fields['Province/Territory']}.")
     if fields.get("Awards Available"):
         facts.append(f"Awards available: {fields['Awards Available']}.")
+    if (
+        group
+    ):  # the directory's own "Indigenous group" column for this entry (it is on the index page, not on the detail page)
+        facts.append(f"Indigenous group: {group}.")
     when = f" (page last modified {modified})" if modified else ""
     summary = (
         f"Listed in the Indigenous Services Canada bursaries directory{when}. {' '.join(facts)} "

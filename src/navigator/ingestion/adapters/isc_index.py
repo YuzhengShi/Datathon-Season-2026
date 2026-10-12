@@ -82,20 +82,40 @@ def parse_index_table(html: bytes, base_url: str) -> dict:
     }
 
 
+def _https(url: str) -> str:
+    """The index links use http:// although the site is https-only; snapshots carry the https address."""
+    return url.replace("http://www.sac-isc.gc.ca/", "https://www.sac-isc.gc.ca/", 1)
+
+
+def merge_repeated_listings(records: list[dict]) -> tuple[list[dict], int]:
+    """The directory lists an award once per institution (one Metis bursary appears about forty times). The same award from
+    the same provider is one opportunity. Of the repeats the listing with the smallest id is kept (the first one when the ids
+    are equal), so the choice never depends on the order pages were fetched in; the others are counted, not rejected one by
+    one downstream (which made every normal run exit as partial)."""
+    best: dict[str, dict] = {}
+    for record in records:
+        key = record["source_record_key"]
+        if key not in best or record["id"] < best[key]["id"]:
+            best[key] = record
+    return list(best.values()), len(records) - len(best)
+
+
 class IscIndexAdapter(Adapter):
     name = "isc_index"
 
     def select_links(self, doc: ExtractedDocument, url: str, source: SourceConfig, depth: int) -> list[str]:
         if depth > 0:
             return []
-        # Detail pages of the rows whose province is British Columbia or National (the other provinces are not what
-        # a UBC student needs first); the source's page budget bounds how many are followed. The index links use
-        # http:// although the site is https-only, and an unreadable robots.txt over http means "do not fetch".
+        # The detail page of EVERY row of the directory, in table order: all provinces and territories, National and "Any
+        # Location" entries too. The first version followed only British Columbia and National rows (a UBC student's first
+        # needs), which left every other province and territory without data. The source's page budget bounds how many are
+        # followed. The index links use http:// although the site is https-only, and an unreadable robots.txt over http
+        # means "do not fetch".
         wanted: set[str] = set()
         for block in doc.blocks:
             for line in (getattr(block, "text", "") or "").splitlines():
                 cells = [" ".join(cell.split()) for cell in line.split(" | ")]
-                if len(cells) >= 2 and cells[1] in ("British Columbia", "National"):
+                if len(cells) >= 2 and cells[0] and cells[0] != "Scholarship/Award":
                     wanted.add(cells[0])
         return [
             link.href.replace("http://www.sac-isc.gc.ca/", "https://www.sac-isc.gc.ca/", 1)
@@ -119,11 +139,17 @@ class IscIndexAdapter(Adapter):
             )
         result.stats["detail_pages_fetched"] = len(snaps) - 1
         now_iso = format_utc(ctx.now)
+        groups = {
+            _https(e["detail_url"]): e.get("indigenous_group") or None for e in parsed["entries"] if e.get("detail_url")
+        }
+        built: list[dict] = []
         for snap in snaps:
             if snap is index:
                 continue
             try:
-                result.candidates.append(isc_detail_record(snap, source, now_iso))
+                built.append(isc_detail_record(snap, source, now_iso, groups.get(_https(snap.url))))
             except (KeyError, ValueError) as exc:
                 result.pending.append({"item": snap.url, "reason": f"directory detail page not understood: {exc}"})
+        result.candidates, merged = merge_repeated_listings(built)
+        result.stats["repeated_listings_merged"] = merged
         return result

@@ -41,8 +41,10 @@
   function getResults(filters){
     const rows=opportunities.filter(item=>matches(item,filters));
     if(filters.aiIds)rows.sort((a,b)=>filters.aiIds.indexOf(a.id)-filters.aiIds.indexOf(b.id));
-    if(filters.sort==='amount')rows.sort((a,b)=>(b.amount??-1)-(a.amount??-1)||a.id.localeCompare(b.id));
-    if(filters.sort==='alphabetical')rows.sort((a,b)=>normalize(a.title).localeCompare(normalize(b.title))||a.id.localeCompare(b.id));
+    /* Ties break by code point, exactly like the server's Python sort: localeCompare puts ':' '_' and '-' in another order, so the site and the API listed the same records differently once ids had suffixes. */
+    const byText=(a,b)=>a<b?-1:a>b?1:0;
+    if(filters.sort==='amount')rows.sort((a,b)=>(b.amount??-1)-(a.amount??-1)||byText(a.id,b.id));
+    if(filters.sort==='alphabetical')rows.sort((a,b)=>byText(normalize(a.title),normalize(b.title))||byText(a.id,b.id));
     return rows;
   }
   function toFilters(f){
@@ -61,11 +63,18 @@
     const count=key=>rows.reduce((out,x)=>{out[x[key]]=(out[x[key]]||0)+1;return out;},{});
     return {data_mode:root.FundingModel.mode,dataset_version:root.FundingModel.mode==='demo'?'frontend-examples-v5':'live-read-model',total:rows.length,national_count:national,regional_count:regional,unspecified_region_count:rows.length-national-regional,regions:Object.entries(regions).map(([code,name])=>({code,name,regional_count:rows.filter(x=>x.province===name).length,national_count:national,reach_count:national+rows.filter(x=>x.province===name).length})),by_type:count('type'),by_community:Object.fromEntries(['First Nations','Inuit','Métis'].map(c=>[c,rows.filter(x=>x.community.includes(c)).length])),amounts:{listed:known.length,unknown:rows.length-known.length,highest_example_figure:known.length?String(Math.max(...known.map(x=>Number(x.amount)))):null,sum:null},amount_bands:{up_to_5000:known.filter(x=>Number(x.amount)<=5000).length,above_5000:known.filter(x=>Number(x.amount)>5000).length,unknown:rows.length-known.length},by_deadline_kind:count('deadline_kind'),amount_rows:rows,quality:{verified_records:rows.filter(x=>x.last_verified_at).length,unknown_education_level:rows.filter(x=>!x.education_levels?.length).length}};
   }
-  function amountText(item){return item.amount===null?'Funding varies':new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:0}).format(Number(item.amount));}
+  const money=value=>new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:0}).format(Number(value));
+  /* A stated range is shown as a range ("$2,000–$4,000"), never as one figure; no figure at all is "Funding varies". */
+  const rangeOf=item=>{const d=item.amount_details;return d&&d.kind==='range'&&d.minimum!=null&&d.maximum!=null?d:null;};
+  const hasAmount=item=>(item.amount!==null&&item.amount!==undefined)||Boolean(rangeOf(item));
+  function amountText(item){
+    if(item.amount===null||item.amount===undefined){const range=rangeOf(item);return range?`${money(range.minimum)}–${money(range.maximum)}`:'Funding varies';}
+    return money(item.amount);
+  }
   const isDemo=()=>root.FundingModel.mode==='demo';
   /* What a figure is: the kind of amount the source states. A fixed amount is never "up to"; "example" is for demo data only. */
   function amountNote(item){
-    if(item.amount===null||item.amount===undefined)return 'Confirm amount';
+    if(item.amount===null||item.amount===undefined){if(!rangeOf(item))return 'Confirm amount';return isDemo()?'Listed range · example':'Listed range';}
     const kind=item.amount_details?.kind;
     const base=kind==='maximum'?'Up to':kind==='fixed'?'Listed amount':'Listed figure';
     return isDemo()?`${base} · example`:base;
@@ -105,5 +114,5 @@
     root.FundingModel.mode=data.data_mode;
     return data;
   });
-  root.FundingModel={mode:'demo',opportunities,regions,filterKeys,matches,getResults,amountText,amountNote,regionNote,copy,governmentAttribution,evidenceItems,toFilters,fromFilters,statistics,ready};
+  root.FundingModel={mode:'demo',opportunities,regions,filterKeys,matches,getResults,amountText,amountNote,hasAmount,regionNote,copy,governmentAttribution,evidenceItems,toFilters,fromFilters,statistics,ready};
 })(globalThis);
