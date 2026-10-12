@@ -39,7 +39,7 @@ class DocsTests(unittest.TestCase):
                 "## 2. Data and how it supports the result",
                 "## 3. Run it locally",
                 "## 4. Demo path",
-                "## 5. What works now, and what remains before Build Session 3",
+                "## 5. What works now, and what remains",
             ],
         )
 
