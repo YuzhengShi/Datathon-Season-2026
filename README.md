@@ -4,6 +4,8 @@
 
 **Demo video (60 s):** <https://youtu.be/a0TR5dglQrQ>
 
+**Try it online:** <https://funding-navigator.streamlit.app/> (Explore, Statistics and My saved; AI search needs the local app, section 3)
+
 ## 1. Idea and choices
 
 **The problem.** Funding for Indigenous students sits in separate systems (PSSSP, Inuit and Métis programs, institutional awards, private foundations), each with its own rules and dates. The best national lead, the federal [Indigenous Bursaries Search Tool](https://www.sac-isc.gc.ca/eng/1351185180120/1351685455328) (540 entries), asks students to confirm everything with each provider, and Indspire covers only its own awards. Nothing puts rules, dates and sources in one place or shows where support is ([evidence](docs/build-session-1.md)).
