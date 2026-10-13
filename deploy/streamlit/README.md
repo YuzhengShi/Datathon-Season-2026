@@ -27,6 +27,6 @@ node tests/e2e/streamlit.mjs --base=http://127.0.0.1:8501
 
 ## How it works
 
-- `streamlit_app.py` copies `dist/` to a temporary folder, adds `embed.js` and `embed.css` to its `index.html`, and serves that folder with `components.declare_component(path=...)`. `dist/` itself is not changed. It also makes the frame as tall as the window and hides Streamlit's own header, footer and padding.
+- `streamlit_app.py` copies `dist/` to a temporary folder, adds `embed.js` and `embed.css` to its `index.html`, and serves that folder with `components.declare_component(path=...)`. `dist/` itself is not changed. It also makes the frame as tall as the window and hides Streamlit's own header, footer and padding. The copy and the component are named after a hash of the files: Streamlit keeps cached values across the hot reload that follows a push, so without it a redeployed app went on serving the files of the previous version.
 - Streamlit builds the frame of a component with `scrolling="no"`, so the frame's own viewport cannot scroll. `embed.css` makes the body the scroller instead and `embed.js` points the site's `scrollTo` calls at it.
 - `embed.js` also keeps the site in its static mode (`/api/...` calls fail at once), switches the search box to keyword search and tells Streamlit the frame is ready. `embed.css` hides the AI buttons.

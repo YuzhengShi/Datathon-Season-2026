@@ -47,8 +47,10 @@ async function visit(label, { width, height, dpr, mobile }) {
   const problems = [];
   listeners.push((m) => {
     if (m.sessionId !== sessionId) return;
-    if (m.method === 'Runtime.exceptionThrown') problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).slice(0, 160));
-    if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error' && !/favicon|manifest/.test(m.params.entry.url || '')) problems.push('console: ' + m.params.entry.text.slice(0, 120));
+    // Only what comes from the site and its adapter counts: the host page (Streamlit Community Cloud, for one) has errors of its own.
+    const ours = (url) => !url || /\/component\//.test(url);
+    if (m.method === 'Runtime.exceptionThrown' && ours(m.params.exceptionDetails.url)) problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).slice(0, 160));
+    if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error' && ours(m.params.entry.url) && !/favicon|manifest/.test(m.params.entry.url || '')) problems.push('console: ' + m.params.entry.text.slice(0, 120));
     if (m.method === 'Network.responseReceived' && m.params.response.status >= 400 && /\/component\/|\/data\//.test(m.params.response.url)) problems.push(`HTTP ${m.params.response.status} ${m.params.response.url.slice(-70)}`);
   });
   await Promise.all(['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable'].map((m) => call(m)));
