@@ -1,0 +1,3 @@
+/* Online version inside Streamlit: the parts of the site that need the backend are hidden (see embed.js). */
+.in-streamlit [data-assistant],
+.in-streamlit .search-meta { display: none !important; }
