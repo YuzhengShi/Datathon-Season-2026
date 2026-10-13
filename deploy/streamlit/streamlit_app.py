@@ -48,6 +48,7 @@ st.markdown(
     [data-testid="stAppViewContainer"] > .main, [data-testid="stMain"] { overflow: hidden; }
     html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: #f8f7f2 !important; color-scheme: light; }
     [data-testid="stVerticalBlock"] { gap: 0 !important; }
+    .stApp iframe { display: block; width: 100%; height: 100vh !important; height: 100dvh !important; border: 0; }
     </style>
     """,
     unsafe_allow_html=True,

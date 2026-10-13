@@ -1,3 +1,10 @@
-/* Online version inside Streamlit: the parts of the site that need the backend are hidden (see embed.js). */
+/* The site inside the Streamlit frame (see embed.js). */
+
+/* The parts that need the backend are hidden. */
 .in-streamlit [data-assistant],
 .in-streamlit .search-meta { display: none !important; }
+
+/* Streamlit builds its component frame with scrolling="no", so the frame's own viewport cannot scroll: the body does. */
+html.in-streamlit { height: 100%; overflow: hidden; }
+html.in-streamlit body { height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+html.in-streamlit body:has(dialog[open]) { overflow: hidden; }
