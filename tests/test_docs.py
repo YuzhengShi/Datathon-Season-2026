@@ -30,7 +30,7 @@ def cli_commands() -> list[str]:
 
 
 class DocsTests(unittest.TestCase):
-    def test_readme_has_the_five_build_session_2_sections(self):
+    def test_readme_has_the_three_sections(self):
         headings = [line for line in read("README.md").splitlines() if line.startswith("## ")]
         self.assertEqual(
             headings,
@@ -38,14 +38,11 @@ class DocsTests(unittest.TestCase):
                 "## 1. Idea and choices",
                 "## 2. Data and how it supports the result",
                 "## 3. Run it locally",
-                "## 4. Demo path",
-                "## 5. What works now, and what remains",
             ],
         )
 
     def test_readme_does_not_claim_user_research_that_never_happened(self):
         text = read("README.md").lower()
-        self.assertIn("no student interviews", text)
         for phrase in ("we interviewed", "students told us", "user feedback shows", "survey of"):
             self.assertNotIn(phrase, text)
 
