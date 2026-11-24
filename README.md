@@ -7,7 +7,7 @@
 [![License: MIT (code)](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.65-FF4B4B.svg?logo=streamlit&logoColor=white)](deploy/streamlit/requirements.txt)
-[![Live app](https://img.shields.io/badge/live%20app-Streamlit%20Cloud-FF4B4B.svg)](https://funding-navigator.streamlit.app/)
+[![Live app](https://img.shields.io/badge/live%20app-GitHub%20Pages-222222.svg?logo=github)](https://yuzhengshi.github.io/Datathon-Season-2026/)
 [![Demo video](https://img.shields.io/badge/demo-YouTube-red.svg?logo=youtube)](https://youtu.be/a0TR5dglQrQ)
 
 [Live app](#live-app) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Data and sources](#2-data-and-how-it-supports-the-result) · [Run it locally](#3-run-it-locally) · [Layout](#repository-layout) · [License](#license)
@@ -28,9 +28,11 @@ It was built for a datathon in 2026. What is notable about it:
 
 ### Live app
 
-**<https://funding-navigator.streamlit.app/>**
+**<https://yuzhengshi.github.io/Datathon-Season-2026/>**
 
-The hosted version has Explore, Statistics and My saved. AI search and chat need a backend and a key, so they are hidden there and the search box does keyword search. Free Streamlit apps go to sleep when nobody visits; if you see a "gone to sleep" page, use its button to wake the app.
+The site is the static build in `dist/`, deployed to GitHub Pages by [`.github/workflows/pages.yml`](.github/workflows/pages.yml). That workflow is run by hand and runs the tests and `app publish` before each deploy. The site has Explore, Statistics and My saved. AI search and chat need a backend and a key, so they are hidden there and the search box does keyword search.
+
+A copy also runs on Streamlit Community Cloud at <https://funding-navigator.streamlit.app/>. It serves the `dist/` committed in this repository and goes to sleep when nobody visits; use its button to wake it.
 
 A 60-second demo video is on [YouTube](https://youtu.be/a0TR5dglQrQ).
 
@@ -124,7 +126,7 @@ python -m venv .venv
 
 If Windows refuses port 8000, add `-Port 8080`; if PowerShell refuses to run scripts, use `powershell -ExecutionPolicy Bypass -File .\scripts\start_app.ps1`. On macOS or Linux use `source .venv/bin/activate` and `scripts/start_app.sh` (only the Windows script has been run). AI search stays off until `.env` has `LLM_ENABLED=true` and a key ([docs/LLM_PROVIDERS.md](docs/LLM_PROVIDERS.md)); everything else works without it.
 
-**Streamlit version.** The hosted app is the static site in `dist/` served as a Streamlit component ([how it works](deploy/streamlit/README.md)). To run it:
+**Streamlit version.** The Streamlit copy serves the static site in `dist/` as a Streamlit component ([how it works](deploy/streamlit/README.md)). To run it:
 
 ```powershell
 pip install -r deploy/streamlit/requirements.txt
@@ -151,8 +153,9 @@ Two tests carry the data claims. [`tests/test_export_path.py`](tests/test_export
 | `data/` | The dataset (`awards.jsonl`), hand-written source mappings (`curated/`), reference data |
 | `sources.yaml`, `sources.providers.yaml` | The allowed source pages and fetch rules |
 | `src/navigator/` | The Python package: `ingestion/` (fetch, parse, validate, import), `core/` (evidence, money, deadlines), `matching/`, `app/` (read model, statistics, AI search), `api/`, `cli.py` |
-| `frontend/`, `dist/` | The site: `frontend/` for the API-backed version, `dist/` for the static version that Streamlit serves |
-| `deploy/streamlit/` | The Streamlit wrapper for the hosted app |
+| `frontend/`, `dist/` | The site: `frontend/` for the API-backed version, `dist/` for the static version that GitHub Pages and Streamlit serve |
+| `.github/workflows/` | `pages.yml`, the manual deploy of `dist/` to GitHub Pages |
+| `deploy/streamlit/` | The Streamlit wrapper for the Streamlit copy |
 | `tests/`, `scripts/` | Python and JavaScript tests, browser checks, start scripts and maintenance scripts |
 | `docs/` | Architecture, data model, runbook and design notes (some written during the build and kept as written) |
 | `migrations/`, `migrations_app/` | Alembic migrations for the two databases |
