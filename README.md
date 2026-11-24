@@ -45,3 +45,10 @@ npm install --no-save --package-lock=false jsdom@30.1.2   # once, for the next l
 node scripts/qa-ui.cjs                                    # 63 checks of the site in a simulated DOM (no browser)
 node tests/e2e/site.mjs --base=http://127.0.0.1:8000      # 51 checks in a real Chrome, with the app running (54 with --ai)
 ```
+
+## 4. License
+
+The code is under the [MIT License](LICENSE). The license does not cover:
+
+- the data in `data/` and `dist/data/` (the funding records, the provider text quoted in them, and the map): it stays under its sources' terms (section 2), including the Government of Canada's non-commercial reproduction terms;
+- the fonts in `frontend/assets/fonts/` and `dist/assets/fonts/`, which are under the SIL Open Font License (the `*-OFL.txt` files next to them).
