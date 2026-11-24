@@ -1,0 +1,63 @@
+# Deploys the static site in dist/ to GitHub Pages. Manual trigger only:
+# Actions tab -> "Deploy site to GitHub Pages" -> Run workflow.
+# It never fetches source websites (no `pipeline` step), uses no secrets and sets no contact address.
+name: Deploy site to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+
+      # `app publish` runs the read-model upgrade itself; this step makes a failure there visible on its own.
+      - name: Prepare the live read model
+        run: python -m navigator.cli app upgrade --mode live
+
+      # The Node-based tests (node --test tests/js/*.test.mjs, run by pytest) need no npm packages.
+      # jsdom is only used by scripts/qa-ui.cjs, which pytest does not run, so it is not installed here.
+      - name: Test suite
+        run: python -m pytest -q
+
+      - name: Publish dataset to dist/data/opportunities.json
+        run: python -m navigator.cli app publish
+
+      # A non-empty diff means the committed dataset lags behind data/awards.jsonl.
+      - name: Show whether the committed dataset lags behind
+        run: git diff --stat -- dist/
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
